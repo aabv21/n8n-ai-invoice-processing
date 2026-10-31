@@ -38,6 +38,7 @@ export const WORKFLOWS: readonly WorkflowEntry[] = [
   { id: 'mgpLoadConfig001', name: 'Load config', file: 'load-config.json' },
   { id: ERROR_WORKFLOW_ID, name: 'Error handler', file: 'error-handler.json' },
   { id: 'mgpEnsureFolder1', name: 'Ensure folder', file: 'ensure-folder.json' },
+  { id: 'mgpDevHarness001', name: 'Dev harness', file: 'dev-harness.json' },
   { id: 'mgpExtractInv001', name: 'Extract invoice', file: 'extract-invoice.json' },
   { id: 'mgpProcessInv001', name: 'Process invoice', file: 'process-invoice.json' },
   { id: 'mgpGmailEntry001', name: 'Gmail entry', file: 'gmail-entry.json' },
