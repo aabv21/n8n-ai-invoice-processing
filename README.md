@@ -6,7 +6,7 @@ An n8n workflow that reads supplier invoices from Gmail, extracts them with Clau
 
 ## Status
 
-In progress: local runtime, toolchain, and workflow tooling. No workflow is built yet.
+In progress: local runtime, toolchain, workflow tooling, and the invoice extraction contract. No workflow is built yet.
 
 ### What works now
 
@@ -15,6 +15,7 @@ In progress: local runtime, toolchain, and workflow tooling. No workflow is buil
 - The application schema (`db/schema.sql`): `invoices`, `invoice_items`, and `processed_events`.
 - A config template (`config/config.example.json`) for the values the workflows will read at runtime.
 - Workflow tooling: `npm run build:workflows` compiles Code-node sources and writes generated text parameters (SQL queries, prompts, schemas) into workflow JSON; `npm run check` runs hygiene checks (no pinned data, no literal secrets or ids, every external call retries, every generated value really is generated); `npm run setup` and `npm run export` import, publish, and export workflows and credentials against the local n8n instance. All verified against the tooling's own fixtures; no real workflow exists yet to run them on.
+- The invoice extraction contract: `schemas/invoice.schema.json` (the structured-output JSON Schema) and `prompts/extract-invoice.md` (the extraction system prompt), plus the pure TypeScript that turns a model reply into a checked result (`src/lib/invoice.ts`, `parse-reply.ts`, `normalize-invoice.ts`, `validate-invoice.ts`, `file-name.ts`, `util.ts`) and the two Code-node sources: `check-invoice.ts` (used by both extraction paths) and `build-pdf-request.ts` (the vision path's request body). All verified offline by Vitest; none of it is wired into a workflow yet.
 - Credential setup skips a Google OAuth2 credential (Gmail, Drive, Sheets) that already exists, so a re-run can't silently wipe out an interactive Google sign-in.
 - A localhost-only dev harness CLI (`node scripts/dev-call.ts`) for calling a sub-workflow directly once one exists; unpublished and untested until Task 6 adds the harness workflow.
 - CI: lint/typecheck/test/build/check and ShellCheck on one job, `npm audit` and gitleaks on another, actionlint and zizmor on a third; CodeQL (once the repo is public); Dependabot for npm, GitHub Actions, and Docker Compose images.
