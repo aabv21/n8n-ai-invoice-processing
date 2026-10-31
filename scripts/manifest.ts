@@ -125,6 +125,12 @@ export const CODE_NODES: readonly CodeNodeEntry[] = [
     source: 'src/nodes/check-config.ts',
     why: 'validates the loaded config so a bad value fails loudly instead of silently disabling a check',
   },
+  {
+    file: 'daily-summary.json',
+    node: 'Render summary',
+    source: 'src/nodes/render-summary.ts',
+    why: 'renders escaped HTML tables and per-currency money formats from the summary row',
+  },
 ];
 
 export const TEXT_PARAMS: readonly TextParamEntry[] = [
@@ -137,6 +143,7 @@ export const TEXT_PARAMS: readonly TextParamEntry[] = [
   { file: 'process-invoice.json', node: 'Save Drive link', parameter: 'query', source: 'db/queries/save-drive-link.sql' },
   { file: 'process-invoice.json', node: 'Record outcome', parameter: 'query', source: 'db/queries/record-outcome.sql' },
   { file: 'intake-email.json', node: 'Record event', parameter: 'query', source: 'db/queries/record-event.sql' },
+  { file: 'daily-summary.json', node: 'Query summary', parameter: 'query', source: 'db/queries/daily-summary.sql' },
 ];
 
 export const BUILD_ENTRIES: readonly BuildEntry[] = [...CODE_NODES, ...TEXT_PARAMS];

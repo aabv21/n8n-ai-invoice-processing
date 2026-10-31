@@ -74,7 +74,7 @@
       "parameters": {
         "width": 560,
         "height": 160,
-        "content": "NOTE: Parse config keeps the caller's input fields alongside config instead of replacing them, because Extract From File's default Keep Source setting merges in the input item's JSON. So every caller passes no input. Upgrade path: add a Set node after Parse config that keeps only config, to match the documented output shape exactly."
+        "content": "NOTE: Parse config outputs exactly { config }, since Read config file already discarded the caller's own item one step earlier. A caller may pass input; it's ignored either way. Upgrade path: if a caller ever needs to keep its own fields through this call, merge them back on afterward, the way daily-summary's Attach config to run does."
       }
     }
   ],

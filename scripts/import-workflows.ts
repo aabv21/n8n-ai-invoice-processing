@@ -82,6 +82,13 @@ async function main(): Promise<void> {
     const n8nUrl = process.env.N8N_URL;
     const healthy = n8nUrl ? await waitForHealthy(n8nUrl, 90_000) : false;
     if (!healthy) failures.push('n8n did not become healthy after restart');
+    // NOTE: /healthz reports healthy well before a sub-workflow call is guaranteed to read the
+    // version just published. A reconciler syncs workflow_published_version to the active version
+    // on its own schedule (10 s by default, N8N_WORKFLOW_PUBLICATION_RECONCILE_INTERVAL_SECONDS),
+    // so a call made right after the restart can still run the previous version. This fixed wait
+    // is longer than that default interval, not a guarantee against a slower one. Upgrade path:
+    // poll workflow_published_version against workflow_entity.activeVersionId instead of sleeping.
+    else await new Promise<void>((resolve) => setTimeout(resolve, 15_000));
   }
 
   for (const failure of failures) console.error(failure);
