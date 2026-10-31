@@ -37,4 +37,12 @@ export default defineConfig([
       'no-restricted-globals': ['error', 'process', 'fetch'],
     },
   },
+  {
+    // The scan rasterizer walks a Uint8ClampedArray pixel buffer by a bounded numeric loop
+    // counter, never by a computed or external key.
+    files: ['scripts/lib/invoice-pdf.ts'],
+    rules: {
+      'security/detect-object-injection': 'off',
+    },
+  },
 ]);
