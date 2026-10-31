@@ -1,3 +1,4 @@
+import { readFileSync } from 'node:fs';
 import { afterAll, beforeAll, beforeEach, describe, expect, test } from 'vitest';
 import type { NormalizedInvoice } from '../../src/lib/invoice.ts';
 import { VALID_INVOICE } from '../fixtures/invoice-1.ts';
@@ -208,4 +209,27 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
     expect((await summary()).review_items).toMatchObject([{ supplier: 'Marbetaria S.A.S.', review_reasons: ['totals_mismatch'] }]));
   test('due soon covers the report day through day +7', async () =>
     expect((await summary()).due_soon.map((d) => d.due_date)).toEqual(['2026-06-15', '2026-06-22']));
+});
+
+test('the scenario report joins events, invoices, items, and duplicates', async () => {
+  const since = '2026-10-30T00:00:00Z';
+
+  await db.run('record-event.sql', ['orig:attachment_0', 'invoice-01-two-items.pdf']);
+  await setReceivedAt('orig:attachment_0', '2026-10-30T15:00:00Z');
+  const original = await save('orig:attachment_0', VALID_INVOICE, 'ok');
+  await db.run('record-outcome.sql', ['orig:attachment_0', 'ok', original.invoice_id]);
+
+  await db.run('record-event.sql', ['dup:attachment_0', 'invoice-06-copy-of-01.pdf']);
+  await setReceivedAt('dup:attachment_0', '2026-10-30T16:00:00Z');
+  const dup = await save('dup:attachment_0', VALID_INVOICE, 'ok');
+  await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]);
+
+  const sql = readFileSync('scripts/sql/scenario-report.sql', 'utf8');
+  const [row] = await db.sql<{ report: unknown[] }>(sql, [since]);
+  const report = row?.report as { file_name: string; invoice: { line_items: unknown[] } | null; duplicate_of_file: string | null }[];
+
+  expect(report).toHaveLength(2);
+  expect(report[0]).toMatchObject({ file_name: 'invoice-01-two-items.pdf', outcome: 'ok', duplicate_of_file: null });
+  expect(report[0]?.invoice?.line_items).toHaveLength(2);
+  expect(report[1]).toMatchObject({ file_name: 'invoice-06-copy-of-01.pdf', outcome: 'duplicate', duplicate_of_file: 'invoice-01-two-items.pdf' });
 });
