@@ -53,6 +53,24 @@ services:
       interval: 5s
       retries: 10
 
+  # NOTE: trust auth would be unsafe for the app/n8n databases above, but this one is opt-in
+  # (profile `test`), tmpfs-backed (nothing survives a restart), and bound to 127.0.0.1 like every
+  # other service here, for `npm run test:db` (tests/db/**) only.
+  testdb:
+    image: postgres:17-alpine
+    profiles: [test]
+    environment:
+      POSTGRES_HOST_AUTH_METHOD: trust
+      POSTGRES_DB: postgres
+    ports:
+      - 127.0.0.1:55432:5432
+    tmpfs:
+      - /var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U postgres -d postgres"]
+      interval: 5s
+      retries: 10
+
 volumes:
   pgdata:
   n8n_data:
