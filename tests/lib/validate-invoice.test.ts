@@ -31,7 +31,7 @@ test.each([
   ['missing total skips the totals check', { total: null, confidence: 0.5 }, ['missing_total', 'low_confidence']],
 ])('%s', (_name, patch, expected) =>
   expect(validateInvoice({ ...valid, ...patch }, rules, today)).toEqual(expected));
-// M6: 1234.56 + 234.57 is 1469.13 to the cent, but binary floating-point addition leaves a tiny
+// 1234.56 + 234.57 is 1469.13 to the cent, but binary floating-point addition leaves a tiny
 // error, which a zero tolerance would otherwise flag as a mismatch that isn't really there.
 test('rounds the totals diff to cents, so float noise is not a mismatch at zero tolerance', () =>
   expect(validateInvoice({ ...valid, subtotal: 1234.56, tax: 234.57, total: 1469.13 }, { ...rules, totals_tolerance: 0 }, today)).toEqual([]));
@@ -39,7 +39,7 @@ test('reports every missing required field in field order', () =>
   expect(validateInvoice({ ...EMPTY_INVOICE, confidence: 0.9 }, rules, today)).toEqual([
     'missing_supplier', 'missing_supplier_tax_id', 'missing_invoice_number', 'missing_issue_date',
     'missing_currency', 'missing_subtotal', 'missing_tax', 'missing_total']));
-// M8: with no rules, `> undefined` and `< undefined` are always false, so a wrong total and a
+// With no rules, `> undefined` and `< undefined` are always false, so a wrong total and a
 // near-zero confidence would otherwise both pass as `ok` with no reason given.
 test('throws when rules are missing required fields, instead of silently passing everything', () =>
   expect(() => validateInvoice({ ...valid, total: 999, confidence: 0.1 }, {} as unknown as ValidationRules, today)).toThrow());

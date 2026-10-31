@@ -5,3 +5,4 @@ config/*
 node_modules/
 .superpowers/
 .DS_Store
+docs/diagrams/*.delivery.json

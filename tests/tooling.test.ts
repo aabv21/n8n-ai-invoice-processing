@@ -136,9 +136,9 @@ test('check mode reports a stale text parameter', async () =>
 test('an unknown assignment name is an error', async () =>
   await expect(buildWorkflows({ dir: tempCopy(), entries: [{ ...promptEntry, parameter: 'assignments:nope' }], write: true }))
     .rejects.toThrow('assignment nope not found in clean.json › Request settings'));
-// A13/F26: the parent object of a nested dot path (here `options`) may not exist yet on the node,
-// the way `options.systemPromptTemplate` won't on a freshly hand-written Information Extractor
-// node until Task 7 builds one. buildWorkflows must create the missing intermediate object.
+// The parent object of a nested dot path (here `options`) may not exist yet on the node, the way
+// `options.systemPromptTemplate` won't on a freshly hand-written Information Extractor node before
+// its first build. buildWorkflows must create the missing intermediate object.
 test('a nested parameter path is created when its parent object is absent', async () => {
   const dir = tempCopy();
   const nestedEntry = { file: 'clean.json', node: 'Read rows', parameter: 'options.systemPromptTemplate', source: 'tests/fixtures/text/system.md' };
@@ -147,9 +147,8 @@ test('a nested parameter path is created when its parent object is absent', asyn
   expect(options?.systemPromptTemplate).toBe('Fixture prompt with {braces}.\n');
 });
 
-// Ruling P3, extended by F2 to every Google OAuth2 credential: setup-credentials.ts must not
-// silently overwrite one that already exists (import:credentials overwrites by id, which would
-// wipe the owner's sign-in).
+// setup-credentials.ts must not silently overwrite a Google OAuth2 credential that already exists
+// (import:credentials overwrites by id, which would wipe the owner's sign-in).
 test('an existing Google OAuth2 credential is skipped unless forced', () => {
   const drive = { id: 'mgpCredGDrive001', name: 'Google Drive', type: 'googleDriveOAuth2Api', data: {} };
   const appDb = { id: 'mgpCredAppDb0001', name: 'App DB', type: 'postgres', data: {} };
