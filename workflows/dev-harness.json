@@ -111,6 +111,30 @@
                 ]
               },
               "renameOutput": true
+            },
+            {
+              "outputKey": "intake-email",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "40000000-0001-4000-8000-0000000a0104",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.body.target }}",
+                    "rightValue": "intake-email"
+                  }
+                ]
+              },
+              "renameOutput": true
             }
           ]
         },
@@ -322,7 +346,7 @@
       "parameters": {
         "width": 1200,
         "height": 160,
-        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config, extract-invoice, and process-invoice exist today; later work adds more targets the same way."
+        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config, extract-invoice, process-invoice, and intake-email exist today; later work adds more targets the same way."
       }
     },
     {
@@ -479,6 +503,77 @@
           "waitForSubWorkflow": true
         }
       }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000012",
+      "name": "Convert PDF for intake-email",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        840
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "body.input.pdf_base64",
+        "binaryPropertyName": "attachment_0",
+        "options": {
+          "fileName": "={{ $json.body.input.file_name }}",
+          "mimeType": "={{ $json.body.input.mime_type }}"
+        }
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000013",
+      "name": "Shape Gmail item",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        660,
+        840
+      ],
+      "parameters": {
+        "mode": "manual",
+        "includeOtherFields": true,
+        "include": "selected",
+        "includeFields": "",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "40000000-0013-4000-8000-0000000a0001",
+              "name": "id",
+              "type": "string",
+              "value": "={{ $('Receive dev call').first().json.body.input.message_id }}"
+            }
+          ]
+        },
+        "options": {
+          "stripBinary": false
+        }
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000014",
+      "name": "Call intake-email",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        920,
+        840
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpIntakeEmail01"
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
     }
   ],
   "connections": {
@@ -517,6 +612,13 @@
           },
           {
             "node": "Load config for process-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Convert PDF for intake-email",
             "type": "main",
             "index": 0
           }
@@ -586,6 +688,39 @@
       ]
     },
     "Call process-invoice": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert PDF for intake-email": {
+      "main": [
+        [
+          {
+            "node": "Shape Gmail item",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape Gmail item": {
+      "main": [
+        [
+          {
+            "node": "Call intake-email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call intake-email": {
       "main": [
         [
           {

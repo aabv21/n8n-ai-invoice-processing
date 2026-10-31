@@ -1,0 +1,121 @@
+{
+  "id": "mgpGmailEntry001",
+  "name": "Gmail entry",
+  "description": null,
+  "nodes": [
+    {
+      "id": "70000000-0000-4000-8000-000000000001",
+      "name": "Gmail Trigger",
+      "type": "n8n-nodes-base.gmailTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -700,
+        460
+      ],
+      "parameters": {
+        "simple": false,
+        "maxResults": 10,
+        "pollTimes": {
+          "item": [
+            {
+              "mode": "everyMinute"
+            }
+          ]
+        },
+        "filters": {
+          "q": "label:invoices has:attachment filename:pdf -label:processed -label:review -label:duplicate",
+          "readStatus": "both"
+        },
+        "options": {
+          "downloadAttachments": true,
+          "dataPropertyAttachmentsPrefixName": "attachment_"
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mgpCredGmail0001",
+          "name": "Gmail"
+        }
+      }
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000002",
+      "name": "Hand to intake",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        -380,
+        460
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpIntakeEmail01"
+        },
+        "mode": "once",
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000003",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        240
+      ],
+      "parameters": {
+        "width": 760,
+        "height": 150,
+        "content": "## Poll\nPolls Gmail every minute for labeled mail with a PDF attachment, then hands every item from the poll to Intake email in one call. A poll can hold several emails; Intake email splits them into one item per attachment on its own."
+      }
+    },
+    {
+      "id": "70000000-0000-4000-8000-000000000004",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -740,
+        640
+      ],
+      "parameters": {
+        "width": 560,
+        "height": 180,
+        "content": "NOTE: this trigger only sees mail that arrived after its last poll, so a label added by hand to older mail is never picked up here. Upgrade path: a Schedule Trigger paired with a Gmail search for the same query."
+      }
+    }
+  ],
+  "connections": {
+    "Gmail Trigger": {
+      "main": [
+        [
+          {
+            "node": "Hand to intake",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "mgpErrorHandler1"
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
