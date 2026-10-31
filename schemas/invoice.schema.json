@@ -1,0 +1,32 @@
+{
+  "type": "object",
+  "additionalProperties": false,
+  "required": ["supplier", "supplier_tax_id", "invoice_number", "issue_date", "due_date", "currency", "subtotal", "tax", "total", "line_items", "confidence"],
+  "properties": {
+    "supplier": { "type": ["string", "null"], "description": "The issuer's legal name as printed on the invoice." },
+    "supplier_tax_id": { "type": ["string", "null"], "description": "The issuer's tax identification number as printed, such as a Colombian NIT." },
+    "invoice_number": { "type": ["string", "null"], "description": "The invoice number as printed, without labels such as No." },
+    "issue_date": { "type": ["string", "null"], "format": "date", "description": "The date the invoice was issued, as YYYY-MM-DD." },
+    "due_date": { "type": ["string", "null"], "format": "date", "description": "The date payment is due, as YYYY-MM-DD." },
+    "currency": { "type": ["string", "null"], "description": "The invoice currency as an ISO 4217 code, such as COP or USD." },
+    "subtotal": { "type": ["number", "null"], "description": "The invoice amount before tax, as printed." },
+    "tax": { "type": ["number", "null"], "description": "All taxes combined, such as IVA and others, as printed." },
+    "total": { "type": ["number", "null"], "description": "The final invoice amount including tax, as printed." },
+    "line_items": {
+      "type": "array",
+      "description": "One entry per printed invoice line, in the order printed.",
+      "items": {
+        "type": "object",
+        "additionalProperties": false,
+        "required": ["description", "quantity", "unit_price", "line_total"],
+        "properties": {
+          "description": { "type": ["string", "null"], "description": "The printed line description." },
+          "quantity": { "type": ["number", "null"], "description": "The printed quantity." },
+          "unit_price": { "type": ["number", "null"], "description": "The printed unit price." },
+          "line_total": { "type": ["number", "null"], "description": "The printed line total, as printed." }
+        }
+      }
+    },
+    "confidence": { "type": "number", "description": "How confident the extraction is, from 0 to 1." }
+  }
+}
