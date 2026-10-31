@@ -28,6 +28,17 @@ export function missingTriggerCredentials(wf: Workflow, available: ReadonlySet<s
 
 const WORKFLOWS_DIR = 'workflows';
 
+/**
+ * `err.message` plus the failed command's stdout, when there is one - n8n's CLI prints its own
+ * error detail to stdout rather than stderr, so `err.message` alone (just "Command failed: ...")
+ * dropped it. Never reads `.env`: this is the stdout of an `n8n` CLI invocation, not env content.
+ */
+function errorDetail(err: unknown): string {
+  if (!(err instanceof Error)) return String(err);
+  const stdout = (err as { stdout?: unknown }).stdout;
+  return typeof stdout === 'string' && stdout.trim() !== '' ? `${err.message}\n${stdout.trim()}` : err.message;
+}
+
 async function main(): Promise<void> {
   loadDotEnv();
 
@@ -62,7 +73,7 @@ async function main(): Promise<void> {
       await compose(['exec', '-T', 'n8n', 'n8n', 'publish:workflow', `--id=${entry.id}`]);
       publishedCount += 1;
     } catch (err) {
-      failures.push(`publish failed for ${entry.file}: ${err instanceof Error ? err.message : String(err)}`);
+      failures.push(`publish failed for ${entry.file}: ${errorDetail(err)}`);
     }
   }
 
@@ -79,7 +90,7 @@ async function main(): Promise<void> {
 
 if (process.argv[1] === fileURLToPath(import.meta.url)) {
   main().catch((err: unknown) => {
-    console.error(err instanceof Error ? err.message : err);
+    console.error(errorDetail(err));
     process.exitCode = 1;
   });
 }

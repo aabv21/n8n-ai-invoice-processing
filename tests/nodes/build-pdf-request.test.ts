@@ -20,3 +20,8 @@ test('sends no sampling parameters', () => {
 });
 test('a broken schema fails loudly', () =>
   expect(() => run({ model: 'm', effort: 'low', pdf_base64: 'x', system, schema_json: '{' })).toThrow());
+test('a PDF whose base64 would overflow the Messages API request limit throws before the call', () => {
+  const oversized = 'A'.repeat(32_000_000);
+  expect(() => run({ model: 'claude-haiku-5-5', effort: 'low', pdf_base64: oversized, system, schema_json }))
+    .toThrow('PDF too large for the Messages API: 24.0 MB PDF; the limit is about 23.3 MB of PDF');
+});

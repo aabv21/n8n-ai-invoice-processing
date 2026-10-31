@@ -11,6 +11,7 @@ export interface WorkflowNode {
   maxTries?: number;
   waitBetweenTries?: number;
   onError?: string;
+  continueOnFail?: boolean;
   [key: string]: unknown;
 }
 

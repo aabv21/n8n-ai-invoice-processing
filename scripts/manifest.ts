@@ -99,8 +99,26 @@ export const CREDENTIALS: readonly CredentialEntry[] = [
   },
 ];
 
-export const CODE_NODES: readonly CodeNodeEntry[] = [];
+export const CODE_NODES: readonly CodeNodeEntry[] = [
+  {
+    file: 'extract-invoice.json',
+    node: 'Build PDF request',
+    source: 'src/nodes/build-pdf-request.ts',
+    why: 'builds a Messages API body with a PDF document block and structured output, which no native node sends',
+  },
+  {
+    file: 'extract-invoice.json',
+    node: 'Check invoice',
+    source: 'src/nodes/check-invoice.ts',
+    why: 'parses the model reply and applies ordered invoice rules that must yield one verdict',
+  },
+];
 
-export const TEXT_PARAMS: readonly TextParamEntry[] = [];
+export const TEXT_PARAMS: readonly TextParamEntry[] = [
+  { file: 'extract-invoice.json', node: 'Extract from text', parameter: 'inputSchema', source: 'schemas/invoice.schema.json' },
+  { file: 'extract-invoice.json', node: 'Extract from text', parameter: 'options.systemPromptTemplate', source: 'prompts/extract-invoice.md' },
+  { file: 'extract-invoice.json', node: 'Request settings', parameter: 'assignments:system', source: 'prompts/extract-invoice.md' },
+  { file: 'extract-invoice.json', node: 'Request settings', parameter: 'assignments:schema_json', source: 'schemas/invoice.schema.json' },
+];
 
 export const BUILD_ENTRIES: readonly BuildEntry[] = [...CODE_NODES, ...TEXT_PARAMS];

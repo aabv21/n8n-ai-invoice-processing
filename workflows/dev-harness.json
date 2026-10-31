@@ -63,6 +63,30 @@
                 ]
               },
               "renameOutput": true
+            },
+            {
+              "outputKey": "extract-invoice",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "40000000-0001-4000-8000-0000000a0102",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.body.target }}",
+                    "rightValue": "extract-invoice"
+                  }
+                ]
+              },
+              "renameOutput": true
             }
           ]
         },
@@ -96,6 +120,135 @@
           "matchingColumns": [],
           "attemptToConvertTypes": false,
           "convertFieldsToString": true
+        }
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000007",
+      "name": "Call extract-invoice",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        300
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpExtractInv001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.body.input.event_id }}",
+            "received_at": "={{ $json.body.input.received_at }}",
+            "path": "={{ $json.body.input.path }}",
+            "model": "={{ $json.body.input.model }}",
+            "effort": "={{ $json.body.input.effort }}",
+            "text": "={{ $json.body.input.text }}",
+            "binary_key": "={{ $json.body.input.binary_key }}",
+            "rules": "={{ $json.body.input.rules }}",
+            "today": "={{ $json.body.input.today }}",
+            "attempt": "={{ $json.body.input.attempt }}"
+          },
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_at",
+              "displayName": "received_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "path",
+              "displayName": "path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "model",
+              "displayName": "model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "effort",
+              "displayName": "effort",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "binary_key",
+              "displayName": "binary_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rules",
+              "displayName": "rules",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "today",
+              "displayName": "today",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "attempt",
+              "displayName": "attempt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
         }
       }
     },
@@ -145,7 +298,7 @@
       "parameters": {
         "width": 1180,
         "height": 160,
-        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. Only load-config exists today; later work adds more targets the same way."
+        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config and extract-invoice exist today; later work adds more targets the same way."
       }
     }
   ],
@@ -172,6 +325,13 @@
         ],
         [
           {
+            "node": "Call extract-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Respond unknown target",
             "type": "main",
             "index": 0
@@ -180,6 +340,17 @@
       ]
     },
     "Call load-config": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call extract-invoice": {
       "main": [
         [
           {
