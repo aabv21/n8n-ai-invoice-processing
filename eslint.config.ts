@@ -27,4 +27,14 @@ export default defineConfig([
       '@typescript-eslint/no-non-null-assertion': 'off',
     },
   },
+  {
+    // The Code-node sandbox has neither Node builtins nor fetch, and Luxon must stay a global
+    // (see src/globals.d.ts) so esbuild doesn't bundle it into the generated jsCode. src/lib holds
+    // pure logic shared by more than one Code node and carries the same constraint.
+    files: ['src/nodes/**', 'src/lib/**'],
+    rules: {
+      'no-restricted-imports': ['error', { paths: ['luxon'], patterns: ['node:*'] }],
+      'no-restricted-globals': ['error', 'process', 'fetch'],
+    },
+  },
 ]);
