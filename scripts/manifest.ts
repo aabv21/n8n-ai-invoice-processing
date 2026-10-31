@@ -112,6 +112,12 @@ export const CODE_NODES: readonly CodeNodeEntry[] = [
     source: 'src/nodes/check-invoice.ts',
     why: 'parses the model reply and applies ordered invoice rules that must yield one verdict',
   },
+  {
+    file: 'process-invoice.json',
+    node: 'Prepare record',
+    source: 'src/nodes/prepare-record.ts',
+    why: 'turns every extraction outcome into one record and builds the Drive file name',
+  },
 ];
 
 export const TEXT_PARAMS: readonly TextParamEntry[] = [
@@ -119,6 +125,10 @@ export const TEXT_PARAMS: readonly TextParamEntry[] = [
   { file: 'extract-invoice.json', node: 'Extract from text', parameter: 'options.systemPromptTemplate', source: 'prompts/extract-invoice.md' },
   { file: 'extract-invoice.json', node: 'Request settings', parameter: 'assignments:system', source: 'prompts/extract-invoice.md' },
   { file: 'extract-invoice.json', node: 'Request settings', parameter: 'assignments:schema_json', source: 'schemas/invoice.schema.json' },
+  { file: 'process-invoice.json', node: 'Save invoice', parameter: 'query', source: 'db/queries/save-invoice.sql' },
+  { file: 'process-invoice.json', node: 'Record duplicate', parameter: 'query', source: 'db/queries/record-outcome.sql' },
+  { file: 'process-invoice.json', node: 'Save Drive link', parameter: 'query', source: 'db/queries/save-drive-link.sql' },
+  { file: 'process-invoice.json', node: 'Record outcome', parameter: 'query', source: 'db/queries/record-outcome.sql' },
 ];
 
 export const BUILD_ENTRIES: readonly BuildEntry[] = [...CODE_NODES, ...TEXT_PARAMS];

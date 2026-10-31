@@ -1,0 +1,1618 @@
+{
+  "id": "mgpProcessInv001",
+  "name": "Process invoice",
+  "description": null,
+  "nodes": [
+    {
+      "id": "60000000-0000-4000-8000-000000000001",
+      "name": "When called",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -320,
+        460
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "config",
+              "type": "object"
+            },
+            {
+              "name": "event_id",
+              "type": "string"
+            },
+            {
+              "name": "message_id",
+              "type": "string"
+            },
+            {
+              "name": "binary_key",
+              "type": "string"
+            },
+            {
+              "name": "file_name",
+              "type": "string"
+            },
+            {
+              "name": "received_at",
+              "type": "string"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000002",
+      "name": "Extract text",
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.2,
+      "position": [
+        -40,
+        460
+      ],
+      "onError": "continueErrorOutput",
+      "parameters": {
+        "operation": "pdf",
+        "binaryPropertyName": "={{ $json.binary_key }}",
+        "options": {
+          "keepSource": "both",
+          "joinPages": true,
+          "maxPages": "={{ $json.config.extraction.max_pages }}"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000003",
+      "name": "Skip: unreadable PDF",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        240,
+        760
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "60000000-0003-4000-8000-0000000a0001",
+              "name": "skip_reason",
+              "type": "string",
+              "value": "unreadable_pdf"
+            },
+            {
+              "id": "60000000-0003-4000-8000-0000000a0002",
+              "name": "event_id",
+              "type": "string",
+              "value": "={{ $('When called').first().json.event_id }}"
+            },
+            {
+              "id": "60000000-0003-4000-8000-0000000a0003",
+              "name": "received_at",
+              "type": "string",
+              "value": "={{ $('When called').first().json.received_at }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000004",
+      "name": "Too many pages?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        240,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "60000000-0004-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.numpages > $json.config.extraction.max_pages }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000005",
+      "name": "Skip: too many pages",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        520,
+        700
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "60000000-0005-4000-8000-0000000a0001",
+              "name": "skip_reason",
+              "type": "string",
+              "value": "too_many_pages"
+            },
+            {
+              "id": "60000000-0005-4000-8000-0000000a0002",
+              "name": "event_id",
+              "type": "string",
+              "value": "={{ $('When called').first().json.event_id }}"
+            },
+            {
+              "id": "60000000-0005-4000-8000-0000000a0003",
+              "name": "received_at",
+              "type": "string",
+              "value": "={{ $('When called').first().json.received_at }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000006",
+      "name": "Extract with default model",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        520,
+        300
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpExtractInv001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.event_id }}",
+            "received_at": "={{ $json.received_at }}",
+            "path": "={{ $json.text.replace(/\\s/g, '').length >= $json.numpages * $json.config.extraction.min_text_chars_per_page ? 'text' : 'vision' }}",
+            "model": "={{ $('When called').first().json.config.ai.default_model }}",
+            "effort": "={{ $('When called').first().json.config.ai.effort }}",
+            "text": "={{ $json.text }}",
+            "binary_key": "={{ $json.binary_key }}",
+            "rules": "={{ $('When called').first().json.config.validation }}",
+            "today": "={{ $now.toISODate() }}",
+            "attempt": 1
+          },
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_at",
+              "displayName": "received_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "path",
+              "displayName": "path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "model",
+              "displayName": "model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "effort",
+              "displayName": "effort",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "binary_key",
+              "displayName": "binary_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rules",
+              "displayName": "rules",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "today",
+              "displayName": "today",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "attempt",
+              "displayName": "attempt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000007",
+      "name": "Needs retry?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        800,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "60000000-0007-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.status !== 'ok' && ($('When called').first().json.config.ai.retry_model ?? '') !== '' }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000008",
+      "name": "Attach PDF for retry",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        1080,
+        620
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferLast",
+              "mergeMode": "deepMerge",
+              "overrideEmpty": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000009",
+      "name": "Retry with stronger model",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        1360,
+        620
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpExtractInv001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "event_id": "={{ $json.event_id }}",
+            "received_at": "={{ $json.received_at }}",
+            "path": "={{ $json.path }}",
+            "model": "={{ $('When called').first().json.config.ai.retry_model }}",
+            "effort": "={{ $('When called').first().json.config.ai.effort }}",
+            "text": "={{ $('Extract text').first().json.text }}",
+            "binary_key": "={{ $json.binary_key }}",
+            "rules": "={{ $('When called').first().json.config.validation }}",
+            "today": "={{ $now.toISODate() }}",
+            "attempt": 2
+          },
+          "schema": [
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_at",
+              "displayName": "received_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "path",
+              "displayName": "path",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "model",
+              "displayName": "model",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "effort",
+              "displayName": "effort",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "text",
+              "displayName": "text",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "binary_key",
+              "displayName": "binary_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "rules",
+              "displayName": "rules",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "today",
+              "displayName": "today",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "attempt",
+              "displayName": "attempt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000010",
+      "name": "Prepare record",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1640,
+        460
+      ],
+      "notes": "Why Code: turns every extraction outcome into one record and builds the Drive file name",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Why Code: turns every extraction outcome into one record and builds the Drive file name. Generated from src/nodes/prepare-record.ts by npm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/prepare-record.ts\n  var prepare_record_exports = {};\n  __export(prepare_record_exports, {\n    run: () => run\n  });\n\n  // src/lib/invoice.ts\n  var EMPTY_INVOICE = {\n    supplier: null,\n    supplier_tax_id: null,\n    invoice_number: null,\n    issue_date: null,\n    due_date: null,\n    currency: null,\n    subtotal: null,\n    tax: null,\n    total: null,\n    line_items: [],\n    confidence: null\n  };\n\n  // src/lib/util.ts\n  var DATE_RE = /^\\d{4}-\\d{2}-\\d{2}$/;\n  function isValidIsoDate(iso) {\n    if (!DATE_RE.test(iso)) return false;\n    const year = Number(iso.slice(0, 4));\n    const month = Number(iso.slice(5, 7));\n    const day = Number(iso.slice(8, 10));\n    return DateTime.fromObject({ year, month, day }).isValid;\n  }\n  function emptyInvoice() {\n    return { ...EMPTY_INVOICE, line_items: [] };\n  }\n\n  // src/lib/file-name.ts\n  var SUPPLIER_SLUG_MAX = 40;\n  var NUMBER_SLUG_MAX = 30;\n  function slug(text) {\n    return text.replace(/['.]/g, \"\").normalize(\"NFKD\").replace(/\\p{M}/gu, \"\").toLowerCase().replace(/[^a-z0-9]+/g, \"-\").replace(/^-+|-+$/g, \"\");\n  }\n  function cutSlug(text, max) {\n    return slug(text).slice(0, max).replace(/^-+|-+$/g, \"\");\n  }\n  function invoiceFileName(input) {\n    const date = input.issue_date !== null && isValidIsoDate(input.issue_date) ? input.issue_date : DateTime.fromISO(input.received_at, { zone: \"utc\" }).setZone(\"America/Bogota\").toISODate();\n    if (date === null) throw new Error(`received_at is not a valid timestamp: ${input.received_at}`);\n    const supplierSlug = cutSlug(input.supplier ?? \"\", SUPPLIER_SLUG_MAX) || \"unknown-supplier\";\n    const numberSlug = cutSlug(input.invoice_number ?? \"\", NUMBER_SLUG_MAX) || `msg-${slug(input.event_id)}`;\n    const folder = `${date.slice(0, 4)}/${date.slice(5, 7)}`;\n    return { name: `${date}_${supplierSlug}_${numberSlug}.pdf`, folder };\n  }\n\n  // src/nodes/prepare-record.ts\n  function isSkip(input) {\n    return \"skip_reason\" in input;\n  }\n  function run(input) {\n    const record = isSkip(input) ? {\n      status: \"review\",\n      reasons: [input.skip_reason],\n      invoice: emptyInvoice(),\n      raw: null,\n      event_id: input.event_id,\n      received_at: input.received_at,\n      path: \"none\",\n      model: null,\n      attempt: 0\n    } : input;\n    const file = invoiceFileName({\n      issue_date: record.invoice.issue_date,\n      supplier: record.invoice.supplier,\n      invoice_number: record.invoice.invoice_number,\n      received_at: record.received_at,\n      event_id: record.event_id\n    });\n    return { ...record, file };\n  }\n  return __toCommonJS(prepare_record_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000011",
+      "name": "Save invoice",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        1920,
+        460
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Saves a checked invoice and its line items once per event. Replaying the same event (a node\n-- retry, or an owner retry from the n8n UI) returns the row it already saved instead of a second\n-- one; a different event claiming the same supplier tax ID and invoice number is reported as a\n-- duplicate of the invoice that already holds that pair, instead of raising a constraint error.\n-- $1  event_id (text, the invoice's source_event_id)\n-- $2  gmail_message_id (text)\n-- $3  received_at (timestamptz)\n-- $4  status (text: 'ok' | 'review')\n-- $5  review_reasons (text, a JSON array of reason strings, e.g. '[]' or '[\"totals_mismatch\"]')\n-- $6  extraction_path (text: 'text' | 'vision' | 'none')\n-- $7  model (text, nullable)\n-- $8  attempts (smallint)\n-- $9  invoice (text, a NormalizedInvoice JSON object, including its line_items array)\n-- $10 raw_extraction (text, a JSON value, or NULL)\n-- $11 drive_file_name (text)\n-- $12 drive_folder (text)\nWITH replay AS (\n  SELECT id FROM invoices WHERE source_event_id = $1\n),\nfields AS (\n  SELECT *\n  FROM jsonb_to_record($9::jsonb) AS f(\n    supplier text, supplier_tax_id text, invoice_number text,\n    issue_date date, due_date date, currency text,\n    subtotal numeric(18,2), tax numeric(18,2), total numeric(18,2),\n    confidence numeric(4,3)\n  )\n),\ninserted AS (\n  INSERT INTO invoices (\n    source_event_id, gmail_message_id, received_at, status, review_reasons,\n    supplier, supplier_tax_id, invoice_number, issue_date, due_date, currency,\n    subtotal, tax, total, confidence,\n    extraction_path, model, attempts, raw_extraction, drive_file_name, drive_folder\n  )\n  SELECT\n    $1, $2, $3::timestamptz, $4, ARRAY(SELECT jsonb_array_elements_text($5::jsonb)),\n    f.supplier, f.supplier_tax_id, f.invoice_number, f.issue_date, f.due_date, f.currency,\n    f.subtotal, f.tax, f.total, f.confidence,\n    $6, $7, $8::smallint, $10::jsonb, $11, $12\n  FROM fields f\n  WHERE NOT EXISTS (SELECT 1 FROM replay)\n  ON CONFLICT DO NOTHING\n  RETURNING id\n),\nitems AS (\n  INSERT INTO invoice_items (invoice_id, line_no, description, quantity, unit_price, line_total)\n  SELECT inserted.id, li.line_no, li.description, li.quantity, li.unit_price, li.line_total\n  FROM inserted\n  CROSS JOIN LATERAL jsonb_to_recordset($9::jsonb -> 'line_items') AS li(\n    line_no smallint, description text, quantity numeric(14,3), unit_price numeric(18,4), line_total numeric(18,2)\n  )\n  RETURNING invoice_id\n)\nSELECT\n  (replay.id IS NOT NULL OR inserted.id IS NOT NULL) AS saved,\n  COALESCE(replay.id, inserted.id) AS invoice_id,\n  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN dup.id END AS duplicate_of,\n  (SELECT count(*)::int FROM items) AS item_count\nFROM fields f\nLEFT JOIN replay ON true\nLEFT JOIN inserted ON true\nLEFT JOIN invoices dup\n  ON dup.supplier_tax_id = f.supplier_tax_id\n AND dup.invoice_number = f.invoice_number\n AND replay.id IS NULL AND inserted.id IS NULL;\n",
+        "options": {
+          "queryReplacement": "={{ $json.event_id }},{{ $('When called').first().json.message_id }},{{ $json.received_at }},{{ $json.status }},{{ JSON.stringify($json.reasons) }},{{ $json.path }},{{ $json.model }},{{ $json.attempt }},{{ $json.invoice }},{{ $json.raw }},{{ $json.file.name }},{{ $json.file.folder }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000012",
+      "name": "Is duplicate?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        2200,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "60000000-0012-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.saved === false }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000013",
+      "name": "Label as duplicate",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        2480,
+        280
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "message",
+        "operation": "addLabels",
+        "messageId": "={{ $('When called').first().json.message_id }}",
+        "labelIds": "={{ [$('When called').first().json.config.gmail.label_ids.duplicate] }}"
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mgpCredGmail0001",
+          "name": "Gmail"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000014",
+      "name": "Record duplicate",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        2760,
+        280
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Marks a processed Gmail event's final outcome once every downstream step for it has run\n-- (saved, filed in Drive and Sheets, labeled). The event's outcome stays NULL until this runs, so\n-- an execution that dies partway through still shows up as unfinished rather than as a success.\n-- $1 event_id (text)\n-- $2 outcome (text: 'ok' | 'review' | 'duplicate')\n-- $3 invoice_id (bigint, or NULL for a duplicate recorded against no new row)\nUPDATE processed_events\nSET outcome = $2, invoice_id = $3::bigint\nWHERE source = 'gmail' AND event_id = $1\nRETURNING event_id, outcome;\n",
+        "options": {
+          "queryReplacement": "={{ $('When called').first().json.event_id }},{{ 'duplicate' }},{{ $('Save invoice').first().json.duplicate_of }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000015",
+      "name": "Ensure year folder",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2480,
+        620
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpEnsureFolder1"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "parent_id": "={{ $('When called').first().json.config.google.drive_root_folder_id }}",
+            "name": "={{ $('Prepare record').first().json.file.folder.split('/')[0] }}"
+          },
+          "schema": [
+            {
+              "id": "parent_id",
+              "displayName": "parent_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000016",
+      "name": "Ensure month folder",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        2760,
+        620
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpEnsureFolder1"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "parent_id": "={{ $json.folder_id }}",
+            "name": "={{ $('Prepare record').first().json.file.folder.split('/')[1] }}"
+          },
+          "schema": [
+            {
+              "id": "parent_id",
+              "displayName": "parent_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000017",
+      "name": "Attach PDF for Drive",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        3040,
+        620
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {
+          "clashHandling": {
+            "values": {
+              "resolveClash": "preferLast",
+              "mergeMode": "deepMerge",
+              "overrideEmpty": false
+            }
+          }
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000018",
+      "name": "Upload PDF",
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        3320,
+        620
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "file",
+        "operation": "upload",
+        "name": "={{ $('Prepare record').first().json.file.name }}",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $json.folder_id }}"
+        },
+        "inputDataFieldName": "={{ $json.binary_key }}",
+        "options": {}
+      },
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "mgpCredGDrive001",
+          "name": "Google Drive"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000019",
+      "name": "Save Drive link",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        3600,
+        620
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Sets the Drive file id and share URL on a saved invoice, then hands back the updated row and\n-- its line items (ordered for the Sheets append) in one round trip.\n-- $1 invoice_id (bigint)\n-- $2 drive_file_id (text)\n-- $3 drive_url (text)\nWITH updated AS (\n  UPDATE invoices\n  SET drive_file_id = $2, drive_url = $3\n  WHERE id = $1::bigint\n  RETURNING *\n)\nSELECT\n  to_jsonb(updated) AS invoice,\n  COALESCE(\n    (SELECT jsonb_agg(to_jsonb(item) ORDER BY item.line_no) FROM invoice_items item WHERE item.invoice_id = updated.id),\n    '[]'::jsonb\n  ) AS items\nFROM updated;\n",
+        "options": {
+          "queryReplacement": "={{ $('Save invoice').first().json.invoice_id }},{{ $json.id }},{{ 'https://drive.google.com/file/d/' + $json.id + '/view' }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000020",
+      "name": "Split items",
+      "type": "n8n-nodes-base.splitOut",
+      "typeVersion": 1.1,
+      "position": [
+        3880,
+        480
+      ],
+      "parameters": {
+        "fieldToSplitOut": "items",
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000021",
+      "name": "Append item rows",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        4160,
+        480
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('When called').first().json.config.google.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('When called').first().json.config.google.items_tab }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "item_key": "={{ $json.invoice_id + '-' + $json.line_no }}",
+            "invoice_id": "={{ $json.invoice_id }}",
+            "invoice_number": "={{ $('Save Drive link').first().json.invoice.invoice_number }}",
+            "line_no": "={{ $json.line_no }}",
+            "description": "={{ $json.description }}",
+            "quantity": "={{ $json.quantity }}",
+            "unit_price": "={{ $json.unit_price }}",
+            "line_total": "={{ $json.line_total }}"
+          },
+          "schema": [
+            {
+              "id": "item_key",
+              "displayName": "item_key",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "line_no",
+              "displayName": "line_no",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "description",
+              "displayName": "description",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "quantity",
+              "displayName": "quantity",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "unit_price",
+              "displayName": "unit_price",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "line_total",
+              "displayName": "line_total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [
+            "item_key"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mgpCredGSheets01",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000022",
+      "name": "Append invoice row",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        3880,
+        760
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "sheet",
+        "operation": "appendOrUpdate",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('When called').first().json.config.google.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('When called').first().json.config.google.invoices_tab }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_id": "={{ $json.invoice.id }}",
+            "received_at": "={{ $json.invoice.received_at }}",
+            "supplier": "={{ $json.invoice.supplier }}",
+            "supplier_tax_id": "={{ $json.invoice.supplier_tax_id }}",
+            "invoice_number": "={{ $json.invoice.invoice_number }}",
+            "issue_date": "={{ $json.invoice.issue_date }}",
+            "due_date": "={{ $json.invoice.due_date }}",
+            "currency": "={{ $json.invoice.currency }}",
+            "subtotal": "={{ $json.invoice.subtotal }}",
+            "tax": "={{ $json.invoice.tax }}",
+            "total": "={{ $json.invoice.total }}",
+            "status": "={{ $json.invoice.status }}",
+            "review_reasons": "={{ $json.invoice.review_reasons.join(', ') }}",
+            "pdf_link": "={{ $json.invoice.drive_url }}",
+            "email_id": "={{ $json.invoice.gmail_message_id }}"
+          },
+          "schema": [
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_at",
+              "displayName": "received_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier",
+              "displayName": "supplier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_tax_id",
+              "displayName": "supplier_tax_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "issue_date",
+              "displayName": "issue_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "due_date",
+              "displayName": "due_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subtotal",
+              "displayName": "subtotal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tax",
+              "displayName": "tax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total",
+              "displayName": "total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_reasons",
+              "displayName": "review_reasons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "pdf_link",
+              "displayName": "pdf_link",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email_id",
+              "displayName": "email_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [
+            "invoice_id"
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      },
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mgpCredGSheets01",
+          "name": "Google Sheets"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000023",
+      "name": "Label email",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        4160,
+        760
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "message",
+        "operation": "addLabels",
+        "messageId": "={{ $('When called').first().json.message_id }}",
+        "labelIds": "={{ [ $('Save Drive link').first().json.invoice.status === 'ok' ? $('When called').first().json.config.gmail.label_ids.processed : $('When called').first().json.config.gmail.label_ids.review ] }}"
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mgpCredGmail0001",
+          "name": "Gmail"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000024",
+      "name": "Record outcome",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        4440,
+        760
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Marks a processed Gmail event's final outcome once every downstream step for it has run\n-- (saved, filed in Drive and Sheets, labeled). The event's outcome stays NULL until this runs, so\n-- an execution that dies partway through still shows up as unfinished rather than as a success.\n-- $1 event_id (text)\n-- $2 outcome (text: 'ok' | 'review' | 'duplicate')\n-- $3 invoice_id (bigint, or NULL for a duplicate recorded against no new row)\nUPDATE processed_events\nSET outcome = $2, invoice_id = $3::bigint\nWHERE source = 'gmail' AND event_id = $1\nRETURNING event_id, outcome;\n",
+        "options": {
+          "queryReplacement": "={{ $('When called').first().json.event_id }},{{ $('Save Drive link').first().json.invoice.status }},{{ $('Save Drive link').first().json.invoice.id }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000025",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -360,
+        180
+      ],
+      "parameters": {
+        "width": 900,
+        "height": 160,
+        "content": "## Read the PDF\nExtracts text locally and screens the page count before any AI call runs. A page-count or read failure becomes a review record without touching the model."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000026",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        520,
+        100
+      ],
+      "parameters": {
+        "width": 900,
+        "height": 160,
+        "content": "## Extract with AI\nCalls extract-invoice on the default model first. A review verdict retries once on the stronger model when one is configured, re-attaching the PDF for the retry since extract-invoice's own result comes back as JSON only, with no binary."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000027",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        1640,
+        100
+      ],
+      "parameters": {
+        "width": 1180,
+        "height": 160,
+        "content": "## Save (Postgres is the system of record)\nSaves the checked record once per event. A second save for the same supplier and invoice number comes back as a duplicate instead of a new row, and only gets the Duplicate label."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000028",
+      "name": "Sticky Note3",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2480,
+        820
+      ],
+      "parameters": {
+        "width": 1180,
+        "height": 160,
+        "content": "## File in Drive\nFiles the original PDF under its year and month folder, creating them on demand, then links the saved invoice row to the uploaded file."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000032",
+      "name": "Sticky Note7",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        2480,
+        1000
+      ],
+      "parameters": {
+        "width": 1180,
+        "height": 160,
+        "content": "NOTE: Upload PDF creates the Drive file on its first request. A lost response, or an error on a later request in the same call, followed by a retry (this node's own, or a UI retry of the whole execution), uploads a second copy under the same name; Save Drive link then points the saved invoice at the new copy and leaves the first one orphaned in Drive. Ceiling: harmless at this demo's volume. Upgrade path: look the file up by name in the month folder first, the way ensure-folder does for folders, or skip the upload when the saved invoice row already has a drive_file_id."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000029",
+      "name": "Sticky Note4",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        3880,
+        300
+      ],
+      "parameters": {
+        "width": 540,
+        "height": 160,
+        "content": "## Team view in Sheets\nAppends or updates the invoice and its line items by key, so a retried execution updates the same rows instead of duplicating them."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000030",
+      "name": "Sticky Note5",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        4160,
+        940
+      ],
+      "parameters": {
+        "width": 540,
+        "height": 160,
+        "content": "## Label the email\nLabels the source email Processed or Review and marks the event's outcome - the last step that lets the daily summary count this event as finished."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000031",
+      "name": "Sticky Note6",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        800,
+        820
+      ],
+      "parameters": {
+        "width": 760,
+        "height": 220,
+        "content": "NOTE: an extraction failure - the sub-workflow's own API or parse error - fails this execution outright, so the triggering Gmail event is left unfinished: no invoices row, no recorded outcome. Recovery: fix whatever caused the failure (credentials, prompt, schema, or similar) - rebuild and publish first if it was the prompt or schema - then retry the failed execution from n8n; it resumes at the failed node instead of starting over."
+      }
+    }
+  ],
+  "connections": {
+    "When called": {
+      "main": [
+        [
+          {
+            "node": "Extract text",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Attach PDF for retry",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Attach PDF for Drive",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract text": {
+      "main": [
+        [
+          {
+            "node": "Too many pages?",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Skip: unreadable PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip: unreadable PDF": {
+      "main": [
+        [
+          {
+            "node": "Prepare record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Too many pages?": {
+      "main": [
+        [
+          {
+            "node": "Skip: too many pages",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract with default model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip: too many pages": {
+      "main": [
+        [
+          {
+            "node": "Prepare record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract with default model": {
+      "main": [
+        [
+          {
+            "node": "Needs retry?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Needs retry?": {
+      "main": [
+        [
+          {
+            "node": "Attach PDF for retry",
+            "type": "main",
+            "index": 1
+          }
+        ],
+        [
+          {
+            "node": "Prepare record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach PDF for retry": {
+      "main": [
+        [
+          {
+            "node": "Retry with stronger model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Retry with stronger model": {
+      "main": [
+        [
+          {
+            "node": "Prepare record",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Prepare record": {
+      "main": [
+        [
+          {
+            "node": "Save invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save invoice": {
+      "main": [
+        [
+          {
+            "node": "Is duplicate?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Is duplicate?": {
+      "main": [
+        [
+          {
+            "node": "Label as duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Ensure year folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label as duplicate": {
+      "main": [
+        [
+          {
+            "node": "Record duplicate",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure year folder": {
+      "main": [
+        [
+          {
+            "node": "Ensure month folder",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ensure month folder": {
+      "main": [
+        [
+          {
+            "node": "Attach PDF for Drive",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Attach PDF for Drive": {
+      "main": [
+        [
+          {
+            "node": "Upload PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Upload PDF": {
+      "main": [
+        [
+          {
+            "node": "Save Drive link",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save Drive link": {
+      "main": [
+        [
+          {
+            "node": "Split items",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Append invoice row",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Split items": {
+      "main": [
+        [
+          {
+            "node": "Append item rows",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Append invoice row": {
+      "main": [
+        [
+          {
+            "node": "Label email",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label email": {
+      "main": [
+        [
+          {
+            "node": "Record outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "mgpErrorHandler1"
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}

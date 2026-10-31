@@ -87,6 +87,30 @@
                 ]
               },
               "renameOutput": true
+            },
+            {
+              "outputKey": "process-invoice",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "40000000-0001-4000-8000-0000000a0103",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.body.target }}",
+                    "rightValue": "process-invoice"
+                  }
+                ]
+              },
+              "renameOutput": true
             }
           ]
         },
@@ -296,9 +320,164 @@
         -60
       ],
       "parameters": {
-        "width": 1180,
+        "width": 1200,
         "height": 160,
-        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config and extract-invoice exist today; later work adds more targets the same way."
+        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config, extract-invoice, and process-invoice exist today; later work adds more targets the same way."
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000008",
+      "name": "Convert PDF to binary",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        400,
+        560
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "body.input.pdf_base64",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000009",
+      "name": "Load config for process-invoice",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        700
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpLoadConfig001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "schema": [],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000010",
+      "name": "Attach config to PDF",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        660,
+        620
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {}
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000011",
+      "name": "Call process-invoice",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        920,
+        620
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpProcessInv001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "config": "={{ $json.config }}",
+            "event_id": "={{ $('Receive dev call').first().json.body.input.event_id }}",
+            "message_id": "={{ $('Receive dev call').first().json.body.input.message_id }}",
+            "binary_key": "attachment_0",
+            "file_name": "={{ $('Receive dev call').first().json.body.input.file_name }}",
+            "received_at": "={{ $('Receive dev call').first().json.body.input.received_at }}"
+          },
+          "schema": [
+            {
+              "id": "config",
+              "displayName": "config",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "event_id",
+              "displayName": "event_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "message_id",
+              "displayName": "message_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "binary_key",
+              "displayName": "binary_key",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "file_name",
+              "displayName": "file_name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "received_at",
+              "displayName": "received_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
       }
     }
   ],
@@ -332,6 +511,18 @@
         ],
         [
           {
+            "node": "Convert PDF to binary",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Load config for process-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Respond unknown target",
             "type": "main",
             "index": 0
@@ -351,6 +542,50 @@
       ]
     },
     "Call extract-invoice": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert PDF to binary": {
+      "main": [
+        [
+          {
+            "node": "Attach config to PDF",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load config for process-invoice": {
+      "main": [
+        [
+          {
+            "node": "Attach config to PDF",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Attach config to PDF": {
+      "main": [
+        [
+          {
+            "node": "Call process-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call process-invoice": {
       "main": [
         [
           {
