@@ -25,6 +25,10 @@ test('n8n reads config read-only and has no tunnel', () => {
   expect(service('n8n')).toContain('127.0.0.1:5678:5678');
   expect(compose).not.toMatch(/ngrok/);
 });
+test('the test database is local and opt-in', () => {
+  expect(service('testdb')).toContain('profiles: [test]');
+  expect(service('testdb')).toContain('127.0.0.1:55432:5432');
+});
 test('config example carries the spec values', () => expect(config).toEqual({
   team_email: 'team@example.com',
   gmail: { label_ids: { processed: 'REPLACE_ME', review: 'REPLACE_ME', duplicate: 'REPLACE_ME' } },
