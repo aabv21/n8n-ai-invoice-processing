@@ -1,0 +1,127 @@
+{
+  "id": "mgpErrorHandler1",
+  "name": "Error handler",
+  "description": null,
+  "nodes": [
+    {
+      "id": "20000000-0000-4000-8000-000000000001",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [
+        -120,
+        180
+      ],
+      "parameters": {}
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000002",
+      "name": "Load config",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        160,
+        180
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpLoadConfig001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "schema": [],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000003",
+      "name": "Email the team",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        420,
+        180
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $json.config.team_email }}",
+        "subject": "=[Magdaport demo] Workflow failed: {{ $('Error Trigger').item.json.workflow.name }}",
+        "emailType": "text",
+        "message": "=Failed node: {{ $('Error Trigger').item.json.execution.lastNodeExecuted }}\nError: {{ $('Error Trigger').item.json.execution.error.message }}\nExecution: {{ $('Error Trigger').item.json.execution.url }}\nTime: {{ $now.setZone('America/Bogota').toFormat('yyyy-LL-dd HH:mm') }} America/Bogota",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mgpCredGmail0001",
+          "name": "Gmail"
+        }
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000004",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -160,
+        -60
+      ],
+      "parameters": {
+        "width": 1080,
+        "height": 160,
+        "content": "## Error handler\nRuns whenever a workflow with errorWorkflow set to this one fails. Loads config for team_email, then emails the team a plain-text alert naming the failed node, the error, the execution URL, and the time in Bogota. This workflow has no errorWorkflow of its own, so a failure here does not loop back into itself."
+      }
+    }
+  ],
+  "connections": {
+    "Error Trigger": {
+      "main": [
+        [
+          {
+            "node": "Load config",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load config": {
+      "main": [
+        [
+          {
+            "node": "Email the team",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner"
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
