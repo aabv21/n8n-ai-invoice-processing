@@ -9,7 +9,8 @@ export async function callDev(target: string, input: unknown): Promise<unknown> 
     method: 'POST',
     headers: { 'content-type': 'application/json', 'X-Dev-Token': process.env.DEV_HARNESS_TOKEN ?? '' },
     body: JSON.stringify({ target, input }),
-    signal: AbortSignal.timeout(60_000),
+    // An extraction with Information Extractor retries and repair calls can outlast 60 s.
+    signal: AbortSignal.timeout(300_000),
   });
   if (!res.ok) throw new Error(`${String(res.status)} ${await res.text()}`);
   return res.json();
