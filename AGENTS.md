@@ -11,8 +11,12 @@ This repo builds an AI invoice-processing pipeline for Magdaport S.A.S., a ficti
 - `compose.yaml`, `.env.example` — the local runtime: Postgres and n8n in Docker Compose.
 - `db/schema.sql`, `db/init/` — the application database schema and the one-time role/database bootstrap script.
 - `config/config.example.json` — the config template; a developer's own `config/config.json` is gitignored.
+- `scripts/manifest.ts` — the single source of truth for fixed workflow/credential IDs and the `CODE_NODES`/`TEXT_PARAMS` tables; `scripts/lib/` holds the shared workflow and runtime (Docker/`.env`) helpers, plus the dev-harness client.
+- `scripts/check-workflows.ts`, `scripts/build-workflows.ts`, `scripts/export-workflows.ts`, `scripts/import-workflows.ts`, `scripts/setup-credentials.ts`, `scripts/dev-call.ts` — the workflow tooling CLIs; see Commands below.
+- `src/nodes/` — one `run()` function per Code node, compiled into workflow JSON by `npm run build:workflows` (empty until Task 7 adds the first one); `src/lib/` holds pure logic shared by more than one Code node; `src/globals.d.ts` declares the ambient `DateTime` those sources use.
+- `tests/` — Vitest tests; `tests/fixtures/` holds workflow and Code-node fixtures, `tests/helpers/run-generated.ts` runs a generated Code node's output the way n8n's sandbox does, and `tests/helpers/workflow-file.ts` reads a real workflow from `workflows/` and looks up a node or its wired-in sources (used from Task 6 on).
 - `tsconfig.json`, `eslint.config.ts`, `vitest.config.ts`, `package.json` — the TypeScript toolchain.
-- `tests/` — Vitest tests.
+- `workflows/` — the n8n workflow JSON, mounted read-only into n8n and imported by `npm run setup`. Empty until Task 6; fixed ids and file names are in `scripts/manifest.ts`.
 - `.n8n-import/` — created locally by the quick start; a scratch directory n8n's CLI reads credentials and workflows from. It's a live bind mount: never `rm -rf` it.
 
 ## Commands
@@ -23,19 +27,41 @@ This repo builds an AI invoice-processing pipeline for Magdaport S.A.S., a ficti
 - `npm test` — `vitest run`.
 - `docker compose up -d --wait` — start Postgres and n8n, and wait for both to report healthy.
 - `docker compose down` — stop the stack. Add `-v` to also drop the named volumes (destructive: wipes the database and n8n's data).
+- `npm run build:workflows` — bundles each `src/nodes/*.ts` Code node with esbuild into its node's `jsCode`, and writes every generated text parameter (SQL queries, the extraction prompt, the invoice JSON Schema) verbatim into the node and parameter that `scripts/manifest.ts`'s `TEXT_PARAMS` names. Add `--check` to fail (exit 1) if the committed JSON doesn't match the source, without writing — that's what CI runs. After an esbuild update, run this and commit the regenerated JSON.
+- `npm run check` — hygiene checks on every file in `workflows/`: pinned data, a literal email/phone/long id/secret, an unknown credential id, a hand-written or undocumented Code node, a hand-written or undocumented generated query, a missing required setting, an external-service node without retry on fail, and a Postgres query built from an expression instead of `$n` parameters.
+- `npm run setup` — imports credentials (`scripts/setup-credentials.ts`) then publishes workflows (`scripts/import-workflows.ts`) into the local n8n instance. Skips a credential whose `.env` values are blank, or a Google OAuth2 credential (Gmail, Drive, Sheets) that already exists (pass `--force` to overwrite one deliberately — it carries an interactive Google sign-in that `import:credentials` would otherwise wipe out). Skips a workflow not yet in `workflows/`, and holds back one whose trigger needs a credential that isn't available yet.
+- `npm run export` — writes n8n's canonical form of every known workflow back to `workflows/` and regenerates their Code nodes and generated text parameters; run this after editing a workflow in the n8n UI, and commit the result.
+- `node scripts/dev-call.ts <target> '<json>'` — calls the dev-harness webhook (`POST {N8N_URL}/webhook/dev`) directly, for exercising a sub-workflow without waiting on Gmail's poll. Localhost only — this demo has no tunnel, and the harness workflow (Task 6) must be unpublished before any production use. A request without the `X-Dev-Token` header is rejected.
+- n8n's `import:workflow`, `export:workflow`, `import:credentials`, `export:credentials`, and `publish:workflow` CLI commands need no owner account, `--userId`, or `--projectId` (checked against `2.45.6`). `publish:workflow` only takes effect after an n8n restart; `npm run setup` restarts n8n itself, but only when it actually published something, then waits for `/healthz`.
+
+## Changing a workflow
+
+1. Design the nodes and expressions against n8n's own node reference and real-world examples, especially for a node you haven't configured by hand before.
+2. Edit the JSON in `workflows/` (fixed IDs and credential IDs come from `scripts/manifest.ts`), then run `npm run build:workflows` to regenerate any Code node or generated text parameter it touches.
+3. Validate the workflow JSON with an n8n-aware validation tool until it reports no errors. It reports "unknown typeVersion 2.8" on Postgres nodes; that's a known false positive to ignore, not a bug to fix — its own node database stops at 2.7, and this project pins Postgres nodes to 2.8 wherever a Query Parameter can carry text (see Conventions).
+4. Run `npm run setup` to import and publish it against the local n8n instance.
+5. Run `npm run export` to write n8n's canonical form back to `workflows/` and regenerate Code nodes and generated text parameters again. Commit that exported output, not your hand-edited JSON — the two can differ in server-assigned detail, and the exported form is what actually runs.
+6. Run `npm run setup` and `npm run export` a second time, then `git diff --exit-code workflows/` — a clean diff confirms import and export stay idempotent; a non-empty one means a field is leaking the instance's own state into the committed JSON (extend `export-workflows.ts`'s volatile-fields list).
+7. Run the full gate below before committing.
 
 ## Conventions
 
 - Node 24 LTS, ESM (`"type": "module"`). `tsconfig.json` runs `strict`, `noUncheckedIndexedAccess`, `exactOptionalPropertyTypes`, `noImplicitOverride`, `verbatimModuleSyntax`, `erasableSyntaxOnly`, and `allowImportingTsExtensions`, with `noEmit` — there is no build step.
-- No `.js` or `.mjs` source files. Scripts are `scripts/*.ts`, run directly with `node scripts/<name>.ts` (Node's native type stripping; no `tsx`). Tests are Vitest files at `tests/**/*.test.ts`. The only JavaScript in the repo will be the generated `jsCode` inside workflow JSON.
+- No `.js` or `.mjs` source files. Scripts are `scripts/*.ts`, run directly with `node scripts/<name>.ts` (Node's native type stripping; no `tsx`). Tests are Vitest files at `tests/**/*.test.ts`. The only JavaScript in the repo is the generated `jsCode` inside workflow JSON.
 - CLIs call external programs with `execFile` or `spawn` and an argument array, never a shell string, and guard their entry point with `if (process.argv[1] === fileURLToPath(import.meta.url))` so tests can import their functions without side effects.
 - Comments only where intent isn't obvious. A deliberate simplification gets one `NOTE:` line naming its ceiling and upgrade path. A deliberate lint or ShellCheck exception gets a one-line disable comment naming the reason.
 - n8n workflow node names are actions (e.g. "Save invoice"), and sticky notes label each section.
 - Every node that calls an external service (Gmail, Google Drive, Google Sheets, HTTP Request, Postgres, Information Extractor) sets Retry On Fail with 3 tries and a 1000 ms wait. Execute Workflow nodes never retry, since a retry would repeat a sub-workflow's side effects.
+- No Code node is hand-written: each is `export function run(input) { ... }` in `src/nodes/<name>.ts` — pure, no I/O, no clock — compiled by `npm run build:workflows`; `npm run check` rejects any Code node not listed in `scripts/manifest.ts`'s `CODE_NODES`. Those sources (and `src/lib/`) use the ambient `DateTime` global (`src/globals.d.ts`) instead of importing Luxon, since the Code-node sandbox provides it but has no `require`; ESLint enforces that by banning `node:*` imports, `luxon`, `process`, and `fetch` in `src/nodes/**` and `src/lib/**`.
+- Generated text parameters (SQL queries in `db/queries/`, the extraction prompt, the invoice JSON Schema) are copied verbatim into workflow JSON by the same build, addressed by `scripts/manifest.ts`'s `TEXT_PARAMS`. Edit the source file, never the JSON; `npm run check` rejects a Postgres query that isn't in that table.
+- Postgres nodes are typeVersion 2.8 or later wherever a Query Parameters expression can carry text (checked against `2.45.6`'s source). From 2.8, each `{{ }}` binds exactly one value; 2.5–2.7 still split a string result on commas unless it parses as JSON — a free-text value like a file name containing a comma would become several values. The n8n-aware validation tool's node database tops out at 2.7 and flags 2.8 as unknown; that's the tool lagging the pinned n8n, not a workflow error (see "Changing a workflow" above).
+- n8n's Code-node Task Runner (`@n8n/task-runner`) runs generated `jsCode` after setting `Object.defineProperty = () => ({})`, a sandbox hardening measure. esbuild's own IIFE output attaches every named export through that same function, so without a fix every export would silently vanish and `__node.run` would come back `undefined` — see `build-workflows.ts`'s `hardenAgainstFrozenDefineProperty`, covered by a dedicated test that simulates the frozen sandbox. Don't remove it when touching the build.
 
 ## Guardrails
 
-- Secrets live only in `.env` (gitignored) and n8n credentials — never in code, workflow JSON, or committed config.
+- Secrets live only in `.env` (gitignored) and n8n credentials — never in code, workflow JSON, or committed config. No script prints credential data: `setup-credentials.ts` detects which credentials already exist in n8n from a CLI export, never a decrypted one, and only ever logs a credential's name, never its `data`. The Gmail, Google Drive, and Google Sheets OAuth2 credentials' `data` shape was checked against the compiled credential type definitions inside the `n8n` container at `2.45.6`, not by creating a credential in the UI and exporting it decrypted: `GmailOAuth2Api`/`GoogleDriveOAuth2Api`/`GoogleSheetsOAuth2Api.credentials.js` each declare only their OAuth scopes and `extends: ['googleOAuth2Api']`, which itself extends the generic `OAuth2Api.credentials.js` — that base type is where `clientId` and `clientSecret` (both required strings) actually live, confirming the shape all three share.
+- `npm run setup` skips re-importing a Google OAuth2 credential (Gmail, Drive, Sheets) that already exists in n8n, because `import:credentials` overwrites by id and would otherwise wipe out an interactive Google sign-in. Pass `--force` to overwrite one deliberately.
+- The dev harness (`node scripts/dev-call.ts`, Task 6) requires an `X-Dev-Token` header and is localhost only — this demo has no tunnel. Unpublish its workflow before any production use.
 - Test data is invented: suppliers and NITs are fictional, email addresses are on `example.com`, and every printed NIT carries a check digit that deliberately fails the DIAN algorithm. There are no phone numbers and no real people.
 - Everything in the repo is in English.
 - Database topology: role `$N8N_DB_USER` owns database `n8n`, role `$APP_DB_USER` owns database `app`, and neither can connect to the other's database (`REVOKE ALL ... FROM PUBLIC`). The Postgres superuser exists only to bootstrap those roles in `db/init/`; it is never configured in the n8n container.
@@ -44,7 +70,7 @@ This repo builds an AI invoice-processing pipeline for Magdaport S.A.S., a ficti
 
 ## Definition of done
 
-- `npm run typecheck && npm run lint && npm test` all pass locally — run this full gate before every commit that touches TypeScript.
+- `npm run typecheck && npm run lint && npm test && npm run build:workflows -- --check && npm run check` all pass locally — run this full gate before every commit that touches TypeScript.
 - No secrets anywhere in the diff or git history; `.env` and `config/config.json` are never committed.
 - `README.md` (Status, What works now, and the quick start if commands changed) and this file are updated to match what the change actually adds.
 - Commits follow Conventional Commits, on a branch named `task-NN-<slug>`.

@@ -1,0 +1,45 @@
+{
+  "id": "fixtureCleanWf01",
+  "name": "Fixture: clean",
+  "nodes": [
+    {
+      "name": "Double value",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Why Code: fixture\nreturn [{ json: { n: $input.first().json.n * 2 } }];"
+      }
+    },
+    {
+      "name": "Read rows",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "retryOnFail": true,
+      "parameters": {
+        "operation": "executeQuery",
+        "query": "SELECT 1;"
+      },
+      "credentials": {
+        "postgres": { "id": "mgpCredAppDb0001", "name": "App DB" }
+      }
+    },
+    {
+      "name": "Request settings",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "parameters": {
+        "assignments": {
+          "assignments": [{ "id": "a1", "name": "system", "type": "string", "value": "old" }]
+        }
+      }
+    }
+  ],
+  "connections": {},
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "mgpErrorHandler1"
+  }
+}
