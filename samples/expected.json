@@ -1,0 +1,246 @@
+{
+  "base_date": "2026-10-31",
+  "samples": [
+    {
+      "file": "invoice-01-two-items.pdf",
+      "outcome": "ok",
+      "path": "text",
+      "invoice": {
+        "supplier": "Bolsamar Empaques S.A.S.",
+        "supplier_tax_id": "9013845522",
+        "invoice_number": "BE-2041",
+        "issue_date": "2026-10-03",
+        "due_date": "2026-11-02",
+        "currency": "COP",
+        "subtotal": 1750000,
+        "tax": 332500,
+        "total": 2082500,
+        "line_items": [
+          {
+            "line_no": 1,
+            "description": "Corrugated box 40x30x30 cm",
+            "quantity": 500,
+            "unit_price": 1800,
+            "line_total": 900000
+          },
+          {
+            "line_no": 2,
+            "description": "Stretch film roll 50 cm x 300 m",
+            "quantity": 20,
+            "unit_price": 42500,
+            "line_total": 850000
+          }
+        ],
+        "confidence": null
+      },
+      "drive_file_name": "2026-10-03_bolsamar-empaques-sas_be-2041.pdf"
+    },
+    {
+      "file": "invoice-02-ten-items.pdf",
+      "outcome": "ok",
+      "path": "text",
+      "invoice": {
+        "supplier": "Sacoyuca Alimentos S.A.S.",
+        "supplier_tax_id": "9009473162",
+        "invoice_number": "SA-77812",
+        "issue_date": "2026-10-07",
+        "due_date": "2026-11-06",
+        "currency": "COP",
+        "subtotal": 14079000,
+        "tax": 703950,
+        "total": 14782950,
+        "line_items": [
+          {
+            "line_no": 1,
+            "description": "White rice 25 kg bag",
+            "quantity": 40,
+            "unit_price": 98000,
+            "line_total": 3920000
+          },
+          {
+            "line_no": 2,
+            "description": "Red beans 1 kg",
+            "quantity": 120,
+            "unit_price": 9800,
+            "line_total": 1176000
+          },
+          {
+            "line_no": 3,
+            "description": "Refined sugar 50 kg bag",
+            "quantity": 15,
+            "unit_price": 182000,
+            "line_total": 2730000
+          },
+          {
+            "line_no": 4,
+            "description": "Sunflower oil 3 L",
+            "quantity": 60,
+            "unit_price": 31500,
+            "line_total": 1890000
+          },
+          {
+            "line_no": 5,
+            "description": "Wheat flour 50 kg bag",
+            "quantity": 10,
+            "unit_price": 148000,
+            "line_total": 1480000
+          },
+          {
+            "line_no": 6,
+            "description": "Spaghetti 500 g",
+            "quantity": 200,
+            "unit_price": 3200,
+            "line_total": 640000
+          },
+          {
+            "line_no": 7,
+            "description": "Lentils 1 kg",
+            "quantity": 80,
+            "unit_price": 7600,
+            "line_total": 608000
+          },
+          {
+            "line_no": 8,
+            "description": "Ground coffee 500 g",
+            "quantity": 50,
+            "unit_price": 16900,
+            "line_total": 845000
+          },
+          {
+            "line_no": 9,
+            "description": "Cocoa powder 1 kg",
+            "quantity": 25,
+            "unit_price": 24000,
+            "line_total": 600000
+          },
+          {
+            "line_no": 10,
+            "description": "Iodized salt 1 kg",
+            "quantity": 100,
+            "unit_price": 1900,
+            "line_total": 190000
+          }
+        ],
+        "confidence": null
+      },
+      "drive_file_name": "2026-10-07_sacoyuca-alimentos-sas_sa-77812.pdf"
+    },
+    {
+      "file": "invoice-03-usd.pdf",
+      "outcome": "ok",
+      "path": "text",
+      "invoice": {
+        "supplier": "Brackenport Supply LLC",
+        "supplier_tax_id": "001847263",
+        "invoice_number": "INV-3307",
+        "issue_date": "2026-10-10",
+        "due_date": "2026-11-09",
+        "currency": "USD",
+        "subtotal": 2191,
+        "tax": 0,
+        "total": 2191,
+        "line_items": [
+          {
+            "line_no": 1,
+            "description": "Pallet wrapper turntable motor",
+            "quantity": 1,
+            "unit_price": 1240,
+            "line_total": 1240
+          },
+          {
+            "line_no": 2,
+            "description": "Pre-stretch roller set",
+            "quantity": 2,
+            "unit_price": 385.5,
+            "line_total": 771
+          },
+          {
+            "line_no": 3,
+            "description": "Freight to Barranquilla",
+            "quantity": 1,
+            "unit_price": 180,
+            "line_total": 180
+          }
+        ],
+        "confidence": null
+      },
+      "drive_file_name": "2026-10-10_brackenport-supply-llc_inv-3307.pdf"
+    },
+    {
+      "file": "invoice-04-scanned.pdf",
+      "outcome": "ok",
+      "path": "vision",
+      "invoice": {
+        "supplier": "Nevaribe Logística S.A.S.",
+        "supplier_tax_id": "9011208744",
+        "invoice_number": "NL-0938",
+        "issue_date": "2026-10-14",
+        "due_date": "2026-11-13",
+        "currency": "COP",
+        "subtotal": 2500000,
+        "tax": 475000,
+        "total": 2975000,
+        "line_items": [
+          {
+            "line_no": 1,
+            "description": "Cold storage, pallet-day",
+            "quantity": 120,
+            "unit_price": 9500,
+            "line_total": 1140000
+          },
+          {
+            "line_no": 2,
+            "description": "Refrigerated transport Barranquilla–Santa Marta",
+            "quantity": 2,
+            "unit_price": 680000,
+            "line_total": 1360000
+          }
+        ],
+        "confidence": null
+      },
+      "drive_file_name": "2026-10-14_nevaribe-logistica-sas_nl-0938.pdf"
+    },
+    {
+      "file": "invoice-05-bad-totals.pdf",
+      "outcome": "review",
+      "path": "text",
+      "invoice": {
+        "supplier": "Marbetaria S.A.S.",
+        "supplier_tax_id": "9006124986",
+        "invoice_number": "MB-5520",
+        "issue_date": "2026-10-17",
+        "due_date": "2026-11-16",
+        "currency": "COP",
+        "subtotal": 1140000,
+        "tax": 216600,
+        "total": 1416600,
+        "line_items": [
+          {
+            "line_no": 1,
+            "description": "Thermal labels 100x150 mm (roll)",
+            "quantity": 40,
+            "unit_price": 18000,
+            "line_total": 720000
+          },
+          {
+            "line_no": 2,
+            "description": "Ink ribbon 110 mm x 300 m",
+            "quantity": 12,
+            "unit_price": 35000,
+            "line_total": 420000
+          }
+        ],
+        "confidence": null
+      },
+      "drive_file_name": "2026-10-17_marbetaria-sas_mb-5520.pdf",
+      "review_reasons_include": [
+        "totals_mismatch"
+      ]
+    },
+    {
+      "file": "invoice-06-copy-of-01.pdf",
+      "outcome": "duplicate",
+      "duplicate_of": "invoice-01-two-items.pdf"
+    }
+  ]
+}
