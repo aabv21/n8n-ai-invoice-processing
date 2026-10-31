@@ -70,3 +70,28 @@ test('intake-email target shapes one Gmail-like item and keeps its binary', () =
   expect(connections['Shape Gmail item']!.main[0]!.map((c) => c.node)).toEqual(['Call intake-email']);
   expect(connections['Call intake-email']!.main[0]!.map((c) => c.node)).toEqual(['Respond with result']);
 });
+
+// summary-preview passes { run_at, dry_run } to daily-summary and returns its output (the preview
+// when dry_run is true, same as what Email summary would have sent when false), exercising the
+// IF branch on daily-summary's own dry_run split offline, through real Postgres.
+test('summary-preview target passes { run_at, dry_run } to daily-summary and responds with its output', () => {
+  const wf = workflowFile('dev-harness.json');
+
+  const switchNode = nodeOf(wf, 'Route by target');
+  const rules = (switchNode.parameters.rules as { values: { outputKey: string }[] }).values;
+  const targetIndex = rules.findIndex((r) => r.outputKey === 'summary-preview');
+  expect(targetIndex).toBeGreaterThanOrEqual(0);
+
+  const call = nodeOf(wf, 'Call daily-summary');
+  expect(call.parameters).toMatchObject({ workflowId: { value: 'mgpDailySummary1' } });
+  const mapped = (call.parameters.workflowInputs as { value: Record<string, string> }).value;
+  expect(mapped).toMatchObject({
+    run_at: '={{ $json.body.input.run_at }}',
+    dry_run: '={{ $json.body.input.dry_run }}',
+  });
+
+  const connections = wf.connections as Record<string, MainConnections>;
+  const summaryPreviewBranch = connections['Route by target']!.main[targetIndex]!;
+  expect(summaryPreviewBranch.map((c) => c.node)).toEqual(['Call daily-summary']);
+  expect(connections['Call daily-summary']!.main[0]!.map((c) => c.node)).toEqual(['Respond with result']);
+});

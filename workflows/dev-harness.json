@@ -135,6 +135,30 @@
                 ]
               },
               "renameOutput": true
+            },
+            {
+              "outputKey": "summary-preview",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "40000000-0001-4000-8000-0000000a0105",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.body.target }}",
+                    "rightValue": "summary-preview"
+                  }
+                ]
+              },
+              "renameOutput": true
             }
           ]
         },
@@ -346,7 +370,7 @@
       "parameters": {
         "width": 1200,
         "height": 160,
-        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config, extract-invoice, process-invoice, and intake-email exist today; later work adds more targets the same way."
+        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config, extract-invoice, process-invoice, intake-email, and summary-preview exist today; later work adds more targets the same way."
       }
     },
     {
@@ -574,6 +598,58 @@
           "waitForSubWorkflow": true
         }
       }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000015",
+      "name": "Call daily-summary",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        1060
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpDailySummary1"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "run_at": "={{ $json.body.input.run_at }}",
+            "dry_run": "={{ $json.body.input.dry_run }}"
+          },
+          "schema": [
+            {
+              "id": "run_at",
+              "displayName": "run_at",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "dry_run",
+              "displayName": "dry_run",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "boolean",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
     }
   ],
   "connections": {
@@ -619,6 +695,13 @@
         [
           {
             "node": "Convert PDF for intake-email",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call daily-summary",
             "type": "main",
             "index": 0
           }
@@ -721,6 +804,17 @@
       ]
     },
     "Call intake-email": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call daily-summary": {
       "main": [
         [
           {

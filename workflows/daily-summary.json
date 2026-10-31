@@ -1,0 +1,455 @@
+{
+  "id": "mgpDailySummary1",
+  "name": "Daily summary",
+  "description": null,
+  "nodes": [
+    {
+      "id": "90000000-0000-4000-8000-000000000001",
+      "name": "Every day at 18:00",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.4,
+      "position": [
+        -900,
+        160
+      ],
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 18 * * *"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000002",
+      "name": "When called by the harness",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -900,
+        400
+      ],
+      "parameters": {
+        "inputSource": "passthrough"
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000003",
+      "name": "Shape schedule run",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -620,
+        160
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "90000000-0003-4000-8000-0000000a0101",
+              "name": "run_at",
+              "type": "string",
+              "value": "={{ $now.toISO() }}"
+            },
+            {
+              "id": "90000000-0003-4000-8000-0000000a0102",
+              "name": "dry_run",
+              "type": "boolean",
+              "value": false
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000004",
+      "name": "Shape harness run",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -620,
+        400
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "90000000-0004-4000-8000-0000000a0201",
+              "name": "run_at",
+              "type": "string",
+              "value": "={{ $json.run_at }}"
+            },
+            {
+              "id": "90000000-0004-4000-8000-0000000a0202",
+              "name": "dry_run",
+              "type": "boolean",
+              "value": "={{ $json.dry_run !== false }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000005",
+      "name": "Load config",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        -340,
+        160
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpLoadConfig001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "schema": [],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        }
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000014",
+      "name": "Attach config to run",
+      "type": "n8n-nodes-base.merge",
+      "typeVersion": 3.2,
+      "position": [
+        -60,
+        280
+      ],
+      "parameters": {
+        "mode": "combine",
+        "combineBy": "combineByPosition",
+        "numberInputs": 2,
+        "options": {}
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000006",
+      "name": "Query summary",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        220,
+        280
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Summarizes the 24 hours ending at the run's timestamp, for an email sent at a fixed local time\n-- (18:00 Bogota) that must not lose invoices arriving between that run and midnight. The window is\n-- half-open: [run - 24h, run). The totals and review list only draw from invoices whose event has\n-- actually finished (a non-NULL outcome) -- the same population the counts use -- so a saved but\n-- still-processing invoice never appears in a total while missing from its own outcome count.\n-- \"Due soon\" stays a calendar-date window: the run's own Bogota date through six days after it.\n-- $1 run (timestamptz): the moment the summary is generated\nWITH bounds AS (\n  SELECT\n    $1::timestamptz AS run_at,\n    $1::timestamptz - interval '24 hours' AS window_start,\n    ($1::timestamptz AT TIME ZONE 'America/Bogota')::date AS report_date\n),\nwindow_events AS (\n  SELECT pe.*\n  FROM processed_events pe\n  CROSS JOIN bounds\n  WHERE pe.received_at >= bounds.window_start AND pe.received_at < bounds.run_at\n),\ncounts AS (\n  SELECT\n    count(*)::int AS arrived,\n    count(*) FILTER (WHERE outcome = 'ok')::int AS ok,\n    count(*) FILTER (WHERE outcome = 'review')::int AS review,\n    count(*) FILTER (WHERE outcome = 'duplicate')::int AS duplicates\n  FROM window_events\n),\nunfinished AS (\n  SELECT count(*)::int AS n\n  FROM processed_events\n  WHERE outcome IS NULL AND received_at < now() - interval '30 minutes'\n),\n-- Only invoices whose processed_events row has actually finished (outcome IS NOT NULL). DISTINCT\n-- collapses an invoice that two events reference (its own arrival, plus a later duplicate of it)\n-- back to one row, so it isn't double-counted.\nfinished_invoices AS (\n  SELECT DISTINCT i.*\n  FROM invoices i\n  JOIN processed_events pe ON pe.invoice_id = i.id\n  WHERE pe.outcome IS NOT NULL\n),\ntotals AS (\n  SELECT jsonb_agg(\n    jsonb_build_object('supplier', t.supplier, 'currency', t.currency, 'invoices', t.invoices, 'total', t.total)\n    ORDER BY t.supplier, t.currency\n  ) AS rows\n  FROM (\n    SELECT fi.supplier, fi.currency, count(*)::int AS invoices, sum(fi.total) AS total\n    FROM finished_invoices fi\n    CROSS JOIN bounds\n    WHERE fi.status = 'ok' AND fi.received_at >= bounds.window_start AND fi.received_at < bounds.run_at\n    GROUP BY fi.supplier, fi.currency\n  ) t\n),\nreview AS (\n  SELECT jsonb_agg(\n    jsonb_build_object(\n      'supplier', r.supplier, 'invoice_number', r.invoice_number, 'currency', r.currency,\n      'total', r.total, 'review_reasons', to_jsonb(r.review_reasons), 'drive_url', r.drive_url\n    ) ORDER BY r.received_at\n  ) AS rows\n  FROM (\n    SELECT fi.supplier, fi.invoice_number, fi.currency, fi.total, fi.review_reasons, fi.drive_url, fi.received_at\n    FROM finished_invoices fi\n    CROSS JOIN bounds\n    WHERE fi.status = 'review' AND fi.received_at >= bounds.window_start AND fi.received_at < bounds.run_at\n  ) r\n),\ndue AS (\n  SELECT jsonb_agg(\n    jsonb_build_object(\n      'supplier', d.supplier, 'invoice_number', d.invoice_number, 'due_date', d.due_date,\n      'currency', d.currency, 'total', d.total, 'status', d.status\n    ) ORDER BY d.due_date, d.supplier\n  ) AS rows\n  FROM (\n    SELECT i.supplier, i.invoice_number, i.due_date, i.currency, i.total, i.status\n    FROM invoices i\n    CROSS JOIN bounds\n    WHERE i.due_date BETWEEN bounds.report_date AND bounds.report_date + 7\n  ) d\n)\nSELECT\n  bounds.report_date::text AS report_date,\n  counts.arrived, counts.ok, counts.review, counts.duplicates,\n  unfinished.n AS unfinished,\n  COALESCE(totals.rows, '[]'::jsonb) AS totals_by_supplier,\n  COALESCE(review.rows, '[]'::jsonb) AS review_items,\n  COALESCE(due.rows, '[]'::jsonb) AS due_soon\nFROM bounds, counts, unfinished, totals, review, due;\n",
+        "options": {
+          "queryReplacement": "={{ $json.run_at }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000007",
+      "name": "Render summary",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        500,
+        280
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Why Code: renders escaped HTML tables and per-currency money formats from the summary row. Generated from src/nodes/render-summary.ts by npm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/render-summary.ts\n  var render_summary_exports = {};\n  __export(render_summary_exports, {\n    run: () => run\n  });\n\n  // src/lib/format.ts\n  function escapeHtml(text) {\n    return text.replace(/&/g, \"&amp;\").replace(/</g, \"&lt;\").replace(/>/g, \"&gt;\").replace(/\"/g, \"&quot;\").replace(/'/g, \"&#39;\");\n  }\n  function formatMoney(amount, currency) {\n    if (amount === null) return \"—\";\n    const decimals = currency === \"COP\" ? 0 : 2;\n    const formatted = amount.toLocaleString(\"en-US\", { minimumFractionDigits: decimals, maximumFractionDigits: decimals });\n    return currency === null ? formatted : `${currency} ${formatted}`;\n  }\n\n  // src/nodes/render-summary.ts\n  function cell(text) {\n    return text === null ? \"—\" : escapeHtml(text);\n  }\n  function row(cells) {\n    return `<tr>${cells.map((c) => `<td>${c}</td>`).join(\"\")}</tr>`;\n  }\n  function table(headers, rows) {\n    if (rows.length === 0) return \"<p>None.</p>\";\n    const head = `<tr>${headers.map((h) => `<th>${h}</th>`).join(\"\")}</tr>`;\n    return `<table><thead>${head}</thead><tbody>${rows.map(row).join(\"\")}</tbody></table>`;\n  }\n  function pdfLink(driveUrl) {\n    if (driveUrl === null || !driveUrl.startsWith(\"https://\")) return cell(null);\n    const escaped = escapeHtml(driveUrl);\n    return `<a href=\"${escaped}\">PDF</a>`;\n  }\n  function run(input) {\n    if (input.report_date === null || input.report_date === \"\") {\n      throw new Error(\"Daily summary: the query returned no report_date; run_at is missing or invalid\");\n    }\n    const subject = `Magdaport invoices ${input.report_date}: ${String(input.arrived)} arrived, ${String(input.review)} to review`;\n    const counts = `<p>Arrived: ${String(input.arrived)} | OK: ${String(input.ok)} | Review: ${String(input.review)} | Duplicates: ${String(input.duplicates)}</p>`;\n    const unfinishedLine = input.unfinished > 0 ? `<p>${String(input.unfinished)} invoice${input.unfinished === 1 ? \"\" : \"s\"} did not finish processing. See n8n's failed executions, or the README's recovery steps for stuck events.</p>` : \"\";\n    const emptyDayLine = input.arrived === 0 ? \"<p>No invoices arrived in the last 24 hours.</p>\" : \"\";\n    const totalsTable = table(\n      [\"Supplier\", \"Currency\", \"Invoices\", \"Total\"],\n      input.totals_by_supplier.map((t) => [cell(t.supplier), cell(t.currency), String(t.invoices), escapeHtml(formatMoney(t.total, t.currency))])\n    );\n    const reviewTable = table(\n      [\"Supplier\", \"Invoice #\", \"Total\", \"Reasons\", \"\"],\n      input.review_items.map((r) => [\n        cell(r.supplier),\n        cell(r.invoice_number),\n        escapeHtml(formatMoney(r.total, r.currency)),\n        escapeHtml(r.review_reasons.join(\", \")),\n        pdfLink(r.drive_url)\n      ])\n    );\n    const dueTable = table(\n      [\"Supplier\", \"Invoice #\", \"Due\", \"Total\", \"Status\"],\n      input.due_soon.map((d) => [cell(d.supplier), cell(d.invoice_number), escapeHtml(d.due_date), escapeHtml(formatMoney(d.total, d.currency)), escapeHtml(d.status)])\n    );\n    const html = [\n      `<h1>Magdaport invoices: ${escapeHtml(input.report_date)}</h1>`,\n      counts,\n      unfinishedLine,\n      emptyDayLine,\n      \"<h2>Totals by supplier</h2>\",\n      totalsTable,\n      \"<h2>Review items</h2>\",\n      reviewTable,\n      \"<h2>Due in the next 7 days</h2>\",\n      dueTable\n    ].filter((part) => part !== \"\").join(\"\\n\");\n    return { subject, html };\n  }\n  return __toCommonJS(render_summary_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000008",
+      "name": "Dry run?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        780,
+        280
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "90000000-0008-4000-8000-0000000a0101",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $('Attach config to run').first().json.dry_run }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000009",
+      "name": "Return preview",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        1040,
+        160
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "90000000-0009-4000-8000-0000000a0301",
+              "name": "subject",
+              "type": "string",
+              "value": "={{ $json.subject }}"
+            },
+            {
+              "id": "90000000-0009-4000-8000-0000000a0302",
+              "name": "html",
+              "type": "string",
+              "value": "={{ $json.html }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000010",
+      "name": "Email summary",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1040,
+        420
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "message",
+        "operation": "send",
+        "sendTo": "={{ $('Attach config to run').first().json.config.team_email }}",
+        "subject": "={{ $json.subject }}",
+        "emailType": "html",
+        "message": "={{ $json.html }}",
+        "options": {
+          "appendAttribution": false
+        }
+      },
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mgpCredGmail0001",
+          "name": "Gmail"
+        }
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000011",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -940,
+        -80
+      ],
+      "parameters": {
+        "width": 1340,
+        "height": 180,
+        "content": "## Trigger and normalize\nEither the 18:00 Bogota schedule or a harness preview call starts a run. Both shaping nodes write the same { run_at, dry_run } shape - the schedule path stamps the current moment and dry_run: false, the harness path carries through whatever it was called with. Load config ignores its own input, so Attach config to run merges that shape back onto config's output by position, giving every later node one place to read run_at, dry_run, and config from, regardless of which trigger fired."
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000012",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        220,
+        -80
+      ],
+      "parameters": {
+        "width": 820,
+        "height": 180,
+        "content": "## Query and render\nQuery summary passes run_at (an ISO timestamp, not a date) as the query's one parameter, so the rolling 24-hour window ends exactly at the run's own moment. Render summary turns the one returned row into an escaped HTML email and its subject."
+      }
+    },
+    {
+      "id": "90000000-0000-4000-8000-000000000013",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        780,
+        -80
+      ],
+      "parameters": {
+        "width": 620,
+        "height": 180,
+        "content": "## Send or preview\nA dry run (the harness path) returns { subject, html } without sending, for a preview. Otherwise the rendered email goes to the team address from config."
+      }
+    }
+  ],
+  "connections": {
+    "Every day at 18:00": {
+      "main": [
+        [
+          {
+            "node": "Shape schedule run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "When called by the harness": {
+      "main": [
+        [
+          {
+            "node": "Shape harness run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape schedule run": {
+      "main": [
+        [
+          {
+            "node": "Load config",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Attach config to run",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Shape harness run": {
+      "main": [
+        [
+          {
+            "node": "Load config",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Attach config to run",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Load config": {
+      "main": [
+        [
+          {
+            "node": "Attach config to run",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Attach config to run": {
+      "main": [
+        [
+          {
+            "node": "Query summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query summary": {
+      "main": [
+        [
+          {
+            "node": "Render summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render summary": {
+      "main": [
+        [
+          {
+            "node": "Dry run?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dry run?": {
+      "main": [
+        [
+          {
+            "node": "Return preview",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Email summary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "mgpErrorHandler1"
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
