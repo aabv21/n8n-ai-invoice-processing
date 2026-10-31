@@ -42,6 +42,7 @@ export const WORKFLOWS: readonly WorkflowEntry[] = [
   { id: 'mgpExtractInv001', name: 'Extract invoice', file: 'extract-invoice.json' },
   { id: 'mgpProcessInv001', name: 'Process invoice', file: 'process-invoice.json' },
   { id: 'mgpGmailEntry001', name: 'Gmail entry', file: 'gmail-entry.json' },
+  { id: 'mgpIntakeEmail01', name: 'Intake email', file: 'intake-email.json' },
   { id: 'mgpDailySummary1', name: 'Daily summary', file: 'daily-summary.json' },
 ];
 
@@ -118,6 +119,12 @@ export const CODE_NODES: readonly CodeNodeEntry[] = [
     source: 'src/nodes/prepare-record.ts',
     why: 'turns every extraction outcome into one record and builds the Drive file name',
   },
+  {
+    file: 'intake-email.json',
+    node: 'Check config',
+    source: 'src/nodes/check-config.ts',
+    why: 'validates the loaded config so a bad value fails loudly instead of silently disabling a check',
+  },
 ];
 
 export const TEXT_PARAMS: readonly TextParamEntry[] = [
@@ -129,6 +136,7 @@ export const TEXT_PARAMS: readonly TextParamEntry[] = [
   { file: 'process-invoice.json', node: 'Record duplicate', parameter: 'query', source: 'db/queries/record-outcome.sql' },
   { file: 'process-invoice.json', node: 'Save Drive link', parameter: 'query', source: 'db/queries/save-drive-link.sql' },
   { file: 'process-invoice.json', node: 'Record outcome', parameter: 'query', source: 'db/queries/record-outcome.sql' },
+  { file: 'intake-email.json', node: 'Record event', parameter: 'query', source: 'db/queries/record-event.sql' },
 ];
 
 export const BUILD_ENTRIES: readonly BuildEntry[] = [...CODE_NODES, ...TEXT_PARAMS];
