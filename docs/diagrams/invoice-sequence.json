@@ -1,0 +1,239 @@
+{
+  "schema_version": 1,
+  "diagram_type": "sequence",
+  "meta": {
+    "title": "Supplier Invoice Lifecycle",
+    "output": "docs/diagrams/invoice-sequence.html",
+    "quality_profile": "showcase",
+    "column_fit": "spread",
+    "viewBox": [
+      1700,
+      960
+    ],
+    "legend": {
+      "entries": {
+        "emphasis": {
+          "label": "main path"
+        },
+        "default": {
+          "label": "call"
+        },
+        "return": {
+          "label": "reply"
+        },
+        "dashed": {
+          "label": "conditional branch"
+        }
+      }
+    }
+  },
+  "participants": [
+    {
+      "id": "gmail",
+      "type": "external",
+      "label": "Gmail"
+    },
+    {
+      "id": "entry",
+      "type": "backend",
+      "label": "gmail-entry"
+    },
+    {
+      "id": "intake",
+      "type": "backend",
+      "label": "intake-email"
+    },
+    {
+      "id": "db",
+      "type": "database",
+      "label": "Postgres",
+      "brand": "postgresql"
+    },
+    {
+      "id": "process",
+      "type": "backend",
+      "label": "process-invoice"
+    },
+    {
+      "id": "extract",
+      "type": "backend",
+      "label": "extract-invoice"
+    },
+    {
+      "id": "claude",
+      "type": "external",
+      "label": "Anthropic",
+      "brand": "anthropic"
+    },
+    {
+      "id": "google",
+      "type": "external",
+      "label": "Drive · Sheets"
+    }
+  ],
+  "segments": [
+    {
+      "from": 152,
+      "to": 210,
+      "label": "1 Poll"
+    },
+    {
+      "from": 234,
+      "to": 292,
+      "label": "2 Idempotency gate"
+    },
+    {
+      "from": 316,
+      "to": 458,
+      "label": "3 Screens, extraction, check"
+    },
+    {
+      "from": 482,
+      "to": 512,
+      "label": "4 Sonnet retry"
+    },
+    {
+      "from": 536,
+      "to": 594,
+      "label": "5 Save (replay-safe)"
+    },
+    {
+      "from": 618,
+      "to": 676,
+      "label": "6 Duplicate: label and outcome only"
+    },
+    {
+      "from": 700,
+      "to": 842,
+      "label": "7 Drive, Sheets, label, outcome"
+    }
+  ],
+  "messages": [
+    {
+      "from": "gmail",
+      "to": "entry",
+      "y": 170,
+      "label": "new labeled mail"
+    },
+    {
+      "from": "entry",
+      "to": "intake",
+      "y": 198,
+      "label": "whole poll, one call",
+      "variant": "emphasis"
+    },
+    {
+      "from": "intake",
+      "to": "db",
+      "y": 252,
+      "label": "record event once"
+    },
+    {
+      "from": "db",
+      "to": "intake",
+      "y": 280,
+      "label": "known event: dropped",
+      "variant": "return"
+    },
+    {
+      "from": "intake",
+      "to": "process",
+      "y": 334,
+      "label": "each new PDF",
+      "variant": "emphasis"
+    },
+    {
+      "from": "process",
+      "to": "extract",
+      "y": 362,
+      "label": "Haiku 5.5, effort low",
+      "variant": "emphasis"
+    },
+    {
+      "from": "extract",
+      "to": "claude",
+      "y": 390,
+      "label": "text or PDF request"
+    },
+    {
+      "from": "claude",
+      "to": "extract",
+      "y": 418,
+      "label": "structured reply",
+      "variant": "return"
+    },
+    {
+      "from": "extract",
+      "to": "process",
+      "y": 446,
+      "label": "verdict: ok or review",
+      "variant": "return"
+    },
+    {
+      "from": "process",
+      "to": "extract",
+      "y": 500,
+      "label": "review: Sonnet 5.5, same path",
+      "variant": "dashed"
+    },
+    {
+      "from": "process",
+      "to": "db",
+      "y": 554,
+      "label": "save once per event",
+      "variant": "emphasis"
+    },
+    {
+      "from": "db",
+      "to": "process",
+      "y": 582,
+      "label": "invoice_id or duplicate_of",
+      "variant": "return"
+    },
+    {
+      "from": "process",
+      "to": "gmail",
+      "y": 636,
+      "label": "Duplicate label",
+      "variant": "dashed"
+    },
+    {
+      "from": "process",
+      "to": "db",
+      "y": 664,
+      "label": "outcome: duplicate",
+      "variant": "dashed"
+    },
+    {
+      "from": "process",
+      "to": "google",
+      "y": 718,
+      "label": "upload PDF to yyyy/mm"
+    },
+    {
+      "from": "process",
+      "to": "db",
+      "y": 746,
+      "label": "save Drive link, read row"
+    },
+    {
+      "from": "process",
+      "to": "google",
+      "y": 774,
+      "label": "Sheets rows by key"
+    },
+    {
+      "from": "process",
+      "to": "gmail",
+      "y": 802,
+      "label": "Processed or Review label",
+      "variant": "emphasis"
+    },
+    {
+      "from": "process",
+      "to": "db",
+      "y": 830,
+      "label": "record outcome"
+    }
+  ]
+}

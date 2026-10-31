@@ -23,7 +23,7 @@ test('prompt states the rules the checks rely on', () => {
   for (const s of ['Magdaport', 'null', 'YYYY-MM-DD', 'COP', 'USD', '1.190.000']) expect(prompt).toContain(s);
   expect(prompt).not.toMatch(/\d{10}|@/);
 });
-// I-3: the Information Extractor appends its own format instructions to this text as a LangChain
+// The Information Extractor appends its own format instructions to this text as a LangChain
 // template, which treats `{`/`}` as template syntax - a brace here would break the text path.
 test('prompt contains no braces', () => expect(prompt).not.toMatch(/[{}]/));
 // The inputSchema is this same file's text, so it must pass the same hygiene scan as the prompt -

@@ -13,7 +13,7 @@ test.each([
   ['901.384.552-2', '9013845522'], [' 901 384 552 - 2 ', '9013845522'], ['nit: 901384552-2', '9013845522'],
   ['EIN 00-1847263', '001847263'], ['Tax ID: 00-1847263', '001847263'], ['N/A', null], ['   ', null], [42, null],
 ])('tax ID %j → %j', (input, out) => expect(normalizeTaxId(input)).toBe(out));
-// I-1: dotted and "No."-suffixed label variants must still strip to the same clean key, or the
+// Dotted and "No."-suffixed label variants must still strip to the same clean key, or the
 // same invoice extracted twice with different label punctuation would save as two invoices.
 test.each([
   ['N.I.T. 901.384.552-2', '9013845522'], ['NIT No. 901.384.552-2', '9013845522'], ['R.U.T. 901.384.552-2', '9013845522'],
@@ -28,10 +28,10 @@ test('impossible or non-ISO dates become null with a reason', () =>
     .toMatchObject({ invoice: { issue_date: null, due_date: null }, reasons: ['invalid_issue_date', 'invalid_due_date'] }));
 test('blank strings are missing, not invalid', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, supplier: '   ', issue_date: '' })).toMatchObject({ invoice: { supplier: null, issue_date: null }, reasons: [] }));
-// M10: blank currency and due_date must also be missing-not-invalid, same as supplier/issue_date above.
+// Blank currency and due_date must also be missing-not-invalid, same as supplier/issue_date above.
 test('blank currency and due_date are also missing, not invalid', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, currency: '  ', due_date: '' })).toMatchObject({ invoice: { currency: null, due_date: null }, reasons: [] }));
-// I-2: a non-string, non-blank value is a present-but-wrong-shape value, not a missing one - it
+// A non-string, non-blank value is a present-but-wrong-shape value, not a missing one - it
 // must carry the field's own invalid_* reason instead of silently passing as null with no reason.
 test('a non-string issue_date is invalid, not silently missing', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, issue_date: 20261101 }))
@@ -56,7 +56,7 @@ test('confidence outside 0..1 is dropped', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, confidence: 1.2 }).invoice.confidence).toBeNull());
 test.each([[null], ['text'], [[1]]])('a non-object reply %j is an empty invoice', (raw) =>
   expect(normalizeInvoice(raw)).toEqual({ invoice: EMPTY_INVOICE, reasons: [] }));
-// M11: the empty invoice returned here must be an independent copy - mutating it must never leak
+// The empty invoice returned here must be an independent copy - mutating it must never leak
 // into the shared EMPTY_INVOICE constant that every other caller also reads.
 test('the empty invoice is a fresh copy, not the shared constant', () => {
   const { invoice } = normalizeInvoice(null);

@@ -1,5 +1,5 @@
 // Shared invoice types, in the exact shape the extraction schema, the checks, and every consumer
-// (Tasks 5, 8, 11) agree on. Pure data: no logic lives here.
+// (the Code nodes, the SQL tests, and the scenario check) agree on. Pure data: no logic lives here.
 
 export type ReviewReason =
   | 'unparseable_reply'

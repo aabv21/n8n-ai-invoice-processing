@@ -90,8 +90,8 @@ export const CREDENTIALS: readonly CredentialEntry[] = [
     data: (env) => ({ clientId: readEnv(env, 'GOOGLE_OAUTH_CLIENT_ID'), clientSecret: readEnv(env, 'GOOGLE_OAUTH_CLIENT_SECRET') }),
   },
   {
-    // The dev harness is localhost-only (no tunnel in this demo); its workflow is added in Task 6
-    // and must be unpublished before production. See AGENTS.md.
+    // The dev harness is localhost-only (no tunnel in this demo), and its workflow must be
+    // unpublished before production. See AGENTS.md.
     id: 'mgpCredDevToken1',
     name: 'Dev harness token',
     type: 'httpHeaderAuth',

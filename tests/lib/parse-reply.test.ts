@@ -15,7 +15,7 @@ test.each([['not json'], [''], ['[1,2]'], ['{"supplier":']])('rejects %j', (t) =
   expect(parseReply(text(t))).toEqual({ ok: false, reason: 'unparseable_reply' }));
 test('reports truncation before parsing', () =>
   expect(parseReply(text('{"supplier":"A"}', 'max_tokens'))).toEqual({ ok: false, reason: 'reply_truncated' }));
-// M5: a context-window overflow is truncation too, not an unparseable reply.
+// A context-window overflow is truncation too, not an unparseable reply.
 test('reports truncation for a context-window overflow too', () =>
   expect(parseReply(text('{"supplier":"A"}', 'model_context_window_exceeded'))).toEqual({ ok: false, reason: 'reply_truncated' }));
 test('reports a refusal', () =>

@@ -3,23 +3,24 @@ import { callDev } from '../scripts/lib/dev-client.ts';
 
 // callDev calls loadDotEnv() first, which calls the real process.loadEnvFile('.env'). CI has no
 // .env (it's gitignored), so every test here stubs that one call instead of mocking our own
-// runtime module, keeping the rest of loadDotEnv's behavior under test.
+// runtime module, keeping the rest of loadDotEnv's behavior under test. Each test also stubs the
+// env vars it reads, so a value exported in the developer's shell can't change its outcome.
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();
-  delete process.env.N8N_URL;
-  delete process.env.DEV_HARNESS_TOKEN;
+  vi.unstubAllEnvs();
 });
 
 test('callDev throws when N8N_URL is not set', async () => {
   vi.spyOn(process, 'loadEnvFile').mockImplementation(() => undefined);
+  vi.stubEnv('N8N_URL', undefined);
   await expect(callDev('load-config', {})).rejects.toThrow('N8N_URL is not set');
 });
 
 test('callDev posts the target and input to the dev webhook with the dev-token header', async () => {
   vi.spyOn(process, 'loadEnvFile').mockImplementation(() => undefined);
-  process.env.N8N_URL = 'http://localhost:5678';
-  process.env.DEV_HARNESS_TOKEN = 'secret-token';
+  vi.stubEnv('N8N_URL', 'http://localhost:5678');
+  vi.stubEnv('DEV_HARNESS_TOKEN', 'secret-token');
   const fetchMock = vi.fn<(input: string, init?: RequestInit) => Promise<Response>>(() =>
     Promise.resolve(new Response(JSON.stringify({ ok: true }), { status: 200 })));
   vi.stubGlobal('fetch', fetchMock);
@@ -40,7 +41,7 @@ test('callDev posts the target and input to the dev webhook with the dev-token h
 
 test('callDev throws with the status and body on a failed response', async () => {
   vi.spyOn(process, 'loadEnvFile').mockImplementation(() => undefined);
-  process.env.N8N_URL = 'http://localhost:5678';
+  vi.stubEnv('N8N_URL', 'http://localhost:5678');
   vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('bad request', { status: 400 }))));
   await expect(callDev('load-config', {})).rejects.toThrow('400 bad request');
 });

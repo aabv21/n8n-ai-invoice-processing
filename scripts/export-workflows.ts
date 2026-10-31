@@ -8,9 +8,9 @@ import { BUILD_ENTRIES, WORKFLOWS } from './manifest.ts';
 
 // Fields n8n sets on every export that are never meaningful diff material: pinned test data,
 // server-assigned bookkeeping, and the exporting instance's own identity.
-// Ruling P15: `active` and `versionCounter` reflect this instance's own history (publish state,
-// save count), not the workflow's source, so they're dropped the same way as the other bookkeeping
-// fields below. Importing and exporting the same workflows twice in a row must produce no diff.
+// `active` and `versionCounter` reflect this instance's own history (publish state, save count),
+// not the workflow's source, so they're dropped the same way as the other bookkeeping fields
+// below. Importing and exporting the same workflows twice in a row must produce no diff.
 const VOLATILE_FIELDS = [
   'pinData',
   'versionId',

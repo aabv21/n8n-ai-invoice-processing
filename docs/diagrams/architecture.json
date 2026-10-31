@@ -1,0 +1,333 @@
+{
+  "schema_version": 1,
+  "diagram_type": "architecture",
+  "meta": {
+    "title": "Magdaport Invoice Pipeline",
+    "output": "docs/diagrams/architecture.html",
+    "quality_profile": "showcase",
+    "viewBox": [
+      1230,
+      640
+    ]
+  },
+  "components": [
+    {
+      "id": "gmail",
+      "type": "external",
+      "label": "Gmail",
+      "sublabel": "labeled PDF mail",
+      "pos": [
+        40,
+        300
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "gmail-entry",
+      "type": "backend",
+      "label": "gmail-entry",
+      "sublabel": "polls every minute",
+      "pos": [
+        246,
+        300
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "intake-email",
+      "type": "backend",
+      "label": "intake-email",
+      "sublabel": "config check · gate",
+      "pos": [
+        452,
+        300
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "process-invoice",
+      "type": "backend",
+      "label": "process-invoice",
+      "sublabel": "screen · save · file",
+      "pos": [
+        658,
+        300
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "extract-invoice",
+      "type": "backend",
+      "label": "extract-invoice",
+      "sublabel": "text path · PDF path",
+      "pos": [
+        864,
+        300
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "anthropic",
+      "type": "external",
+      "label": "Anthropic",
+      "sublabel": "Haiku · Sonnet 5.5",
+      "brand": "anthropic",
+      "pos": [
+        1070,
+        300
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "drive",
+      "type": "external",
+      "label": "Google Drive",
+      "sublabel": "PDF by year/month",
+      "pos": [
+        658,
+        100
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "sheets",
+      "type": "external",
+      "label": "Google Sheets",
+      "sublabel": "team view",
+      "pos": [
+        864,
+        100
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "error-handler",
+      "type": "backend",
+      "label": "error-handler",
+      "sublabel": "plain-text alerts",
+      "pos": [
+        40,
+        500
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "dev-harness",
+      "type": "backend",
+      "label": "dev-harness",
+      "sublabel": "localhost · token",
+      "pos": [
+        658,
+        500
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "daily-summary",
+      "type": "backend",
+      "label": "daily-summary",
+      "sublabel": "18:00 email",
+      "pos": [
+        246,
+        500
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "Postgres 17",
+      "sublabel": "system of record",
+      "brand": "postgresql",
+      "pos": [
+        452,
+        500
+      ],
+      "size": [
+        120,
+        64
+      ]
+    }
+  ],
+  "connections": [
+    {
+      "id": "poll",
+      "from": "gmail",
+      "to": "gmail-entry",
+      "label": "new mail",
+      "variant": "emphasis"
+    },
+    {
+      "id": "handoff",
+      "from": "gmail-entry",
+      "to": "intake-email",
+      "label": "whole poll",
+      "variant": "emphasis"
+    },
+    {
+      "id": "each-pdf",
+      "from": "intake-email",
+      "to": "process-invoice",
+      "label": "new PDFs",
+      "variant": "emphasis"
+    },
+    {
+      "id": "extract",
+      "from": "process-invoice",
+      "to": "extract-invoice",
+      "label": "1-2 calls",
+      "variant": "emphasis"
+    },
+    {
+      "id": "text-path",
+      "from": "extract-invoice",
+      "to": "anthropic",
+      "label": "text path"
+    },
+    {
+      "id": "pdf-path",
+      "from": "extract-invoice",
+      "to": "anthropic",
+      "label": "PDF path",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    },
+    {
+      "id": "add-label",
+      "from": "process-invoice",
+      "to": "gmail",
+      "label": "add label",
+      "fromSide": "top",
+      "toSide": "top"
+    },
+    {
+      "id": "record-event",
+      "from": "intake-email",
+      "to": "postgres",
+      "label": "record event",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelDy": 24
+    },
+    {
+      "id": "save",
+      "from": "process-invoice",
+      "to": "postgres",
+      "label": "save · outcome",
+      "fromSide": "bottom",
+      "toSide": "top"
+    },
+    {
+      "id": "upload",
+      "from": "process-invoice",
+      "to": "drive",
+      "label": "upload PDF",
+      "fromSide": "top",
+      "toSide": "bottom",
+      "labelDy": -90
+    },
+    {
+      "id": "rows",
+      "from": "process-invoice",
+      "to": "sheets",
+      "label": "rows by key",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "summary-query",
+      "from": "daily-summary",
+      "to": "postgres",
+      "label": "last 24 h",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "alert",
+      "from": "error-handler",
+      "to": "gmail",
+      "label": "alert email",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "summary-email",
+      "from": "daily-summary",
+      "to": "gmail",
+      "label": "18:00 email",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "test-calls",
+      "from": "dev-harness",
+      "to": "process-invoice",
+      "label": "test calls",
+      "variant": "dashed",
+      "fromSide": "top",
+      "toSide": "bottom"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "Invoice path",
+      "items": [
+        "gmail-entry hands each poll to intake-email",
+        "intake-email records each PDF once, then calls process-invoice",
+        "The save comes first; Drive, Sheets, and the label follow"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "AI extraction",
+      "items": [
+        "Text path: Information Extractor with the Anthropic Chat Model",
+        "PDF path: HTTP Request to the Messages API, structured output",
+        "A failed check retries once on Sonnet 5.5, on the same path"
+      ]
+    },
+    {
+      "dot": "slate",
+      "title": "Around the pipeline",
+      "items": [
+        "daily-summary emails the last 24 hours at 18:00 Bogota",
+        "error-handler emails a plain-text alert when a workflow fails",
+        "dev-harness takes POST /webhook/dev with X-Dev-Token"
+      ]
+    }
+  ]
+}

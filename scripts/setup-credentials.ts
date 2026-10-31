@@ -10,10 +10,10 @@ export interface ImportableCredential {
   data: Record<string, unknown>;
 }
 
-// Ruling P3, extended by F2: every manifest credential type carrying an interactive OAuth2
-// sign-in — not just Gmail's — must survive a re-run of `setup`, which otherwise overwrites by id
-// and wipes the owner's sign-in. Derived from the manifest instead of a hand-picked list, so a
-// future OAuth2 credential is protected automatically.
+// Every manifest credential type carrying an interactive OAuth2 sign-in — not just Gmail's — must
+// survive a re-run of `setup`, which otherwise overwrites by id and wipes the owner's sign-in.
+// Derived from the manifest instead of a hand-picked list, so a future OAuth2 credential is
+// protected automatically.
 const PROTECTED_TYPES = new Set(CREDENTIALS.filter((c) => /OAuth2/.test(c.type)).map((c) => c.type));
 
 const IMPORT_DIR = '.n8n-import';
@@ -48,7 +48,7 @@ export function buildCredentials(env: Readonly<Record<string, string | undefined
   return { credentials, skipped };
 }
 
-/** The skip decision for ruling P3/F2: which credentials to actually import. */
+/** Which credentials to import: an existing OAuth2 credential is kept unless forced. */
 export function skipExisting(
   credentials: readonly ImportableCredential[],
   existingIds: ReadonlySet<string>,

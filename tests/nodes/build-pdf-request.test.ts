@@ -1,6 +1,6 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import { run } from '../../src/nodes/build-pdf-request.ts';
+import { assertPdfFits, MAX_PDF_BYTES, run } from '../../src/nodes/build-pdf-request.ts';
 
 const system = readFileSync('prompts/extract-invoice.md', 'utf8');
 const schema_json = readFileSync('schemas/invoice.schema.json', 'utf8');
@@ -20,8 +20,19 @@ test('sends no sampling parameters', () => {
 });
 test('a broken schema fails loudly', () =>
   expect(() => run({ model: 'm', effort: 'low', pdf_base64: 'x', system, schema_json: '{' })).toThrow());
-test('a PDF whose base64 would overflow the Messages API request limit throws before the call', () => {
-  const oversized = 'A'.repeat(32_000_000);
+// The guard is checked by base64 length, so none of these tests allocates a real 128 MB string.
+test('the PDF budget is 3/4 of the 128 MB request limit, less 1 MB for the rest of the body', () =>
+  expect(MAX_PDF_BYTES).toBe(95_250_000));
+test('a PDF exactly at the budget fits, and the next base64 block over it throws', () => {
+  expect(() => { assertPdfFits(127_000_000); }).not.toThrow();
+  expect(() => { assertPdfFits(127_000_004); }).toThrow('PDF too large for the Messages API');
+});
+test('the error names the PDF size and the limit in MB', () =>
+  expect(() => { assertPdfFits(128_000_000); })
+    .toThrow('PDF too large for the Messages API: 96.0 MB PDF; the limit is about 95.3 MB of PDF'));
+test('run() refuses an oversized PDF before building the request', () => {
+  // A stand-in exposing only what the guard reads, so the test needs no 128 MB allocation.
+  const oversized = { length: 128_000_000, endsWith: () => false } as unknown as string;
   expect(() => run({ model: 'claude-haiku-5-5', effort: 'low', pdf_base64: oversized, system, schema_json }))
-    .toThrow('PDF too large for the Messages API: 24.0 MB PDF; the limit is about 23.3 MB of PDF');
+    .toThrow('PDF too large for the Messages API: 96.0 MB PDF; the limit is about 95.3 MB of PDF');
 });
