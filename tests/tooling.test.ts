@@ -7,7 +7,7 @@ import { checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows
 import { normalizeWorkflow } from '../scripts/export-workflows.ts';
 import { missingTriggerCredentials } from '../scripts/import-workflows.ts';
 import { listJsonFiles, readWorkflow, type Workflow, type WorkflowNode } from '../scripts/lib/workflow.ts';
-import { CREDENTIALS } from '../scripts/manifest.ts';
+import { CONFIG_LOADER_ID, CREDENTIALS } from '../scripts/manifest.ts';
 import { buildCredentials, skipExisting } from '../scripts/setup-credentials.ts';
 import { runGenerated } from './helpers/run-generated.ts';
 
@@ -58,6 +58,18 @@ test('the error handler is exempt from the errorWorkflow rule', () => {
   const wf = fx('clean');
   delete wf.settings.errorWorkflow;
   expect(checkWorkflow({ ...wf, id: 'mgpErrorHandler1' }, opts)).toEqual([]);
+});
+test('the config loader is exempt from the errorWorkflow rule', () => {
+  // error-handler calls load-config, so naming the handler as load-config's own error workflow
+  // would loop the two into each other -- see check-workflows.ts.
+  const wf = fx('clean');
+  delete wf.settings.errorWorkflow;
+  expect(checkWorkflow({ ...wf, id: CONFIG_LOADER_ID }, opts)).toEqual([]);
+});
+test('a workflow that is neither the error handler nor the config loader still needs an errorWorkflow', () => {
+  const wf = fx('clean');
+  delete wf.settings.errorWorkflow;
+  expect(errors(wf)).toMatch(/errorWorkflow must be mgpErrorHandler1/);
 });
 test('explicit null counts as missing', () =>
   expect(errors({ ...fx('clean'), connections: null } as unknown as Workflow)).toMatch(/missing connections/));

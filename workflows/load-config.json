@@ -59,7 +59,7 @@
       "parameters": {
         "width": 900,
         "height": 160,
-        "content": "## Load config\nReads /files/config/config.json and parses it into { config }. Always Output Data is on for the read step, so a missing file still reaches the parse step as an item with no binary data, which throws instead of the branch silently stopping with zero items. Any failure here fires the error workflow."
+        "content": "## Load config\nReads /files/config/config.json and parses it into { config }. Always Output Data is on for the read step, so a missing file still reaches the parse step as an item with no binary data, which throws instead of the branch silently stopping with zero items. This workflow sets no errorWorkflow of its own, since error-handler calls it: naming the handler here would loop the two into each other. A failure here fails the caller's own execution instead, so the caller's error workflow fires."
       }
     },
     {
@@ -105,8 +105,7 @@
   "settings": {
     "executionOrder": "v1",
     "timezone": "America/Bogota",
-    "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": "mgpErrorHandler1"
+    "callerPolicy": "workflowsFromSameOwner"
   },
   "meta": null,
   "nodeGroups": [],

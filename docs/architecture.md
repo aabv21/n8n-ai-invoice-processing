@@ -25,7 +25,7 @@ The external services are Gmail, Google Drive, and Google Sheets, all under one 
 
 ## The nine workflows and what starts them
 
-The pipeline is nine n8n workflows with fixed IDs from `scripts/manifest.ts`. All of them except `error-handler` name `error-handler` as their error workflow:
+The pipeline is nine n8n workflows with fixed IDs from `scripts/manifest.ts`. All of them except `error-handler` and `load-config` name `error-handler` as their error workflow: `load-config` names none, since `error-handler` calls it, and naming the handler there would loop the two into each other.
 
 | Workflow | Started by | What it does |
 |---|---|---|
@@ -94,7 +94,7 @@ For each failure, the table gives the pipeline’s behavior, the signal you’d 
 | Google Drive is down | `ensure-folder` or `Upload PDF` fails after its retries, after the save, so the invoice row exists with outcome NULL. If an upload created the file before it failed, the retry uploads a second copy, and the saved link points at that copy. | Error emails, the summary’s unfinished count, and two Drive files with one name | Retry the failed `process-invoice` execution. Upgrade: look the file up by name first, or skip the upload when the row already has a `drive_file_id`. |
 | Two first uploads in a month race | Both can find no `mm` folder and create one, which leaves two month folders with the same name. | Two folders named `mm` under one year | Move the files into one folder. Upgrade: keep folder IDs in Postgres with `INSERT … ON CONFLICT`. |
 | Google Sheets is down | A Sheets write fails after its retries, after the save and the upload, and the outcome stays NULL. | Error emails, and the summary’s unfinished count | Retry the failed `process-invoice` execution. Both tabs write by key, so a retry updates rows instead of adding them. |
-| `config.json` is missing or isn’t JSON | `Read config file` has Always Output Data on, so `Parse config` throws instead of stopping silently, and `intake-email` fails before it records anything. `daily-summary` fails too, and `error-handler` can’t email, because it loads the same file. | Only n8n’s executions list | Fix the file; n8n reads it on every run, so you don’t need to restart anything. Then forward the affected emails again, since `intake-email` recorded no events. |
+| `config.json` is missing or isn’t JSON | `Read config file` has Always Output Data on, so `Parse config` throws instead of stopping silently, and `intake-email` fails before it records anything, firing its own caller’s error workflow. `daily-summary` fails too. `load-config` names no error workflow of its own, so `error-handler`’s own call into it fails once and stops instead of looping: `error-handler` can’t email, because it loads the same file, but that single failure doesn’t retrigger itself. | Only n8n’s executions list | Fix the file; n8n reads it on every run, so you don’t need to restart anything. Then forward the affected emails again, since `intake-email` recorded no events. |
 | `config.json` has a bad value | `Check config` throws an error naming the first bad key, and `intake-email` fails before it records anything. `error-handler` doesn’t check the config, so its email still goes out unless `team_email` is the bad value. | The `error-handler` email | Fix the value, then forward the affected emails again. |
 | A Gmail label ID is wrong | The label call fails after its retries, after the save, the upload, and the Sheets rows, and the outcome stays NULL. | The `error-handler` email | Fix the ID in `config.json`. A retry reuses the config its run started with, so add the label by hand and record the outcome in SQL. |
 | A PDF is encrypted or corrupt | `Extract text` takes its error output, and `process-invoice` saves the invoice for review as `unreadable_pdf`, with no AI call. It still files, lists, and labels the invoice `Review`. | The `Review` label with reason `unreadable_pdf` | A person reads the PDF, or asks the supplier for a readable copy. |
@@ -141,6 +141,7 @@ The n8n 2.45.6 source confirms each behavior below, and a stored execution confi
 - Postgres nodes need typeVersion 2.8 or later for free-text parameters, because earlier versions split a text value on commas.
 - Google Sheets 4.7 finds a tab by name only in `name` mode, while `id` mode parses the value as a numeric sheet ID.
 - A retry from the executions list reuses the stored output of every node that succeeded, including the config passed down, and resumes at the failed node.
+- A sub-execution runs its own `errorWorkflow` on failure, same as a top-level run (`execution-lifecycle-hooks.ts`, mode `integrated`). Its only loop guard is a workflow that names itself as its own error workflow, which is why `load-config` names none: `error-handler` calls it, and naming the handler there would have the two retrigger each other for as long as the failure persists.
 
 ## Design decisions, each over its alternative
 

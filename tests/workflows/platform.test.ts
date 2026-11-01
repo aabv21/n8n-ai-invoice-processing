@@ -12,6 +12,8 @@ test('load-config reads the mounted config once', () => {
   });
   expect(nodeOf(wf, 'Parse config').parameters).toMatchObject({ operation: 'fromJson', destinationKey: 'config' });
 });
+test('load-config names no error workflow, so error-handler calling it can never loop', () =>
+  expect((workflowFile('load-config.json').settings as { errorWorkflow?: string }).errorWorkflow).toBeUndefined());
 test('error emails are plain text without n8n attribution', () =>
   expect(nodeOf(workflowFile('error-handler.json'), 'Email the team').parameters)
     .toMatchObject({ emailType: 'text', options: { appendAttribution: false } }));
