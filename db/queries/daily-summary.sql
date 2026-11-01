@@ -4,7 +4,7 @@
 -- actually finished (a non-NULL outcome) -- the same population the counts use -- so a saved but
 -- still-processing invoice never appears in a total while missing from its own outcome count.
 -- "Due soon" stays a calendar-date window: the run's own Bogota date through seven days after it.
--- $1 run (timestamptz): the moment the summary is generated
+-- Parameter: run (timestamptz), the moment the summary is generated
 WITH bounds AS (
   SELECT
     $1::timestamptz AS run_at,
