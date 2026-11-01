@@ -1,7 +1,7 @@
 import { basename } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { listJsonFiles, readWorkflow, type Workflow, type WorkflowNode } from './lib/workflow.ts';
-import { CODE_NODES, CREDENTIALS, ERROR_WORKFLOW_ID, TEXT_PARAMS } from './manifest.ts';
+import { CODE_NODES, CONFIG_LOADER_ID, CREDENTIALS, ERROR_WORKFLOW_ID, TEXT_PARAMS } from './manifest.ts';
 
 const EMAIL_RE = /[A-Za-z0-9._%+-]+@[A-Za-z0-9.-]+\.[A-Za-z]{2,}/;
 const PHONE_RE = /\d{10,}/;
@@ -91,7 +91,9 @@ export function checkWorkflow(
     if (s.executionOrder !== 'v1') errors.push('settings.executionOrder must be v1');
     if (s.timezone !== 'America/Bogota') errors.push('settings.timezone must be America/Bogota');
     if (s.callerPolicy !== 'workflowsFromSameOwner') errors.push('settings.callerPolicy must be workflowsFromSameOwner');
-    if (wf.id !== ERROR_WORKFLOW_ID && s.errorWorkflow !== ERROR_WORKFLOW_ID) {
+    // The config loader is exempt: the error handler calls it to read team_email, so naming the
+    // handler as its own error workflow would loop the two workflows into each other.
+    if (wf.id !== ERROR_WORKFLOW_ID && wf.id !== CONFIG_LOADER_ID && s.errorWorkflow !== ERROR_WORKFLOW_ID) {
       errors.push(`settings.errorWorkflow must be ${ERROR_WORKFLOW_ID}`);
     }
   }

@@ -29,13 +29,14 @@ export interface TextParamEntry {
 export type BuildEntry = CodeNodeEntry | TextParamEntry;
 
 export const ERROR_WORKFLOW_ID = 'mgpErrorHandler1';
+export const CONFIG_LOADER_ID = 'mgpLoadConfig001';
 
 /** `env[key]` widened past `noUncheckedIndexedAccess`; callers only reach here once the key is known to be set. */
 // eslint-disable-next-line security/detect-object-injection -- key is always one of this entry's own fixed `env` names
 const readEnv = (env: Readonly<Record<string, string>>, key: string): string => env[key] ?? '';
 
 export const WORKFLOWS: readonly WorkflowEntry[] = [
-  { id: 'mgpLoadConfig001', name: 'Load config', file: 'load-config.json' },
+  { id: CONFIG_LOADER_ID, name: 'Load config', file: 'load-config.json' },
   { id: ERROR_WORKFLOW_ID, name: 'Error handler', file: 'error-handler.json' },
   { id: 'mgpEnsureFolder1', name: 'Ensure folder', file: 'ensure-folder.json' },
   { id: 'mgpDevHarness001', name: 'Dev harness', file: 'dev-harness.json' },
