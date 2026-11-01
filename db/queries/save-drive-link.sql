@@ -1,8 +1,6 @@
 -- Sets the Drive file id and share URL on a saved invoice, then hands back the updated row and
 -- its line items (ordered for the Sheets append) in one round trip.
--- $1 invoice_id (bigint)
--- $2 drive_file_id (text)
--- $3 drive_url (text)
+-- Parameters, in order: invoice_id (bigint), drive_file_id (text), drive_url (text)
 WITH updated AS (
   UPDATE invoices
   SET drive_file_id = $2, drive_url = $3

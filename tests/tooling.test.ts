@@ -1,9 +1,9 @@
-import { cpSync, mkdtempSync } from 'node:fs';
+import { cpSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import { buildWorkflows, hardenAgainstFrozenDefineProperty } from '../scripts/build-workflows.ts';
-import { checkWorkflow } from '../scripts/check-workflows.ts';
+import { checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows.ts';
 import { normalizeWorkflow } from '../scripts/export-workflows.ts';
 import { missingTriggerCredentials } from '../scripts/import-workflows.ts';
 import { listJsonFiles, readWorkflow, type Workflow, type WorkflowNode } from '../scripts/lib/workflow.ts';
@@ -71,6 +71,28 @@ test('expression inside SQL is rejected', () =>
   expect(errors(withNode({ name: 'Insert row', type: 'n8n-nodes-base.postgres', typeVersion: 2.8, retryOnFail: true,
     parameters: { operation: 'executeQuery', query: "SELECT '{{ $json.text }}'" } })))
     .toMatch(/query in node Insert row must use \$n parameters, not expressions/));
+test('a $n placeholder inside a SQL comment is rejected', () => {
+  const dashComment = withNode({ name: 'Insert row', type: 'n8n-nodes-base.postgres', typeVersion: 2.8, retryOnFail: true,
+    parameters: { operation: 'executeQuery', query: '-- $1 file_name (text)\nINSERT INTO t (file_name) VALUES ($1)' } });
+  const blockComment = withNode({ name: 'Insert row', type: 'n8n-nodes-base.postgres', typeVersion: 2.8, retryOnFail: true,
+    parameters: { operation: 'executeQuery', query: '/* $1 file_name (text) */\nINSERT INTO t (file_name) VALUES ($1)' } });
+  for (const wf of [dashComment, blockComment]) {
+    expect(errors(wf)).toMatch(/query in node Insert row has a \$n placeholder inside a SQL comment/);
+  }
+});
+test('a $n outside a comment, and a plain numbered word inside one, are both accepted', () => {
+  const wf = withNode({ name: 'Insert row', type: 'n8n-nodes-base.postgres', typeVersion: 2.8, retryOnFail: true,
+    parameters: { operation: 'executeQuery', query: "-- Parameters, in order: event_id (text), file_name (text)\nINSERT INTO t VALUES ($1, $2)" } });
+  expect(errors(wf)).not.toMatch(/\$n placeholder inside a SQL comment/);
+});
+test('every db/queries source file keeps $n placeholders out of its own comments', () => {
+  const dir = 'db/queries';
+  const files = readdirSync(dir).filter((name) => name.endsWith('.sql'));
+  expect(files.length).toBeGreaterThan(0);
+  for (const name of files) {
+    expect(hasCommentPlaceholder(readFileSync(join(dir, name), 'utf8')), `${name} has a $n placeholder in a comment`).toBe(false);
+  }
+});
 test('normalize drops volatile fields and is idempotent', () => {
   const n = normalizeWorkflow(fx('volatile'));
   expect([n.pinData, n.versionId, n.active, n.versionCounter, (n.meta as { instanceId?: string } | undefined)?.instanceId])

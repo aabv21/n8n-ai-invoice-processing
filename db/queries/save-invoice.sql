@@ -2,18 +2,19 @@
 -- retry, or an owner retry from the n8n UI) returns the row it already saved instead of a second
 -- one; a different event claiming the same supplier tax ID and invoice number is reported as a
 -- duplicate of the invoice that already holds that pair, instead of raising a constraint error.
--- $1  event_id (text, the invoice's source_event_id)
--- $2  gmail_message_id (text)
--- $3  received_at (timestamptz)
--- $4  status (text: 'ok' | 'review')
--- $5  review_reasons (text, a JSON array of reason strings, e.g. '[]' or '["totals_mismatch"]')
--- $6  extraction_path (text: 'text' | 'vision' | 'none')
--- $7  model (text, nullable)
--- $8  attempts (smallint)
--- $9  invoice (text, a NormalizedInvoice JSON object, including its line_items array)
--- $10 raw_extraction (text, a JSON value, or NULL)
--- $11 drive_file_name (text)
--- $12 drive_folder (text)
+-- Parameters, in order:
+-- first: event_id (text, the invoice's source_event_id)
+-- second: gmail_message_id (text)
+-- third: received_at (timestamptz)
+-- fourth: status (text: 'ok' | 'review')
+-- fifth: review_reasons (text, a JSON array of reason strings, e.g. '[]' or '["totals_mismatch"]')
+-- sixth: extraction_path (text: 'text' | 'vision' | 'none')
+-- seventh: model (text, nullable)
+-- eighth: attempts (smallint)
+-- ninth: invoice (text, a NormalizedInvoice JSON object, including its line_items array)
+-- tenth: raw_extraction (text, a JSON value, or NULL)
+-- eleventh: drive_file_name (text)
+-- twelfth: drive_folder (text)
 WITH replay AS (
   SELECT id FROM invoices WHERE source_event_id = $1
 ),
