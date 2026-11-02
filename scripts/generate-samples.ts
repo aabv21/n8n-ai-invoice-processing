@@ -1,6 +1,6 @@
 // Regenerates the six sample invoices and the extraction result each one should produce. Run
 // before a demo so the "due in the next 7 days" section of the daily summary has entries: see
-// `npm run samples` in the README.
+// `pnpm run samples` in the README.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
