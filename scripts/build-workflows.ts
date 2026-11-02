@@ -6,7 +6,7 @@ import { readWorkflow, writeWorkflow, type WorkflowNode } from './lib/workflow.t
 import { BUILD_ENTRIES, type BuildEntry, type CodeNodeEntry, type TextParamEntry } from './manifest.ts';
 
 export function wrapBundle(bundle: string, entry: Pick<CodeNodeEntry, 'source' | 'why'>): string {
-  const header = `// Why Code: ${entry.why}. Generated from ${entry.source} by npm run build:workflows; edit the source.`;
+  const header = `// Why Code: ${entry.why}. Generated from ${entry.source} by pnpm run build:workflows; edit the source.`;
   const footer = 'return [{ json: __node.run($input.first().json) }];';
   return `${header}\n${bundle.trim()}\n${footer}\n`;
 }
