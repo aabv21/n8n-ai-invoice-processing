@@ -228,3 +228,30 @@ describe('003_drop_sequence_grant.sql', () => {
     expect(sql).not.toMatch(/GRANT.*invoices_id_seq/);
   });
 });
+
+describe('004_source_check.sql', () => {
+  const sql = readFileSync('db/migrations/004_source_check.sql', 'utf8');
+  const checkValues = (): string[] => {
+    const list = /source IN \(([^)]*)\)/.exec(sql)?.[1] ?? '';
+    return [...list.matchAll(/'([a-z_]+)'/g)].map((m) => m[1] ?? '').sort();
+  };
+
+  it('is a guarded CHECK on processed_events.source, so a second run adds nothing', () => {
+    expect(sql).toContain("ALTER TABLE processed_events ADD CONSTRAINT processed_events_source_check CHECK (source IN ('gmail'));");
+    expect(sql).toContain("conname = 'processed_events_source_check'");
+  });
+
+  it('covers every value a writer inserts into processed_events.source', () => {
+    const recordEvent = readFileSync('db/queries/record-event.sql', 'utf8');
+    const written = [...recordEvent.matchAll(/VALUES\s*\(\s*'([a-z_]+)'/g)].map((m) => m[1] ?? '');
+    expect(written.length).toBeGreaterThan(0);
+    for (const value of written) expect(checkValues()).toContain(value);
+  });
+
+  it('covers every value a reader filters processed_events.source by', () => {
+    const scenarioReport = readFileSync('scripts/sql/scenario-report.sql', 'utf8');
+    const filtered = [...scenarioReport.matchAll(/\.source\s*=\s*'([a-z_]+)'/g)].map((m) => m[1] ?? '');
+    const updateFilters = [...readFileSync('db/queries/record-outcome.sql', 'utf8').matchAll(/WHERE\s+source\s*=\s*'([a-z_]+)'/g)].map((m) => m[1] ?? '');
+    for (const value of [...filtered, ...updateFilters]) expect(checkValues()).toContain(value);
+  });
+});
