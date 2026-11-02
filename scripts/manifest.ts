@@ -51,16 +51,19 @@ export const WORKFLOWS: readonly WorkflowEntry[] = [
 
 export const CREDENTIALS: readonly CredentialEntry[] = [
   {
+    // Every Postgres node connects as app_runtime, which has DML only on the tables it actually
+    // touches, no DDL, and no access to the n8n database (docs/database.md). No node here issues
+    // DDL on its own, so there's no second, owner-credentialed node to carve out.
     id: 'mgpCredAppDb0001',
     name: 'App DB',
     type: 'postgres',
-    env: ['APP_DB_USER', 'APP_DB_PASSWORD'],
+    env: ['APP_RUNTIME_DB_USER', 'APP_RUNTIME_DB_PASSWORD'],
     data: (env) => ({
       host: 'postgres',
       port: 5432,
       database: 'app',
-      user: readEnv(env, 'APP_DB_USER'),
-      password: readEnv(env, 'APP_DB_PASSWORD'),
+      user: readEnv(env, 'APP_RUNTIME_DB_USER'),
+      password: readEnv(env, 'APP_RUNTIME_DB_PASSWORD'),
       ssl: 'disable',
     }),
   },

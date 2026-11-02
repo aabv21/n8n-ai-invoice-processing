@@ -1,5 +1,22 @@
 import { expect, test } from 'vitest';
+import { listJsonFiles, readWorkflow } from '../../scripts/lib/workflow.ts';
 import { nodeOf, workflowFile } from '../helpers/workflow-file.ts';
+
+// A manual execution (run from the editor) is saved by default, with every node's input and
+// output. No workflow here may save one: most carry Gmail message content or an invoice's
+// supplier/tax/amount fields, dev-harness's own webhook carries its caller's X-Dev-Token header,
+// and even load-config starts from a passthrough Execute Workflow Trigger whose callers send no
+// input schema, so it receives its caller's whole item too. docs/database.md explains why there's
+// no per-workflow list.
+const workflowFiles = listJsonFiles('workflows');
+
+test('workflows/ is not empty, so the check below covers something', () => {
+  expect(workflowFiles.length).toBeGreaterThan(0);
+});
+
+test.each(workflowFiles)('%s never saves a manual execution', (file) => {
+  expect(readWorkflow(file).settings.saveManualExecutions).toBe(false);
+});
 
 test('load-config reads the mounted config once', () => {
   const wf = workflowFile('load-config.json');

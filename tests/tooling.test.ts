@@ -130,9 +130,13 @@ test('credentials use the fixed ids', () => {
   });
 });
 test('credentials with missing env are skipped and named', () => {
-  const { credentials, skipped } = buildCredentials({ APP_DB_USER: 'u', APP_DB_PASSWORD: 'p' });
+  const { credentials, skipped } = buildCredentials({ APP_RUNTIME_DB_USER: 'u', APP_RUNTIME_DB_PASSWORD: 'p' });
   expect(credentials.map((c) => c.id)).toEqual(['mgpCredAppDb0001']);
   expect(skipped.find((s) => s.id === 'mgpCredAnthropic')?.missing).toContain('ANTHROPIC_API_KEY');
+});
+test('the app credential connects as the runtime role, not the owner', () => {
+  const { credentials } = buildCredentials(fullEnv);
+  expect(credentials.find((c) => c.id === 'mgpCredAppDb0001')?.data.user).toBe('app_runtime_db_user-test');
 });
 test('only trigger credentials hold back publishing', () => {
   const trigger = withNode({ name: 'Gmail Trigger', type: 'n8n-nodes-base.gmailTrigger', typeVersion: 1.4, parameters: {},
