@@ -105,7 +105,8 @@
   "settings": {
     "executionOrder": "v1",
     "timezone": "America/Bogota",
-    "callerPolicy": "workflowsFromSameOwner"
+    "callerPolicy": "workflowsFromSameOwner",
+    "saveManualExecutions": false
   },
   "meta": null,
   "nodeGroups": [],

@@ -75,19 +75,6 @@ jobs:
   db:
     name: Database
     runs-on: ubuntu-latest
-    services:
-      postgres:
-        # postgres:17-alpine; Dependabot's github-actions ecosystem doesn't bump a service
-        # container's digest, so this is moved by hand alongside compose.yaml's own pin.
-        image: postgres@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
-        env:
-          POSTGRES_HOST_AUTH_METHOD: trust
-        ports:
-          - 5432:5432
-        options: >-
-          --health-cmd "pg_isready -U postgres -d postgres"
-          --health-interval 5s
-          --health-retries 10
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
@@ -98,9 +85,17 @@ jobs:
           node-version: 24
           cache: pnpm
       - run: pnpm install --frozen-lockfile
+      - run: node scripts/init-env.ts
+      # testdb is Compose's own opt-in, tmpfs-backed, trust-auth service (profile test) — the same
+      # container db-migrate.ts's DB_MIGRATE_CONTAINER adapter targets locally, so CI exercises the
+      # one migration implementation instead of a second, hand-rolled one.
+      - run: docker compose --profile test up -d --wait testdb
       - run: pnpm run test:db
         env:
-          TEST_DATABASE_URL: postgres://postgres@localhost:5432/postgres
+          TEST_DATABASE_URL: postgres://postgres@127.0.0.1:55432/postgres
+      - name: Tear down
+        if: always()
+        run: docker compose --profile test down -v
 
   n8n:
     name: n8n
@@ -122,6 +117,7 @@ jobs:
       - run: cp config/config.example.json config/config.json
       - run: docker compose up -d --wait postgres n8n
       - run: pnpm run setup
+      - run: node scripts/check-db.ts
       - run: node scripts/check-dev-response.ts
       - name: Logs on failure
         if: failure()

@@ -249,7 +249,8 @@
     "executionOrder": "v1",
     "timezone": "America/Bogota",
     "callerPolicy": "workflowsFromSameOwner",
-    "errorWorkflow": "mgpErrorHandler1"
+    "errorWorkflow": "mgpErrorHandler1",
+    "saveManualExecutions": false
   },
   "meta": null,
   "nodeGroups": [],
