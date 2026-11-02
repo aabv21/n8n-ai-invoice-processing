@@ -2,6 +2,8 @@ export interface WorkflowEntry {
   id: string;
   name: string;
   file: string;
+  /** This workflow's live webhook path, when its trigger is a plain webhook — used to confirm a publish actually took effect. */
+  webhookPath?: string;
 }
 
 export interface CredentialEntry {
@@ -39,7 +41,7 @@ export const WORKFLOWS: readonly WorkflowEntry[] = [
   { id: CONFIG_LOADER_ID, name: 'Load config', file: 'load-config.json' },
   { id: ERROR_WORKFLOW_ID, name: 'Error handler', file: 'error-handler.json' },
   { id: 'mgpEnsureFolder1', name: 'Ensure folder', file: 'ensure-folder.json' },
-  { id: 'mgpDevHarness001', name: 'Dev harness', file: 'dev-harness.json' },
+  { id: 'mgpDevHarness001', name: 'Dev harness', file: 'dev-harness.json', webhookPath: 'dev' },
   { id: 'mgpExtractInv001', name: 'Extract invoice', file: 'extract-invoice.json' },
   { id: 'mgpProcessInv001', name: 'Process invoice', file: 'process-invoice.json' },
   { id: 'mgpGmailEntry001', name: 'Gmail entry', file: 'gmail-entry.json' },

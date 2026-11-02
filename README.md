@@ -34,7 +34,7 @@ In progress: local runtime, toolchain, workflow tooling, the invoice extraction 
 - An optional queue-mode override (`compose.queue.yaml`): adds Redis and one or more `n8n-worker` containers so executions run off the main process, which stays free to receive the dev harness (and, once it's live, the Gmail poll) throughout. `n8n-worker` extends `compose.yaml`'s own `n8n` service (same encryption key, database settings, and read-only `/files` mounts), with its published port reset so it scales past one replica without a conflict. See "When you'd need queue mode" below. **Verified**: `docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2` brings every service up healthy, with `/healthz` answering `{"status":"ok"}`; called through the dev harness 15 s later, `intake-email` ran on a worker (confirmed in both `docker compose -f compose.yaml -f compose.queue.yaml logs n8n-worker` and the stored execution's own data), read the sample PDF (no `unreadable_pdf`), and reached the same missing-Anthropic-credential failure this demo's build mode hits everywhere else — proving n8n 2.45.6 stores binary data in queue mode where a worker can read it, with no `N8N_DEFAULT_BINARY_DATA_MODE` set. Returning to the regular stack (`docker compose -f compose.yaml -f compose.queue.yaml down && docker compose up -d --wait`) leaves it healthy on the one `compose.yaml` again. **Not yet verified**: a resent duplicate landing on a worker and ending up labeled `Duplicate` (deferred to the owner session's integration pass) and running queue mode against real Google/Anthropic credentials.
 - The architecture doc (`docs/architecture.md`) covers the workflows, the invoice lifecycle, the data model, failure modes with recovery steps, scaling and security notes, and the design decisions. Archify renders its two diagrams in `docs/diagrams/`, the system architecture and the invoice sequence, from committed JSON sources, and `AGENTS.md` has the regeneration steps. **Verified**: both sources pass archify's showcase validation on archify 2.17, 3.0.0, and 3.2.0, with all 9 artifact checks passing, 0 composition errors, and 0 warnings. Both pages render with no console errors from the page itself, and archify's browser check finds no overflow or unreadable text at four desktop sizes, from 1440×900 to 2048×1320.
 - Credential setup skips a Google OAuth2 credential (Gmail, Drive, Sheets) that already exists, so a re-run can't silently wipe out an interactive Google sign-in.
-- CI: lint/typecheck/test/build/check and ShellCheck on one job, `pnpm audit` and gitleaks on another, actionlint and zizmor on a third, the database tests against a Postgres service container on a fourth; CodeQL (once the repo is public); Dependabot for npm, GitHub Actions, and Docker Compose images.
+- CI: lint/typecheck/test/build/check and ShellCheck on one job, `pnpm audit` and gitleaks on another, actionlint and zizmor on a third, the database tests against a Postgres service container on a fourth; a fifth job boots the real n8n and Postgres in Docker Compose and calls the dev harness's `summary-preview` target end to end, proving a generated Code node and an app-database query both actually run — see AGENTS.md's "The `n8n` job"; CodeQL (once the repo is public); Dependabot for npm, GitHub Actions, and Docker Compose images.
 - Supply-chain hardening: pnpm with a release-age gate, trust-policy enforcement, blocked exotic sub-dependencies, and build-script approval (`pnpm-workspace.yaml`); every Compose image pinned by digest; a Dependabot cooldown on every ecosystem — see AGENTS.md's "Supply-chain hardening" section.
 
 ### Limitations
@@ -57,7 +57,7 @@ Owner step, once the Gmail, Drive, and Sheets pipeline is live: from the demo Gm
 ## Quick start
 
 ```bash
-cp .env.example .env
+node scripts/init-env.ts   # writes .env with fresh local secrets; leaves Anthropic/Google blank
 cp config/config.example.json config/config.json
 pnpm install --frozen-lockfile
 docker compose up -d --wait
@@ -65,7 +65,7 @@ pnpm test
 pnpm run setup   # imports credentials with .env values set; publishes workflows once any exist
 ```
 
-Fill in the generated secrets in `.env` before bringing up the stack (see `.env.example` for what's required).
+Fill in the blank third-party values (Anthropic, Google) in `.env` by hand before relying on anything that needs them; `init-env.ts` already generated the local secrets (Postgres roles, `N8N_ENCRYPTION_KEY`, `DEV_HARNESS_TOKEN`) — see `.env.example` for what's required.
 
 ## When you'd need queue mode
 
