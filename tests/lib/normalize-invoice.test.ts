@@ -26,6 +26,11 @@ test('trims text and keeps accents', () =>
 test('impossible or non-ISO dates become null with a reason', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, issue_date: '2026-02-30', due_date: '02/10/2026' }))
     .toMatchObject({ invoice: { issue_date: null, due_date: null }, reasons: ['invalid_issue_date', 'invalid_due_date'] }));
+// Postgres's date type rejects year 0000 outright ("date/time field value out of range"), which
+// would otherwise fail the save on every retry instead of landing in review.
+test('a year-0000 date is invalid, not a real calendar date', () =>
+  expect(normalizeInvoice({ ...INVOICE_1_RAW, issue_date: '0000-01-01' }))
+    .toMatchObject({ invoice: { issue_date: null }, reasons: ['invalid_issue_date'] }));
 test('blank strings are missing, not invalid', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, supplier: '   ', issue_date: '' })).toMatchObject({ invoice: { supplier: null, issue_date: null }, reasons: [] }));
 // Blank currency and due_date must also be missing-not-invalid, same as supplier/issue_date above.
@@ -44,8 +49,42 @@ test('a non-string currency is invalid, not silently missing', () =>
     .toMatchObject({ invoice: { currency: null }, reasons: ['invalid_currency'] }));
 test('amounts must be numbers', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, total: '2082500' }).invoice.total).toBeNull());
-test.each([['cop', 'COP', []], ['PESOS', null, ['invalid_currency']], ['$', null, ['invalid_currency']]])(
-  'currency %j', (input, out, reasons) => expect(normalizeInvoice({ ...INVOICE_1_RAW, currency: input })).toMatchObject({ invoice: { currency: out }, reasons }));
+// numeric(18,2): the magnitude must stay below 1e16, or the save would fail with a Postgres
+// "numeric field overflow" on every retry, leaving the event stuck unfinished instead of reviewed.
+test('a total at or above the numeric(18,2) column range becomes null with a reason', () =>
+  expect(normalizeInvoice({ ...INVOICE_1_RAW, total: 1e16 })).toMatchObject({ invoice: { total: null }, reasons: ['amount_out_of_range'] }));
+// 1e16 - 1 rounds back to 1e16 at this magnitude in IEEE-754 double precision, so "just inside"
+// uses a value far enough under the boundary to actually be distinct from it.
+test('a total just inside the numeric(18,2) column range is kept', () =>
+  expect(normalizeInvoice({ ...INVOICE_1_RAW, total: 9_999_999_999_999_998 }).invoice.total).toBe(9_999_999_999_999_998));
+test('a negative total at or beyond the column range is also out of range', () =>
+  expect(normalizeInvoice({ ...INVOICE_1_RAW, total: -1e16 })).toMatchObject({ invoice: { total: null }, reasons: ['amount_out_of_range'] }));
+test('subtotal and tax are checked against the same numeric(18,2) range as total', () =>
+  expect(normalizeInvoice({ ...INVOICE_1_RAW, subtotal: 1e16, tax: 1e16 }))
+    .toMatchObject({ invoice: { subtotal: null, tax: null }, reasons: ['amount_out_of_range', 'amount_out_of_range'] }));
+// quantity numeric(14,3) < 1e11; unit_price numeric(18,4) < 1e14; line_total numeric(18,2) < 1e16.
+test('a line item field at or beyond its own column range becomes null', () =>
+  expect(normalizeInvoice({ ...INVOICE_1_RAW, line_items: [{ description: 'x', quantity: 1e11, unit_price: 1e14, line_total: 1e16 }] }).invoice.line_items)
+    .toEqual([{ line_no: 1, description: 'x', quantity: null, unit_price: null, line_total: null }]));
+test('a line item field just inside its own column range is kept', () =>
+  expect(normalizeInvoice({
+    ...INVOICE_1_RAW, line_items: [{ description: 'x', quantity: 1e11 - 1, unit_price: 1e14 - 1, line_total: 9_999_999_999_999_998 }],
+  }).invoice.line_items).toEqual([{ line_no: 1, description: 'x', quantity: 1e11 - 1, unit_price: 1e14 - 1, line_total: 9_999_999_999_999_998 }]));
+// A value under the raw max can still round up past it at the column's own stored scale (3 decimal
+// places for quantity): 99999999999.9996 rounds to 100000000000.000 once Postgres stores it,
+// which is exactly 1e11 - a raw, unrounded comparison would have let this one overflow the save.
+test('a quantity that rounds up to the column max at its own scale is rejected', () =>
+  expect(normalizeInvoice({ ...INVOICE_1_RAW, line_items: [{ description: 'x', quantity: 99_999_999_999.9996, unit_price: 1, line_total: 1 }] }).invoice.line_items)
+    .toEqual([{ line_no: 1, description: 'x', quantity: null, unit_price: 1, line_total: 1 }]));
+test('a quantity that stays under the column max even after rounding to its own scale is accepted, with its original value kept', () =>
+  expect(normalizeInvoice({ ...INVOICE_1_RAW, line_items: [{ description: 'x', quantity: 99_999_999_999.9994, unit_price: 1, line_total: 1 }] }).invoice.line_items)
+    .toEqual([{ line_no: 1, description: 'x', quantity: 99_999_999_999.9994, unit_price: 1, line_total: 1 }]));
+test.each([
+  ['cop', 'COP', []], ['usd', 'USD', []], ['PESOS', null, ['invalid_currency']], ['$', null, ['invalid_currency']],
+  // Three letters alone used to pass CURRENCY_RE; only COP and USD are currencies Magdaport is
+  // actually billed in, so anything else - however well-formed - is invalid.
+  ['XYZ', null, ['invalid_currency']], ['EUR', null, ['invalid_currency']],
+])('currency %j', (input, out, reasons) => expect(normalizeInvoice({ ...INVOICE_1_RAW, currency: input })).toMatchObject({ invoice: { currency: out }, reasons }));
 test('line items are numbered and keep a description', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, line_items: [
     { description: 'A', quantity: 1, unit_price: 5, line_total: 5 },

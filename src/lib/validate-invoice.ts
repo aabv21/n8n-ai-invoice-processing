@@ -43,6 +43,23 @@ export function validateInvoice(invoice: NormalizedInvoice, rules: ValidationRul
     if (diff > rules.totals_tolerance) reasons.push('totals_mismatch');
   }
 
+  // Hidden text or an injected note can make the model report header totals the visible lines
+  // don't support; the line items themselves are what's actually printed on the page, so they're
+  // checked against the header instead of trusted to agree with it. This fails closed: an empty
+  // line_items array or a null line_total isn't skipped as "nothing to check" - either one would
+  // otherwise let a model dodge the comparison outright by simply not reporting a line total.
+  if (invoice.subtotal !== null) {
+    const incomplete = invoice.line_items.length === 0 || invoice.line_items.some((item) => item.line_total === null);
+    if (incomplete) {
+      reasons.push('line_items_incomplete');
+    } else {
+      const lineSum = invoice.line_items.reduce((sum, item) => sum + (item.line_total ?? 0), 0);
+      const diff = Math.round(Math.abs(lineSum - invoice.subtotal) * 100) / 100;
+      if (diff > rules.totals_tolerance) reasons.push('line_items_mismatch');
+    }
+  }
+  if (invoice.total !== null && invoice.total <= 0) reasons.push('non_positive_total');
+
   if (invoice.confidence === null || invoice.confidence < rules.min_confidence) reasons.push('low_confidence');
 
   return reasons;

@@ -34,6 +34,6 @@ test('config example carries the spec values', () => expect(config).toEqual({
   gmail: { label_ids: { processed: 'REPLACE_ME', review: 'REPLACE_ME', duplicate: 'REPLACE_ME' } },
   google: { drive_root_folder_id: 'REPLACE_ME', spreadsheet_id: 'REPLACE_ME', invoices_tab: 'Invoices', items_tab: 'Items' },
   ai: { default_model: 'claude-haiku-5-5', retry_model: 'claude-sonnet-5-5', effort: 'low' },
-  extraction: { min_text_chars_per_page: 100, max_pages: 20 },
+  extraction: { min_text_chars_per_page: 100, max_pages: 20, max_text_chars: 60000 },
   validation: { totals_tolerance: 1, min_confidence: 0.8 },
 }));

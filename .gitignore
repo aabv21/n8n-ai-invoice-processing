@@ -1,8 +1,8 @@
 .env
+.env.tmp
 config/*
 !config/config.example.json
 .n8n-import/
 node_modules/
-.superpowers/
 .DS_Store
 docs/diagrams/*.delivery.json

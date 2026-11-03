@@ -53,6 +53,22 @@ test('rejects extraction.min_text_chars_per_page when it is zero', () => {
   config.extraction.min_text_chars_per_page = 0;
   expect(() => checkConfig(config)).toThrow('config.extraction.min_text_chars_per_page');
 });
+test.each([
+  ['missing', undefined],
+  ['zero', 0],
+  ['negative', -1],
+  ['not an integer', 1.5],
+  ['not a number', '60000'],
+])('rejects extraction.max_text_chars when it is %s', (_label, bad) => {
+  const config = clone() as unknown as { extraction: Record<string, unknown> };
+  config.extraction.max_text_chars = bad;
+  expect(() => checkConfig(config)).toThrow('config.extraction.max_text_chars');
+});
+test('accepts extraction.max_text_chars at 60000, as in the example config', () => {
+  const config = clone();
+  expect(config.extraction.max_text_chars).toBe(60000);
+  expect(() => checkConfig(config)).not.toThrow();
+});
 
 test('rejects an empty ai.default_model', () => {
   const config = clone();

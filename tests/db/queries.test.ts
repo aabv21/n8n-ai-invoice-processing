@@ -8,6 +8,13 @@ interface SaveRow {
   saved: boolean;
   invoice_id: number | null;
   duplicate_of: number | null;
+  // node-postgres returns numeric as a string (no type parser registered here), unlike the
+  // Postgres node's own text-oriented binding, but duplicate_of_issue_date is cast to text in SQL
+  // itself (to_char), so it comes back the same ISO YYYY-MM-DD string either way - never a JS Date
+  // that would print "Tue Jun 16 2026 ..." if a caller stringified it, which the extracted
+  // invoice's own ISO date would never match.
+  duplicate_of_total: string | null;
+  duplicate_of_issue_date: string | null;
   item_count: number;
 }
 
@@ -69,17 +76,68 @@ test('saves an invoice and its items', async () => {
 });
 test('a second event with the same supplier tax ID and number is a duplicate', async () => {
   const first = await save('m1:attachment_0');
-  expect(await save('m2:attachment_0')).toEqual({ saved: false, invoice_id: null, duplicate_of: first.invoice_id, item_count: 0 });
+  const row = await save('m2:attachment_0');
+  expect(row).toMatchObject({ saved: false, invoice_id: null, duplicate_of: first.invoice_id, item_count: 0 });
+  expect(Number(row.duplicate_of_total)).toBe(VALID_INVOICE.total);
+  // Asserted as an exact ISO string, not parsed as a Date, so a future regression back to a raw
+  // `date` column (which the Postgres node would otherwise parse into a JS Date, like
+  // node-postgres does here) fails this test instead of silently comparing two different formats.
+  expect(row.duplicate_of_issue_date).toBe(VALID_INVOICE.issue_date);
+  expect(row.duplicate_of_issue_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   expect(await db.sql('SELECT count(*)::int AS n FROM invoices')).toEqual([{ n: 1 }]);
+});
+test('a conflicting duplicate (same key, different total) returns the original total and date for the caller to compare', async () => {
+  const first = await save('m1:attachment_0');
+  const forged = { ...VALID_INVOICE, total: VALID_INVOICE.total! + 1_000_000 };
+  const row = await save('m2:attachment_0', forged);
+  expect(row).toMatchObject({ saved: false, invoice_id: null, duplicate_of: first.invoice_id });
+  expect(Number(row.duplicate_of_total)).toBe(VALID_INVOICE.total);
+  expect(Number(row.duplicate_of_total)).not.toBe(forged.total);
+  expect(row.duplicate_of_issue_date).toBe(VALID_INVOICE.issue_date);
+});
+test('a conflicting duplicate (same key, same total, different issue date) is still caught', async () => {
+  await save('m1:attachment_0');
+  const forged = { ...VALID_INVOICE, issue_date: '2026-06-16' };
+  const row = await save('m2:attachment_0', forged);
+  expect(row.duplicate_of_issue_date).toBe(VALID_INVOICE.issue_date);
+  expect(row.duplicate_of_issue_date).not.toBe(forged.issue_date);
+});
+test('a genuine re-send (same key, same total and issue date) returns values that compare equal to the new extraction', async () => {
+  const first = await save('m1:attachment_0');
+  const genuine = { ...VALID_INVOICE };
+  const row = await save('m2:attachment_0', genuine);
+  expect(row.duplicate_of).toBe(first.invoice_id);
+  expect(Number(row.duplicate_of_total)).toBe(genuine.total);
+  expect(row.duplicate_of_issue_date).toBe(genuine.issue_date);
 });
 test('saving the same event twice returns the first invoice', async () => {
   const first = await save('m1:attachment_0');
-  expect(await save('m1:attachment_0')).toEqual({ saved: true, invoice_id: first.invoice_id, duplicate_of: null, item_count: 0 });
+  expect(await save('m1:attachment_0')).toEqual({
+    saved: true, invoice_id: first.invoice_id, duplicate_of: null, duplicate_of_total: null, duplicate_of_issue_date: null, item_count: 0,
+  });
 });
 test('review rows without tax ID or number never conflict', async () => {
   const blank = { ...VALID_INVOICE, supplier_tax_id: null, invoice_number: null };
   expect((await save('m1:attachment_0', blank, 'review')).saved).toBe(true);
   expect((await save('m2:attachment_0', blank, 'review')).saved).toBe(true);
+});
+test('an amount normalized out of its column range saves cleanly as a review row', async () => {
+  // normalizeInvoice (src/lib/normalize-invoice.ts) already turned the out-of-range total into
+  // null before this ever reaches the database; this proves that normalized record actually
+  // saves, instead of the numeric(18,2) column's own overflow failing the insert on every retry.
+  const outOfRange: NormalizedInvoice = { ...VALID_INVOICE, total: null };
+  const row = await save('m1:attachment_0', outOfRange, 'review');
+  expect(row).toMatchObject({ saved: true, duplicate_of: null });
+  expect(await db.sql('SELECT total FROM invoices')).toEqual([{ total: null }]);
+});
+test('Postgres itself rejects a year-0000 date, which is why normalizeDate must reject it first', async () => {
+  await expect(db.sql("SELECT '0000-01-01'::date")).rejects.toThrow(/date\/time field value out of range/);
+});
+test('an invoice with no issue date (because the model echoed a year 0000) saves cleanly as a review row', async () => {
+  const noIssueDate: NormalizedInvoice = { ...VALID_INVOICE, issue_date: null };
+  const row = await save('m1:attachment_0', noIssueDate, 'review');
+  expect(row).toMatchObject({ saved: true, duplicate_of: null });
+  expect(await db.sql('SELECT issue_date FROM invoices')).toEqual([{ issue_date: null }]);
 });
 test('the Drive link comes back with the row and ordered items', async () => {
   const { invoice_id } = await save('m1:attachment_0');

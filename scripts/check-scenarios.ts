@@ -4,18 +4,26 @@
 // exercises that path end to end instead of querying through a separate pg connection.
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
-import { DateTime } from 'luxon';
 import type { NormalizedInvoice } from '../src/lib/invoice.ts';
 import { normalizeInvoiceNumber, normalizeTaxId } from '../src/lib/normalize-invoice.ts';
 import { compose, loadDotEnv } from './lib/runtime.ts';
-import { expectations, type SampleExpectation } from './lib/sample-invoices.ts';
+import type { SampleExpectation } from './lib/sample-invoices.ts';
+import { parseSince } from './lib/since.ts';
 
-const SINCE_RE = /^\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}Z$/;
+export { parseSince };
 
-/** Validates --since before it ever reaches a psql meta-command line. Throws, never calls psql, on a mismatch. */
-export function parseSince(value: string): string {
-  if (!SINCE_RE.test(value)) throw new Error(`--since must look like YYYY-MM-DDTHH:MM:SSZ, got: ${value}`);
-  return value;
+/**
+ * The expectations to compare against, read verbatim from the committed samples/expected.json
+ * (`pnpm run samples`'s own output) - never recomputed from --since, which is only the start of
+ * the database query window and can fall on a different day than the samples were generated for.
+ */
+export function loadExpectedSamples(path = 'samples/expected.json'): SampleExpectation[] {
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- path defaults to this script's own fixed file; only tests override it, with a path under a temp dir they create
+  const parsed: unknown = JSON.parse(readFileSync(path, 'utf8'));
+  if (typeof parsed !== 'object' || parsed === null || !Array.isArray((parsed as { samples?: unknown }).samples)) {
+    throw new Error(`${path} must be an object with a "samples" array`);
+  }
+  return (parsed as { samples: SampleExpectation[] }).samples;
 }
 
 export interface ScenarioRow {
@@ -144,9 +152,6 @@ function renderResults(results: { file: string; result: 'PASS' | 'FAIL'; details
 
 async function main(): Promise<void> {
   loadDotEnv();
-  // expectations() (via invoiceFileName) reads Luxon's DateTime off the global, the same way the
-  // n8n Code-node sandbox provides it; nothing else sets that up outside of a test run.
-  globalThis.DateTime = DateTime;
   const index = process.argv.indexOf('--since');
   const rawSince = index === -1 ? undefined : process.argv[index + 1];
   if (!rawSince) {
@@ -159,7 +164,7 @@ async function main(): Promise<void> {
   const report = await fetchReport(since);
   const { rows, extras } = earliestRowPerFile(report);
 
-  const expected = expectations(since.slice(0, 10));
+  const expected = loadExpectedSamples();
   const results = expected.map((sample) => compareScenario(sample, rows.get(sample.file)));
 
   console.log(renderResults(results, extras));

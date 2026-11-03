@@ -25,6 +25,7 @@ export interface Config {
   extraction: {
     min_text_chars_per_page: number;
     max_pages: number;
+    max_text_chars: number;
   };
   validation: {
     totals_tolerance: number;
@@ -34,7 +35,7 @@ export interface Config {
 
 const LABEL_ID_KEYS = ['processed', 'review', 'duplicate'] as const;
 const GOOGLE_KEYS = ['drive_root_folder_id', 'spreadsheet_id', 'invoices_tab', 'items_tab'] as const;
-const EXTRACTION_KEYS = ['min_text_chars_per_page', 'max_pages'] as const;
+const EXTRACTION_KEYS = ['min_text_chars_per_page', 'max_pages', 'max_text_chars'] as const;
 const EFFORT_VALUES = ['low', 'medium', 'high'] as const;
 
 function asObject(value: unknown, path: string): Record<string, unknown> {

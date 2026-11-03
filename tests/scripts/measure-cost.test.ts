@@ -1,6 +1,6 @@
 import { expect, test } from 'vitest';
 import { costUsd } from '../../scripts/lib/pricing.ts';
-import { summarizeCosts } from '../../scripts/measure-cost.ts';
+import { parseArgs, summarizeCosts } from '../../scripts/measure-cost.ts';
 
 const exec = (event_id: string, path: string, model: string, attempt: number, calls: { chat?: [number, number][]; http?: [number, number] }) => ({
   data: { resultData: { runData: {
@@ -29,3 +29,14 @@ test('costs are summed per invoice and averaged per path', () => {
   expect(rows.find((r) => r.path === 'vision')?.avgCostUsd).toBeCloseTo(0.00093, 10);
   expect(rows.find((r) => r.path === 'all')?.invoices).toBe(3);
 });
+
+test('a well-formed --since passes validation', () => expect(parseArgs(['--since', '2026-10-30T15:00:00Z'])).toBe('2026-10-30T15:00:00Z'));
+test('missing --since throws usage', () => expect(() => parseArgs([])).toThrow('usage: node scripts/measure-cost.ts --since <ISO>'));
+test.each([
+  'yesterday',
+  '02/11/2026',
+  '2026-10-31 10:00',
+  '2026-10-31T10:00:00',
+  '2026-1-1T00:00:00Z',
+  'x; \\! ls',
+])('an invalid --since %s is rejected', (value) => expect(() => parseArgs(['--since', value])).toThrow(/--since/));

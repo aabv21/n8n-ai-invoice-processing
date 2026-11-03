@@ -1,8 +1,18 @@
+import { execFile } from 'node:child_process';
 import { mkdirSync, mkdtempSync, readFileSync, rmSync, statSync, writeFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
-import { describe, expect, it } from 'vitest';
+import { promisify } from 'node:util';
+import { describe, expect, it, test } from 'vitest';
 import { ensureN8nImportDir, fillSecrets, writeEnvFile } from '../../scripts/init-env.ts';
+
+const execFileAsync = promisify(execFile);
+
+// A crashed writeEnvFile (or a crashed prior init-env run) can leave .env.tmp behind, full of the
+// same secrets .env itself holds - it must never be committed.
+test('.env.tmp is gitignored', async () => {
+  await expect(execFileAsync('git', ['check-ignore', '-q', '.env.tmp'])).resolves.toBeDefined();
+});
 
 const example = ['# Postgres', 'POSTGRES_USER=postgres', 'POSTGRES_PASSWORD=', 'N8N_DB_PASSWORD=', 'APP_DB_PASSWORD=',
   'APP_RUNTIME_DB_USER=app_runtime', 'APP_RUNTIME_DB_PASSWORD=', 'N8N_ENCRYPTION_KEY=', 'N8N_API_KEY=', 'ANTHROPIC_API_KEY=', 'GOOGLE_OAUTH_CLIENT_ID=',

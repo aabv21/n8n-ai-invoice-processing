@@ -53,7 +53,8 @@ test('both position merges resolve a field clash in favor of the later input', (
 test('the duplicate, retry, and page-count decisions route true/false to the documented branches', () => {
   const connections = wf.connections as Record<string, MainConnections>;
   const expected: Record<string, readonly [string, string]> = {
-    'Is duplicate?': ['Label as duplicate', 'Ensure year folder'],
+    'Is duplicate?': ['Is duplicate conflicting?', 'Ensure year folder'],
+    'Is duplicate conflicting?': ['Label as review (conflicting duplicate)', 'Label as duplicate'],
     'Needs retry?': ['Attach PDF for retry', 'Prepare record'],
     'Too many pages?': ['Skip: too many pages', 'Extract with default model'],
   };
@@ -63,10 +64,49 @@ test('the duplicate, retry, and page-count decisions route true/false to the doc
     expect(branches[1]!.map((c) => c.node)).toEqual([second]);
   }
 });
+test('a conflicting duplicate (different total or issue date) gets the Review label, not Duplicate', () => {
+  const conditions = nodeOf(wf, 'Is duplicate conflicting?').parameters.conditions as { combinator: string; conditions: { leftValue: string }[] };
+  expect(conditions.combinator).toBe('or');
+  const leftValues = conditions.conditions.map((c) => c.leftValue).join(' ');
+  expect(leftValues).toContain("$('Save invoice').first().json.duplicate_of_total");
+  expect(leftValues).toContain("$('Save invoice').first().json.duplicate_of_issue_date");
+  expect(leftValues).toContain('.invoice.total');
+  expect(leftValues).toContain('.invoice.issue_date');
+});
+// save-invoice.sql returns duplicate_of_issue_date as an already-formatted YYYY-MM-DD string
+// (to_char, not the raw date column), so the IF compares it directly - no String(...).slice(0, 10)
+// workaround for a JS Date the Postgres node (like node-postgres) would otherwise parse a `date`
+// column into, which would never equal the extracted invoice's own ISO date string.
+test('the issue-date comparison compares the SQL-formatted string directly, with no Date coercion', () => {
+  const conditions = nodeOf(wf, 'Is duplicate conflicting?').parameters.conditions as { conditions: { leftValue: string }[] };
+  const dateCondition = conditions.conditions.find((c) => c.leftValue.includes('duplicate_of_issue_date'));
+  expect(dateCondition?.leftValue).not.toContain('String(');
+  expect(dateCondition?.leftValue).not.toContain('.slice(');
+  expect(dateCondition?.leftValue).toBe(
+    "={{ $('Save invoice').first().json.duplicate_of_issue_date !== $('Prepare record').first().json.invoice.issue_date }}",
+  );
+});
+test('a conflicting duplicate still records the duplicate outcome, linked to the original', () => {
+  const connections = wf.connections as Record<string, MainConnections>;
+  expect(connections['Label as review (conflicting duplicate)']!.main[0]!.map((c) => c.node)).toEqual(['Record duplicate']);
+  const labelIds = nodeOf(wf, 'Label as review (conflicting duplicate)').parameters.labelIds;
+  expect(String(labelIds)).toContain('config.gmail.label_ids.review');
+});
 test('Extract text continues on error instead of failing the execution, into the unreadable-PDF branch', () => {
   expect(nodeOf(wf, 'Extract text').onError).toBe('continueErrorOutput');
   const connections = wf.connections as Record<string, MainConnections>;
   expect(connections['Extract text']!.main[1]!.map((c) => c.node)).toEqual(['Skip: unreadable PDF']);
+});
+test('too many pages? also routes on text length, past max_text_chars', () => {
+  const leftValue = (nodeOf(wf, 'Too many pages?').parameters.conditions as { conditions: { leftValue: string }[] }).conditions[0]?.leftValue;
+  expect(leftValue).toContain('numpages > $json.config.extraction.max_pages');
+  expect(leftValue).toContain('text.length > $json.config.extraction.max_text_chars');
+});
+test('the skip reason names which limit was exceeded', () => {
+  const skipReason = (nodeOf(wf, 'Skip: too many pages').parameters.assignments as { assignments: { name: string; value: string }[] })
+    .assignments.find((a) => a.name === 'skip_reason')?.value;
+  expect(skipReason).toContain('too_many_pages');
+  expect(skipReason).toContain('too_much_text');
 });
 test('a missing retry model is treated the same as an empty one', () => {
   // config.ai.retry_model turning the retry off is documented for an *empty* string; a config

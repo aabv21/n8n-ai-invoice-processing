@@ -4,6 +4,7 @@
 import { fileURLToPath } from 'node:url';
 import { loadDotEnv } from './lib/runtime.ts';
 import { costUsd } from './lib/pricing.ts';
+import { parseSince } from './lib/since.ts';
 
 const EXTRACT_INVOICE_WORKFLOW_ID = 'mgpExtractInv001';
 const PAGE_LIMIT = 50;
@@ -224,11 +225,12 @@ function renderTable(rows: CostRow[]): string {
   return [header, divider, ...body].join('\n');
 }
 
-function parseArgs(argv: readonly string[]): string {
+/** Reads --since from argv and validates it against YYYY-MM-DDTHH:MM:SSZ before it reaches the n8n API URL. */
+export function parseArgs(argv: readonly string[]): string {
   const index = argv.indexOf('--since');
   const since = index === -1 ? undefined : argv[index + 1];
   if (!since) throw new Error('usage: node scripts/measure-cost.ts --since <ISO>');
-  return since;
+  return parseSince(since);
 }
 
 async function main(): Promise<void> {

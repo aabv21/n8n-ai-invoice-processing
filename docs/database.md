@@ -15,7 +15,7 @@ One Postgres 17 server holds two databases: `n8n`, n8n's own (workflows, credent
 
 ### No node here issues DDL on its own
 
-Unlike demo 1's Postgres Chat Memory node (which runs `CREATE TABLE IF NOT EXISTS` on every execution and so needs its own owner-role credential), nothing in this repo's `workflows/` does that: every AI node here is `@n8n/n8n-nodes-langchain.informationExtractor` (text extraction) or `@n8n/n8n-nodes-langchain.lmChatAnthropic` (its model sub-node), neither of which touches Postgres at all, and every Postgres node is a plain `n8n-nodes-base.postgres` Execute Query node running one of the statements below. So there is exactly one Postgres credential (`App DB`), and it connects as `app_runtime` everywhere. Checked by reading `n8n-nodes-base.postgres` and `@n8n/n8n-nodes-langchain.*` node usage straight from every file in `workflows/` (see `tests/check-db.test.ts`'s `workflow statements` describe block, which lists every Postgres node found).
+A node that issues its own DDL (for example, one that runs `CREATE TABLE IF NOT EXISTS` on every execution) needs an owner-role credential to do that; nothing in this repo's `workflows/` does that: every AI node here is `@n8n/n8n-nodes-langchain.informationExtractor` (text extraction) or `@n8n/n8n-nodes-langchain.lmChatAnthropic` (its model sub-node), neither of which touches Postgres at all, and every Postgres node is a plain `n8n-nodes-base.postgres` Execute Query node running one of the statements below. So there is exactly one Postgres credential (`App DB`), and it connects as `app_runtime` everywhere. Checked by reading `n8n-nodes-base.postgres` and `@n8n/n8n-nodes-langchain.*` node usage straight from every file in `workflows/` (see `tests/check-db.test.ts`'s `workflow statements` describe block, which lists every Postgres node found).
 
 ## Every statement and what covers it
 
@@ -59,7 +59,7 @@ Because `001` has already run on CI's fresh volumes and on an upgraded local vol
 - **Its own name.** `db-migrate` refuses to run when `APP_RUNTIME_DB_USER` equals `POSTGRES_USER`, `N8N_DB_USER`, or `APP_DB_USER`, which would aim the runtime grants and password at another role.
 - **No default privileges.** A new table gets its grants in its own migration.
 - **The superuser stays out of n8n.** It runs only `db/init/` and `db-migrate`, and neither n8n container is configured with it.
-- **No DDL-issuing node here** (unlike demo 1's Postgres Chat Memory node), so there's no second, owner-credentialed node to carve out — see above.
+- **No DDL-issuing node here**, so there's no second, owner-credentialed node to carve out — see above.
 - **The `postgres` maintenance database** keeps its default `PUBLIC` `CONNECT` and `TEMP`, so `app_runtime` can connect there and create temporary tables. This repo leaves that database alone: it holds no data, and nothing in it reaches `app` or `n8n`.
 
 NOTE: `001_runtime_role.sql`'s `n8n`-revoke and `app`-connect-grant statements are guarded (`WHERE EXISTS (SELECT 1 FROM pg_database WHERE datname = 'n8n')`, and `current_database()` rather than a literal `app`) so the same migration file can also run against `pnpm run test:db`'s `testdb` service, which has neither database — see Migrations below and that test's own section. This doesn't weaken the real stack: on it, `n8n` always exists and `current_database()` always evaluates to `app`, so both statements run exactly as a hardcoded version would.
@@ -113,7 +113,7 @@ A file must be safe to run twice:
 - `001` creates the role through `\gexec` only `WHERE NOT EXISTS`. Its `n8n`-revoke and `app`-connect-grant statements are also conditional `\gexec` calls (see the role checklist's NOTE above), so the file is idempotent regardless of which database it runs against.
 - `002` creates its partial index `IF NOT EXISTS`. An index belongs to its table's owner, so it needs no `SET ROLE`. A plain `CREATE INDEX` blocks writes while it builds, which is brief at this size; a large production table would need `CREATE INDEX CONCURRENTLY`, which can't run inside a transaction, as a separate step.
 - `003` runs `REVOKE ALL ON SEQUENCE invoices_id_seq FROM app_runtime`, which is naturally idempotent: revoking a privilege a role doesn't hold succeeds with no error (proven empirically — running it twice in a row against a role holding nothing on the sequence both times returned plain `REVOKE`).
-- `004` adds its `CHECK` constraint only `WHERE NOT EXISTS` against `pg_constraint`, the same guard `002_route_check.sql`-style migrations in the other demos use.
+- `004` adds its `CHECK` constraint only `WHERE NOT EXISTS` against `pg_constraint`, the standard guard for making a `CHECK`-constraint migration safe to run twice.
 - `GRANT` and `REVOKE` are idempotent.
 
 The ledger already skips applied files, so a second `pnpm run setup` prints `no pending migrations`. A migration that creates a table starts with `\getenv owner APP_DB_USER` and `SET LOCAL ROLE :"owner";`, so `app` owns the table, not the superuser (neither migration here creates a table, but this still applies to any future one).
@@ -141,7 +141,7 @@ CI's `db` job now brings up `testdb` the same way a local run does (`docker comp
 
 **n8n execution data:** `compose.yaml` keeps `EXECUTIONS_DATA_PRUNE=true` and `EXECUTIONS_DATA_MAX_AGE=168`, so n8n deletes executions after 168 hours. A manual execution, started from the editor, is saved by default with every node's input and output. Every workflow in `workflows/` sets `settings.saveManualExecutions: false`, and `tests/workflows/platform.test.ts` asserts it for every file.
 
-A per-workflow list wouldn't hold. Most workflows carry Gmail message content or an invoice's supplier/tax-id/amount fields; `dev-harness`'s own webhook carries its caller's `X-Dev-Token` header; and even `load-config`, which only reads a mounted file, starts from a passthrough Execute Workflow Trigger whose callers send no input schema, so it receives its caller's whole item too — the same reasoning demo 1 documents for its own config loader.
+A per-workflow list wouldn't hold. Most workflows carry Gmail message content or an invoice's supplier/tax-id/amount fields; `dev-harness`'s own webhook carries its caller's `X-Dev-Token` header; and even `load-config`, which only reads a mounted file, starts from a passthrough Execute Workflow Trigger whose callers send no input schema, so it receives its caller's whole item too — any config loader built the same way, with the same passthrough trigger, inherits this same reasoning.
 
 Production executions are still saved, then pruned at 168 hours.
 
