@@ -1,0 +1,57 @@
+# Test suites
+
+This page lists every test suite in the repo: its command, what it covers, and how it stays deterministic and clean. It ends with what continuous integration (CI) actually runs and the live checks that stay outside every suite.
+
+## Unit and tooling (Vitest)
+
+**Command:** `pnpm test` (`vitest run`, config `vitest.config.ts`, excludes `tests/db/**`).
+
+Covers every TypeScript module outside `tests/db/`:
+
+- `tests/lib/*.test.ts` — the pure invoice logic: `parse-reply` (reading a model reply into a candidate invoice), `normalize-invoice` (dates, amounts, and tax IDs into one comparable shape), `validate-invoice` (the review-reason rules: missing fields, bad dates, a totals mismatch, low confidence), `util`, `file-name` (the Drive file name and `<yyyy>/<mm>` folder), `config` (`checkConfig`, including `team_locale`), `format` (`escapeHtml` and the locale-aware `formatMoney`), and `strings` (every `SUMMARY_STRINGS`/`ERROR_ALERT_STRINGS` entry present and non-empty in both `en` and `es`). `tests/lib/contract.test.ts` checks `schemas/invoice.schema.json` and `prompts/extract-invoice.md` against `src/lib/invoice.ts`'s own field list, and that the prompt contains none of `{`, `}`, `@`, or a run of 10 or more digits.
+- `tests/nodes/*.test.ts` — the six generated Code nodes, each run through `tests/helpers/run-generated.ts` (which executes a node's compiled `jsCode` as n8n's sandbox does, with `$input` and the ambient `DateTime` in scope): `check-config`, `check-invoice`, `build-pdf-request` (including the request-size guard before the call), `prepare-record`, `render-summary`, and `error-alert` (both of the last two across `en` and `es`, since they share `src/lib/strings.ts`'s message tables).
+- `tests/workflows/*.test.ts` — every committed workflow file's pinned nodes, wiring, and settings, read through `tests/helpers/workflow-file.ts`'s `workflowFile`/`nodeOf`/`sourcesOf`: `platform.test.ts` (no workflow saves manual executions, since most carry Gmail content or an invoice's extracted fields), `gmail-entry.test.ts`, `intake-email.test.ts`, `process-invoice.test.ts`, `extract-invoice.test.ts` (the text/PDF routing and the review-reason contract), `dev-harness.test.ts`, `daily-summary.test.ts`, and `error-handler.test.ts` (both of the last two covering `team_locale`'s wiring). A hand edit to `workflows/*.json` that drifts from the generated or reviewed form fails here before it fails anywhere live.
+- `tests/tooling.test.ts` — the workflow build and hygiene tools, against `tests/fixtures/workflows/` (`clean.json` plus one defect per other fixture: `bad-credential.json`, `leaky.json`, `no-why.json`, `pinned.json`, `volatile.json`) and the fixture Code-node source `tests/fixtures/nodes/double-value.ts` plus the fixture generated-text sources `tests/fixtures/text/read-rows.sql` and `tests/fixtures/text/system.md` — so a build or hygiene test never depends on a real `src/nodes/*.ts` or `db/queries/*.sql` file changing underneath it.
+- `tests/hygiene.test.ts` — scans every tracked and untracked (but not git-ignored) file for a reference to a plan task, a brief, or a ruling instead of the file stating its own reason; `pnpm-lock.yaml` and the test file itself are exempt.
+- `tests/supply-chain.test.ts` — reads `pnpm config list --json` (pnpm's effective config, not the raw YAML) to check `pnpm-workspace.yaml`'s settings (`minimumReleaseAge`, the empty `minimumReleaseAgeExclude`, `trustPolicy`, `blockExoticSubdeps`, `strictDepBuilds`, `engineStrict`, `allowBuilds`), `packageManager`'s exact pnpm-11 shape, that `package-lock.json` doesn't exist, that no tracked file still teaches an `npm` command, that every Compose `image:` line carries a `@sha256:` digest, and that every `docker run` image across `.github/workflows/*.yml` does too.
+- `tests/runtime.test.ts` — `compose.yaml`, `.env.example`, and `config/config.example.json` against each other: every long-running service runs with `no-new-privileges`, `n8n` drops every Linux capability, and the config template's keys and shape.
+- `tests/runtime-lib.test.ts` — `scripts/lib/runtime.ts`'s `compose()` wrapper and `isWebhookLive`/`waitForWebhookLive`, against a mocked `child_process.spawn`, never a live Compose process.
+- `tests/dev-client.test.ts` — `scripts/lib/dev-client.ts`'s `callDev`, with `process.loadEnvFile` stubbed so a developer's own `.env` can't change the outcome.
+- `tests/db-migrate.test.ts` — migration ordering, `\getenv` extraction, and the transaction-control and password-logging guards in `scripts/db-migrate.ts`, against `db/migrations/001_runtime_role.sql` directly, no live database.
+- `tests/check-db.test.ts` — the denial/grant/role-fact predicates and the generated psql script in `scripts/check-db.ts`, against static fixtures.
+- `tests/samples.test.ts` — the six generated sample invoices: `scripts/lib/invoice-pdf.ts` renders each one and `pdfjs-dist` reads its text layer back, checked against `scripts/lib/sample-invoices.ts`'s own expected fields and the file name `invoiceFileName` would produce.
+- `tests/scripts/generate-adversarial-samples.test.ts` — every hidden-text adversarial fixture's planted content actually survives the same `pdfjs-dist` text extraction `process-invoice`'s own `Extract text` node performs, so a fixture that looks right on paper can't silently test nothing.
+- `tests/scripts/check-scenarios.test.ts` — `scripts/check-scenarios.ts`'s pure `compareScenario`, `loadExpectedSamples`, and `parseSince`, against `scripts/lib/sample-invoices.ts`'s expectations, no live Postgres.
+- `tests/scripts/measure-cost.test.ts` — `scripts/measure-cost.ts`'s `parseArgs` and `summarizeCosts`, and `scripts/lib/pricing.ts`'s `costUsd`, against synthetic n8n execution data.
+- `tests/scripts/check-dev-response.test.ts` — `scripts/check-dev-response.ts`'s `isSummaryPreview`, against fixed HTML strings, no live webhook.
+- `tests/scripts/init-env.test.ts` — `scripts/init-env.ts`'s `fillSecrets`, `writeEnvFile`, and `ensureN8nImportDir`, each against a fresh `mkdtempSync` directory under the OS temp dir, never the repo itself.
+
+**Staying deterministic and clean:** `vitest.config.ts` excludes `tests/db/**` explicitly, so this run never needs a database. `tests/setup.ts` provides the ambient `DateTime` global the Code-node sandbox exposes at runtime, so a Code-node source under test sees the same global shape it would in n8n. No test in this suite opens a network connection; the `mkdtempSync`-based tests above are the exception to "no filesystem access," and none of them write inside the repo.
+
+## Database (Vitest against `testdb`)
+
+**Command:** `TEST_DATABASE_URL=postgres://postgres@127.0.0.1:55432/postgres pnpm run test:db` (`vitest run --config vitest.db.config.ts`, which targets `tests/db/**` with `fileParallelism: false`). Needs the `testdb` Compose service (profile `test`, tmpfs-backed, trust auth, bound to `127.0.0.1:55432`) already running: `docker compose --profile test up -d --wait testdb`.
+
+`tests/db/queries.test.ts` exercises every file in `db/queries/` as `app_runtime`, the way the Postgres node binds parameters, through `tests/db/helpers.ts`'s `openTestDb`: on open, it drops and recreates `schema public` from `db/schema.sql`, then applies every file in `db/migrations/` to it (through `scripts/db-migrate.ts`, pointed at the `testdb` service and its `postgres` database). Covered: recording an event once, saving an invoice and its items, a second event with the same supplier tax ID and invoice number becoming a duplicate (including a conflicting duplicate with a different total or issue date, and a genuine re-send whose values compare equal), saving the same event twice returning the first invoice, a review row with no tax ID or number never conflicting, an out-of-range amount and a year-0000 date both saving cleanly as a review row, the Drive-link update reading the row back with ordered items, `openTestDb` refusing a database that isn't literally named `postgres`, the daily summary's half-open 24-hour window (an event exactly 24 hours before the run is included, exactly at the run is excluded, one second before the window start is excluded) and its totals, review list, and "due in the next 7 days" section, and the scenario report joining events, invoices, items, and a duplicate's own source file name.
+
+**Staying deterministic and clean:** `openTestDb` refuses to run against any database not literally named `postgres`, so a misconfigured `TEST_DATABASE_URL` can't drop a real schema. `reset()` truncates `invoices`, `invoice_items`, and `processed_events` with identity restart before every test. This repo has no Docker available in this environment, so `test:db` is documented here from its script and code rather than run; CI's `db` job runs it against the same `testdb` service on every PR.
+
+## What CI runs
+
+| CI job | What it runs |
+|---|---|
+| `quality` | `pnpm install --frozen-lockfile`, `typecheck`, `lint`, `test` (the full Vitest suite above, minus `tests/db/`), `build:workflows -- --check`, `check`, then ShellCheck on every tracked `*.sh` file. |
+| `security` | gitleaks in git mode over the full history, `pnpm audit --audit-level=high`. |
+| `actions` | actionlint and zizmor against the workflow files themselves. |
+| `db` | `pnpm install --frozen-lockfile`, `node scripts/init-env.ts`, `docker compose --profile test up -d --wait testdb`, then `pnpm run test:db` against `TEST_DATABASE_URL=postgres://postgres@127.0.0.1:55432/postgres`, tearing down with `docker compose --profile test down -v` in an `if: always()` step. |
+| `n8n` | `pnpm install --frozen-lockfile`, `node scripts/init-env.ts`, `cp config/config.example.json config/config.json`, `docker compose up -d --wait postgres n8n`, `pnpm run setup`, `node scripts/check-db.ts`, `node scripts/check-dev-response.ts`. This is the one job that boots the real stack and proves a workflow executes — both the app Postgres path and a generated Code node — not just that the committed JSON is well-formed. Tears down with `docker compose down -v` in an `if: always()` step, and prints `docker compose logs n8n postgres` on failure. |
+| `codeql` | gated on the repository being public; not yet running against a private repo. |
+
+**What CI doesn't run, and why:** `pnpm run scenarios` (needs a real Anthropic credential CI doesn't have) and `pnpm run cost` (a report over the n8n API's own execution history, not a check — there's nothing for CI to assert) both stay manual. The queue-mode stack (`compose.queue.yaml`) adds nothing `check-dev-response.ts` doesn't already prove about Code-node and Postgres execution, so it's verified once by hand and recorded in `docs/architecture.md`'s scaling section, not re-run on every PR.
+
+## Deferred live checks
+
+Two things stay outside every suite above, because they need the owner's own accounts, not just the local stack:
+
+- **The live model calls.** `pnpm run scenarios` and `pnpm run cost` need a real Anthropic credential in n8n. They're run once, by hand, in one session with the owner present, against the six sample invoices and the AI red team's adversarial fixtures (`docs/red-team.md`), not on every change.
+- **Google Drive and Sheets.** `process-invoice`'s upload and row-append calls need the owner's own Google account connected in n8n. The actual uploaded files and appended rows are verified once, by hand, the same session as the live model calls above.
