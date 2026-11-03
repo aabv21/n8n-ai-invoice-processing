@@ -42,12 +42,80 @@
       }
     },
     {
+      "id": "20000000-0000-4000-8000-000000000005",
+      "name": "Shape alert input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        420,
+        180
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "20000000-0005-4000-8000-00000000a001",
+              "name": "team_locale",
+              "type": "string",
+              "value": "={{ $json.config.team_locale }}"
+            },
+            {
+              "id": "20000000-0005-4000-8000-00000000a002",
+              "name": "workflow_name",
+              "type": "string",
+              "value": "={{ $('Error Trigger').item.json.workflow.name }}"
+            },
+            {
+              "id": "20000000-0005-4000-8000-00000000a003",
+              "name": "failed_node",
+              "type": "string",
+              "value": "={{ $('Error Trigger').item.json.execution.lastNodeExecuted }}"
+            },
+            {
+              "id": "20000000-0005-4000-8000-00000000a004",
+              "name": "error_message",
+              "type": "string",
+              "value": "={{ $('Error Trigger').item.json.execution.error.message }}"
+            },
+            {
+              "id": "20000000-0005-4000-8000-00000000a005",
+              "name": "execution_url",
+              "type": "string",
+              "value": "={{ $('Error Trigger').item.json.execution.url }}"
+            },
+            {
+              "id": "20000000-0005-4000-8000-00000000a006",
+              "name": "time",
+              "type": "string",
+              "value": "={{ $now.setZone('America/Bogota').toFormat('yyyy-LL-dd HH:mm') }} America/Bogota"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "20000000-0000-4000-8000-000000000006",
+      "name": "Render error alert",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        680,
+        180
+      ],
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "jsCode": "// Why Code: picks the team_locale message table and assembles the plain-text subject and body from it. Generated from src/nodes/error-alert.ts by pnpm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/error-alert.ts\n  var error_alert_exports = {};\n  __export(error_alert_exports, {\n    run: () => run\n  });\n\n  // src/lib/strings.ts\n  var ERROR_ALERT_STRINGS = {\n    en: {\n      subjectPrefix: \"[Magdaport demo] Workflow failed:\",\n      failedNode: \"Failed node\",\n      error: \"Error\",\n      execution: \"Execution\",\n      time: \"Time\"\n    },\n    es: {\n      subjectPrefix: \"[Demo Magdaport] Falló el flujo:\",\n      failedNode: \"Nodo fallido\",\n      error: \"Error\",\n      execution: \"Ejecución\",\n      time: \"Hora\"\n    }\n  };\n\n  // src/nodes/error-alert.ts\n  function run(input) {\n    const locale = input.team_locale ?? \"en\";\n    const t = ERROR_ALERT_STRINGS[locale];\n    const subject = `${t.subjectPrefix} ${input.workflow_name}`;\n    const message = [\n      `${t.failedNode}: ${input.failed_node}`,\n      `${t.error}: ${input.error_message}`,\n      `${t.execution}: ${input.execution_url}`,\n      `${t.time}: ${input.time}`\n    ].join(\"\\n\");\n    return { subject, message };\n  }\n  return __toCommonJS(error_alert_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
+      }
+    },
+    {
       "id": "20000000-0000-4000-8000-000000000003",
       "name": "Email the team",
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        420,
+        940,
         180
       ],
       "retryOnFail": true,
@@ -56,10 +124,10 @@
       "parameters": {
         "resource": "message",
         "operation": "send",
-        "sendTo": "={{ $json.config.team_email }}",
-        "subject": "=[Magdaport demo] Workflow failed: {{ $('Error Trigger').item.json.workflow.name }}",
+        "sendTo": "={{ $('Load config').first().json.config.team_email }}",
+        "subject": "={{ $json.subject }}",
         "emailType": "text",
-        "message": "=Failed node: {{ $('Error Trigger').item.json.execution.lastNodeExecuted }}\nError: {{ $('Error Trigger').item.json.execution.error.message }}\nExecution: {{ $('Error Trigger').item.json.execution.url }}\nTime: {{ $now.setZone('America/Bogota').toFormat('yyyy-LL-dd HH:mm') }} America/Bogota",
+        "message": "={{ $json.message }}",
         "options": {
           "appendAttribution": false
         }
@@ -81,9 +149,9 @@
         -60
       ],
       "parameters": {
-        "width": 1080,
+        "width": 1340,
         "height": 160,
-        "content": "## Error handler\nRuns whenever a workflow with errorWorkflow set to this one fails. Loads config for team_email, then emails the team a plain-text alert naming the failed node, the error, the execution URL, and the time in Bogota. This workflow has no errorWorkflow of its own, so a failure here does not loop back into itself."
+        "content": "## Error handler\nRuns whenever a workflow with errorWorkflow set to this one fails. Loads config for team_email and team_locale. Load config's own output is always exactly { config }, so Shape alert input reads the Error Trigger's own fields back by name and pairs them with team_locale into one item; Render error alert - the generated Code node from src/nodes/error-alert.ts - turns it into a plain-text subject and body in the team's own language, naming the failed node, the error, the execution URL, and the time in Bogota. This workflow has no errorWorkflow of its own, so a failure here does not loop back into itself."
       }
     }
   ],
@@ -100,6 +168,28 @@
       ]
     },
     "Load config": {
+      "main": [
+        [
+          {
+            "node": "Shape alert input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape alert input": {
+      "main": [
+        [
+          {
+            "node": "Render error alert",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render error alert": {
       "main": [
         [
           {

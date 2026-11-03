@@ -1,5 +1,6 @@
 {
   "team_email": "team@example.com",
+  "team_locale": "en",
   "gmail": {
     "label_ids": { "processed": "REPLACE_ME", "review": "REPLACE_ME", "duplicate": "REPLACE_ME" }
   },

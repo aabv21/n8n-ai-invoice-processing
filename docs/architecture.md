@@ -35,13 +35,13 @@ The pipeline is nine n8n workflows with fixed IDs from `scripts/manifest.ts`. Al
 | `extract-invoice` | `process-invoice`, or the dev harness | Sends the text to the Information Extractor or the PDF to the Messages API, then checks the reply and returns one verdict |
 | `ensure-folder` | `process-invoice` | Finds or creates a Drive folder by exact name under a parent and returns its ID |
 | `load-config` | `intake-email`, `daily-summary`, `error-handler`, and the dev harness | Reads `/files/config/config.json` into `{ config }` |
-| `daily-summary` | A schedule at 18:00 Bogota time, or the dev harness | Emails the team an HTML report of the last 24 hours; a dev-harness call gets the rendered report back and sends nothing unless it passes `dry_run: false` |
-| `error-handler` | Any other workflow’s failure | Emails the team a plain-text alert with the workflow, node, error, execution link, and time |
+| `daily-summary` | A schedule at 18:00 Bogota time, or the dev harness | Emails the team an HTML report of the last 24 hours, in the language `team_locale` names; a dev-harness call gets the rendered report back and sends nothing unless it passes `dry_run: false` |
+| `error-handler` | Any other workflow’s failure | Emails the team a plain-text alert with the workflow, node, error, execution link, and time, in the language `team_locale` names |
 | `dev-harness` | `POST /webhook/dev` with `X-Dev-Token` | Runs one of five targets: `load-config`, `extract-invoice`, `process-invoice`, `intake-email`, or `summary-preview` |
 
-Inside those workflows, five Code nodes do work that no native node does: `Check config`, `Check invoice`, `Build PDF request`, `Prepare record`, and `Render summary`. Each one is a pure TypeScript function in `src/nodes/`, which `pnpm run build:workflows` compiles into the workflow JSON. The same build copies in the SQL from `db/queries/`, the extraction prompt, and the invoice JSON Schema.
+Inside those workflows, six Code nodes do work that no native node does: `Check config`, `Check invoice`, `Build PDF request`, `Prepare record`, `Render summary`, and `Render error alert`. Each one is a pure TypeScript function in `src/nodes/`, which `pnpm run build:workflows` compiles into the workflow JSON. The same build copies in the SQL from `db/queries/`, the extraction prompt, and the invoice JSON Schema. `Render summary` and `Render error alert` share a `{ en, es }` message table (`src/lib/strings.ts`) and pick from it by `config.team_locale` (`en` by default), so the daily summary and the error alert render in the same team-chosen language; see the README's "Team email language".
 
-The workflows read their instance values from `config/config.json`, mounted read-only at `/files/config/`. It sets the team email, the three Gmail label IDs, the Drive folder and spreadsheet IDs, and the tab names. It also sets the models and effort, the extraction limits, and the review thresholds. Git ignores it, and `config/config.example.json` is its template.
+The workflows read their instance values from `config/config.json`, mounted read-only at `/files/config/`. It sets the team email and locale, the three Gmail label IDs, the Drive folder and spreadsheet IDs, and the tab names. It also sets the models and effort, the extraction limits, and the review thresholds. Git ignores it, and `config/config.example.json` is its template.
 
 ## How an invoice moves from Gmail to its label
 

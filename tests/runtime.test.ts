@@ -31,6 +31,7 @@ test('the test database is local and opt-in', () => {
 });
 test('config example carries the spec values', () => expect(config).toEqual({
   team_email: 'team@example.com',
+  team_locale: 'en',
   gmail: { label_ids: { processed: 'REPLACE_ME', review: 'REPLACE_ME', duplicate: 'REPLACE_ME' } },
   google: { drive_root_folder_id: 'REPLACE_ME', spreadsheet_id: 'REPLACE_ME', invoices_tab: 'Invoices', items_tab: 'Items' },
   ai: { default_model: 'claude-haiku-5-5', retry_model: 'claude-sonnet-5-5', effort: 'low' },
