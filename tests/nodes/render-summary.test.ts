@@ -72,3 +72,62 @@ test('throws a clear error instead of crashing when report_date is missing', () 
   expect(() => run({ ...day, report_date: null as unknown as string })).toThrow(
     'Daily summary: the query returned no report_date; run_at is missing or invalid');
 });
+
+// team_locale drives the daily summary's own language. A missing team_locale (an
+// in-flight config predating this field, or a caller that forgot it) must still render in English
+// rather than throwing - the same default checkConfig applies.
+test('renders in English when team_locale is missing, matching the default', () => {
+  const html = run(day).html;
+  expect(html).toContain('Magdaport invoices: 2026-10-30');
+  expect(html).toContain('Totals by supplier');
+});
+
+test('renders the Spanish subject and headings when team_locale is es', () => {
+  const out = run({ ...day, team_locale: 'es' });
+  expect(out.subject).toBe('Facturas Magdaport 2026-10-30: 6 recibidas, 1 por revisar');
+  expect(out.html).toContain('Facturas Magdaport: 2026-10-30');
+  expect(out.html).toContain('Recibidas: 6');
+  expect(out.html).toContain('Totales por proveedor');
+  expect(out.html).toContain('Elementos por revisar');
+  expect(out.html).toContain('Vencen en los próximos 7 días');
+  expect(out.html).toContain('<th>Proveedor</th>');
+  expect(out.html).toContain('<th>N.º de factura</th>');
+});
+
+test('renders the Spanish empty-day line', () => {
+  const out = run({ ...day, team_locale: 'es', arrived: 0, ok: 0, review: 0, duplicates: 0, totals_by_supplier: [], review_items: [], due_soon: [] });
+  expect(out.html).toContain('No llegaron facturas en las últimas 24 horas.');
+});
+
+test.each([
+  [1, 'Una factura no terminó de procesarse.'],
+  [2, '2 facturas no terminaron de procesarse.'],
+])('renders the Spanish unfinished line for %i', (n, line) =>
+  expect(run({ ...day, team_locale: 'es', unfinished: n }).html).toContain(
+    `${line} Consulte las ejecuciones fallidas de n8n o los pasos de recuperación del README para eventos pendientes.`));
+
+test('formats COP and USD totals with Spanish (es-CO) separators', () => {
+  const html = run({ ...day, team_locale: 'es' }).html;
+  // es-CO uses '.' as the thousands separator and ',' as the decimal separator.
+  expect(html).toContain('COP 2.082.500');
+  expect(html).toContain('USD 2.191,00');
+});
+
+test('formats the due date in Spanish long form', () => {
+  const html = run({ ...day, team_locale: 'es' }).html;
+  expect(html).toContain('1 de noviembre de 2026');
+});
+
+test('formats the due date in English long form by default', () => {
+  const html = run(day).html;
+  expect(html).toContain('November 1, 2026');
+});
+
+// Escaping must not depend on the locale: a planted <script> in a supplier name is neutralized
+// the same way whether the email renders in English or Spanish.
+test('escaping is unchanged in Spanish', () => {
+  const html = run({ ...day, team_locale: 'es', review_items: [{ ...day.review_items[0]!, supplier: 'S&S <Distribuciones> "Ltda"', invoice_number: '<b>7</b>' }] }).html;
+  expect(html).toContain('S&amp;S &lt;Distribuciones&gt; &quot;Ltda&quot;');
+  expect(html).toContain('&lt;b&gt;7&lt;/b&gt;');
+  expect(html).not.toContain('<Distribuciones>');
+});

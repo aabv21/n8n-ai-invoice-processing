@@ -137,6 +137,12 @@ export const CODE_NODES: readonly CodeNodeEntry[] = [
     source: 'src/nodes/render-summary.ts',
     why: 'renders escaped HTML tables and per-currency money formats from the summary row',
   },
+  {
+    file: 'error-handler.json',
+    node: 'Render error alert',
+    source: 'src/nodes/error-alert.ts',
+    why: 'picks the team_locale message table and assembles the plain-text subject and body from it',
+  },
 ];
 
 export const TEXT_PARAMS: readonly TextParamEntry[] = [

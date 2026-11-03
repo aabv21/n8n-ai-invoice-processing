@@ -75,6 +75,31 @@ test('Query summary passes the run timestamp, not a date', () => {
   expect(options?.queryReplacement).not.toContain('toISODate');
 });
 
+// The daily summary's own language follows team_locale. Query summary's own Postgres
+// output carries only the SQL row (report_date, arrived, ...), not config, so a dedicated
+// extract+merge step puts team_locale back next to it before Render summary ever runs - the same
+// pattern Attach config to run already uses to survive Load config's own { config }-only output.
+test('Extract team locale reads it off the already-loaded config', () => {
+  const wf = workflowFile('daily-summary.json');
+  const extract = nodeOf(wf, 'Extract team locale');
+  expect(extract.type).toBe('n8n-nodes-base.set');
+  expect(sourcesOf(wf, 'Extract team locale', 0)).toEqual(['Attach config to run']);
+  const assignments = (extract.parameters.assignments as { assignments: { name: string; value: unknown }[] }).assignments;
+  expect(assignments).toEqual(expect.arrayContaining([
+    expect.objectContaining({ name: 'team_locale', value: "={{ $json.config.team_locale }}" }),
+  ]));
+});
+
+test('Attach locale to summary merges team_locale onto the summary row by position', () => {
+  const wf = workflowFile('daily-summary.json');
+  const merge = nodeOf(wf, 'Attach locale to summary');
+  expect(merge.type).toBe('n8n-nodes-base.merge');
+  expect(merge.parameters).toMatchObject({ mode: 'combine', combineBy: 'combineByPosition', numberInputs: 2 });
+  expect(sourcesOf(wf, 'Attach locale to summary', 0)).toEqual(['Query summary']);
+  expect(sourcesOf(wf, 'Attach locale to summary', 1)).toEqual(['Extract team locale']);
+  expect(sourcesOf(wf, 'Render summary', 0)).toEqual(['Attach locale to summary']);
+});
+
 test('an IF on dry_run returns the preview without sending, or emails it', () => {
   const wf = workflowFile('daily-summary.json');
   const branch = nodeOf(wf, 'Dry run?');

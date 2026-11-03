@@ -4,6 +4,8 @@ import { isPlainObject } from './util.ts';
 
 export interface Config {
   team_email: string;
+  /** The language the team's own emails (the daily summary and the error alert) render in. Missing means 'en'. */
+  team_locale: 'en' | 'es';
   gmail: {
     label_ids: {
       processed: string;
@@ -37,6 +39,7 @@ const LABEL_ID_KEYS = ['processed', 'review', 'duplicate'] as const;
 const GOOGLE_KEYS = ['drive_root_folder_id', 'spreadsheet_id', 'invoices_tab', 'items_tab'] as const;
 const EXTRACTION_KEYS = ['min_text_chars_per_page', 'max_pages', 'max_text_chars'] as const;
 const EFFORT_VALUES = ['low', 'medium', 'high'] as const;
+const TEAM_LOCALE_VALUES = ['en', 'es'] as const;
 
 function asObject(value: unknown, path: string): Record<string, unknown> {
   if (!isPlainObject(value)) throw new Error(`${path} must be an object`);
@@ -104,6 +107,15 @@ export function checkConfig(config: unknown): Config {
   }
 
   requireNonEmptyString('config.team_email', root.team_email);
+
+  // Missing means the default, 'en' (global-constraints.md); an explicit value must be exactly
+  // 'en' or 'es' -- team_locale is operator-set config, not inbound traffic, so there's no other
+  // spelling to normalize here.
+  if (root.team_locale === undefined) {
+    root.team_locale = 'en';
+  } else if (typeof root.team_locale !== 'string' || !TEAM_LOCALE_VALUES.includes(root.team_locale as (typeof TEAM_LOCALE_VALUES)[number])) {
+    throw new Error(`config.team_locale must be one of ${TEAM_LOCALE_VALUES.join(', ')}`);
+  }
 
   return config as Config;
 }

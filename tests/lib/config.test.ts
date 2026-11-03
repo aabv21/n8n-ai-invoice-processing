@@ -116,3 +116,19 @@ test('rejects an empty team_email', () => {
   config.team_email = '';
   expect(() => checkConfig(config)).toThrow('config.team_email');
 });
+
+test.each(['en', 'es'] as const)('accepts team_locale %s', (locale) => {
+  const config = clone();
+  config.team_locale = locale;
+  expect(() => checkConfig(config)).not.toThrow();
+});
+test.each(['EN', 'es-CO', 'en-US', 'fr', ''])('rejects team_locale %s', (bad) => {
+  const config = clone();
+  config.team_locale = bad as Config['team_locale'];
+  expect(() => checkConfig(config)).toThrow('config.team_locale');
+});
+test('a missing team_locale defaults to en, so an existing config without it still validates', () => {
+  const config = clone() as unknown as { team_locale?: string };
+  delete config.team_locale;
+  expect(checkConfig(config).team_locale).toBe('en');
+});
