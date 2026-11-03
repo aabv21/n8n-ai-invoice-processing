@@ -24,8 +24,26 @@ This repo builds an AI invoice-processing pipeline for Magdaport S.A.S., a ficti
 - `docs/architecture.md` — the architecture doc: components, the invoice lifecycle, the data model, failure modes with detection and recovery, scaling and security notes, platform behaviors, and design decisions. Update it whenever a change alters any of those.
 - `docs/database.md` — how the database is run: the roles, every statement the workflows issue and the grant behind it, migrations, backup and restore, connections, the upgrade path for an existing local volume, and what `check-db` proves. Update it when a change adds a query, a table, a grant, or a migration.
 - `docs/red-team.md` — the AI attack surface map (invoice PDF and extracted text as untrusted input), the table of adversarial inputs → expected safe behavior → the deterministic guard that catches it, the live fixtures in `samples/adversarial/` (`pnpm run adversarial`; `scripts/generate-adversarial-samples.ts`), the procedure for running them against the real models once the Anthropic and Google accounts are connected, the pdf.js CVE-2024-4367 check against the pinned n8n image, and the live checks and owner decisions this repo can't settle offline. Update it when a new deterministic guard lands or a new attack surface opens.
+- `docs/testing.md` — every test suite: its command, what it covers, and how it stays deterministic and clean, plus what CI actually runs and the deferred live checks. Update it when a suite is added, renamed, or changes what it covers.
 - `docs/diagrams/` — the system architecture (`architecture.*`) and invoice sequence (`invoice-sequence.*`) diagrams. Each `*.json` file is a diagram's source: archify renders the `*.html` page from it, and the `*.svg` image is that page's own SVG export. Edit only the JSON, then regenerate the other two (see Commands).
 - `.n8n-import/` — created locally by `node scripts/init-env.ts`; a scratch directory the export tooling writes to. No credential data crosses it at all: `setup-credentials.ts` streams the decrypted import JSON into the `n8n` container over stdin, and reads back the existing-credentials export (still encrypted — ids, names, types, and encrypted data, of which only the ids are used) over stdout — both travel entirely inside the container's own `/tmp`, never through this bind mount (see that script's own comments on `IMPORT_SCRIPT` and `EXPORT_SCRIPT`). It's a live bind mount: never `rm -rf` it. On Linux, it works only when the host uid matches n8n's container uid (1000), because n8n writes into a directory the host creates at 0700.
+
+## Documentation map
+
+| Document | Covers |
+|---|---|
+| [`docs/architecture.md`](docs/architecture.md) | Components, the invoice lifecycle, the data model, failure modes (with detection and recovery), scaling limits, security notes, platform behaviors, and the design decisions behind each part. |
+| [`docs/database.md`](docs/database.md) | The roles (`postgres`, `n8n`, `app`, `app_runtime`), every statement the workflows issue and the grant behind it, migrations (`db/migrations/`, applied by `pnpm run db:migrate`), backup and restore, connections, the upgrade path for an existing local volume, and what `node scripts/check-db.ts` proves. |
+| [`docs/red-team.md`](docs/red-team.md) | The AI attack surface map (invoice PDF and extracted text as untrusted input), the adversarial inputs → expected behavior → guard table, the live fixtures in `samples/adversarial/`, and the procedure for running them against the real models once the Anthropic and Google accounts are connected. |
+| [`docs/testing.md`](docs/testing.md) | Every test suite: its command, what it covers, and how it stays deterministic and clean, plus what CI actually runs and the deferred live checks. |
+| [`docs/diagrams/architecture.json`](docs/diagrams/architecture.json) | The system diagram's archify typed source (type `architecture`): Gmail → `gmail-entry` → `intake-email` → `process-invoice` → `extract-invoice` → Anthropic, with Drive, Sheets, Postgres, `daily-summary`, `error-handler`, and `dev-harness`. |
+| [`docs/diagrams/architecture.html`](docs/diagrams/architecture.html) | The system diagram's interactive page, rendered by archify. Open it directly to read the diagram full-size, pan, and inspect each node. |
+| [`docs/diagrams/architecture.svg`](docs/diagrams/architecture.svg) | The system diagram's exported image, embedded in `docs/architecture.md` and the README. |
+| [`docs/diagrams/invoice-sequence.json`](docs/diagrams/invoice-sequence.json) | The invoice-lifecycle sequence diagram's archify typed source (type `sequence`): poll → idempotency gate → screens, extraction, and check → Sonnet retry → save → duplicate branch → Drive, Sheets, label, and outcome. |
+| [`docs/diagrams/invoice-sequence.html`](docs/diagrams/invoice-sequence.html) | The sequence diagram's interactive page. |
+| [`docs/diagrams/invoice-sequence.svg`](docs/diagrams/invoice-sequence.svg) | The sequence diagram's exported image, embedded in `docs/architecture.md`. |
+
+`docs/diagrams/*.delivery.json` receipts (one per diagram, written by `archify deliver`) hold local absolute paths and are gitignored; never force-add one.
 
 ## Commands
 
