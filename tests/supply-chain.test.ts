@@ -1,5 +1,6 @@
 import { execFile } from 'node:child_process';
-import { existsSync, readFileSync } from 'node:fs';
+import { existsSync, readdirSync, readFileSync } from 'node:fs';
+import { join } from 'node:path';
 import { promisify } from 'node:util';
 import { expect, test } from 'vitest';
 
@@ -59,4 +60,55 @@ test('every Compose image is pinned by digest', () => {
     expect(images.length).toBeGreaterThan(0);
     for (const image of images) expect(image).toMatch(/@sha256:[a-f0-9]{64}$/);
   }
+});
+
+/** The text of one top-level service block in a Compose file, up to (not including) the next top-level key at the same indent. */
+function serviceBlock(content: string, service: string): string {
+  const lines = content.split('\n');
+  const header = `  ${service}:`;
+  const start = lines.findIndex((line) => line === header || line.startsWith(`${header} `));
+  if (start === -1) throw new Error(`service ${service} not found`);
+  const rest = lines.slice(start + 1);
+  const end = rest.findIndex((line) => /^ {2}\S/.test(line));
+  return rest.slice(0, end === -1 ? rest.length : end).join('\n');
+}
+
+test('n8n and postgres/testdb run with no-new-privileges', () => {
+  const compose = readFileSync('compose.yaml', 'utf8');
+  for (const service of ['n8n', 'postgres', 'testdb']) {
+    expect(serviceBlock(compose, service)).toMatch(/security_opt:\s*\n\s*-\s*no-new-privileges:true/);
+  }
+});
+test('redis runs with no-new-privileges', () => {
+  const queue = readFileSync('compose.queue.yaml', 'utf8');
+  expect(serviceBlock(queue, 'redis')).toMatch(/security_opt:\s*\n\s*-\s*no-new-privileges:true/);
+});
+test('n8n drops all capabilities; postgres and testdb keep theirs for gosu', () => {
+  const compose = readFileSync('compose.yaml', 'utf8');
+  expect(serviceBlock(compose, 'n8n')).toMatch(/cap_drop:\s*\n\s*-\s*ALL/);
+  for (const service of ['postgres', 'testdb']) {
+    expect(serviceBlock(compose, service)).not.toMatch(/cap_drop:/);
+  }
+});
+test('n8n-worker inherits n8n hardening through extends, not a repeated block', () => {
+  const queue = readFileSync('compose.queue.yaml', 'utf8');
+  const worker = serviceBlock(queue, 'n8n-worker');
+  expect(worker).toMatch(/extends:/);
+  expect(worker).not.toMatch(/security_opt:|cap_drop:/);
+});
+
+test('every docker run image across .github/workflows/*.yml is pinned by digest', () => {
+  const dir = '.github/workflows';
+  const files = readdirSync(dir).filter((f) => f.endsWith('.yml') || f.endsWith('.yaml'));
+  expect(files.length).toBeGreaterThan(0);
+  let imageCount = 0;
+  for (const file of files) {
+    const content = readFileSync(join(dir, file), 'utf8');
+    const images = [...content.matchAll(/docker run\b[^\n]*?\s(\S+\/\S+:\S+)/g)].map((m) => m[1]);
+    for (const image of images) {
+      imageCount += 1;
+      expect(image).toMatch(/@sha256:[a-f0-9]{64}$/);
+    }
+  }
+  expect(imageCount).toBeGreaterThan(0);
 });

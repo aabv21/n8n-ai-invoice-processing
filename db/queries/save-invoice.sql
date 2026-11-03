@@ -57,6 +57,16 @@ SELECT
   (replay.id IS NOT NULL OR inserted.id IS NOT NULL) AS saved,
   COALESCE(replay.id, inserted.id) AS invoice_id,
   CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN dup.id END AS duplicate_of,
+  -- The original's own total and issue date, so the caller can tell a genuine re-send (which
+  -- agrees with them) from a forged copy claiming the same supplier tax ID and invoice number but
+  -- a different amount or date - which gets the Review label instead of a silent Duplicate.
+  -- issue_date is cast to text here (to_char, not ::text, so the format is always YYYY-MM-DD
+  -- regardless of server locale): the Postgres node parses a `date` column into a JS Date the same
+  -- way node-postgres does, and comparing that against the extracted invoice's own ISO date string
+  -- in a workflow expression would compare a localized Date.toString() against "YYYY-MM-DD",
+  -- which never match - every genuine same-day duplicate would then look conflicting.
+  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN dup.total END AS duplicate_of_total,
+  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN to_char(dup.issue_date, 'YYYY-MM-DD') END AS duplicate_of_issue_date,
   (SELECT count(*)::int FROM items) AS item_count
 FROM fields f
 LEFT JOIN replay ON true

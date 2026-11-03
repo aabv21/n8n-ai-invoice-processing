@@ -370,7 +370,7 @@
       "parameters": {
         "width": 1200,
         "height": 160,
-        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config, extract-invoice, process-invoice, intake-email, and summary-preview exist today; later work adds more targets the same way."
+        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input }. Routes to a fixed sub-workflow by target and responds once it returns. An unmatched target answers 404. Localhost only (no tunnel in this demo) and must be unpublished before any production use. load-config, extract-invoice, process-invoice, intake-email, and summary-preview exist today; a new sub-workflow adds its own target the same way."
       }
     },
     {

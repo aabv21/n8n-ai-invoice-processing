@@ -32,11 +32,17 @@ export function run(input: CheckInput): CheckOutput {
   const { invoice, reasons: normalizeReasons } = normalizeInvoice(parsed.value);
   const validateReasons = validateInvoice(invoice, input.rules, input.today);
 
-  // A field already reported as invalid (wrong format) shouldn't also be reported as missing
-  // (null because normalization rejected it) - that would be the same defect under two names.
+  // A field already reported as invalid (wrong format, or out of its column's range) shouldn't
+  // also be reported as missing (null because normalization rejected it) - that would be the same
+  // defect under two names.
   const suppressed: ReviewReason[] = [];
   if (normalizeReasons.includes('invalid_issue_date')) suppressed.push('missing_issue_date');
   if (normalizeReasons.includes('invalid_currency')) suppressed.push('missing_currency');
+  if (normalizeReasons.includes('amount_out_of_range')) {
+    if (invoice.subtotal === null) suppressed.push('missing_subtotal');
+    if (invoice.tax === null) suppressed.push('missing_tax');
+    if (invoice.total === null) suppressed.push('missing_total');
+  }
   const reasons = [...normalizeReasons, ...validateReasons.filter((r) => !suppressed.includes(r))];
 
   return { status: reasons.length === 0 ? 'ok' : 'review', reasons, invoice, raw: parsed.value, ...echoOf(input) };

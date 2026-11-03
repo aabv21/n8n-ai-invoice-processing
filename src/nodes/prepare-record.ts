@@ -4,9 +4,9 @@ import { invoiceFileName } from '../lib/file-name.ts';
 import type { CheckOutput, InvoiceRecord } from '../lib/invoice.ts';
 import { emptyInvoice } from '../lib/util.ts';
 
-export type PrepareInput = CheckOutput | { skip_reason: 'too_many_pages' | 'unreadable_pdf'; event_id: string; received_at: string };
+export type PrepareInput = CheckOutput | { skip_reason: 'too_many_pages' | 'too_much_text' | 'unreadable_pdf'; event_id: string; received_at: string };
 
-function isSkip(input: PrepareInput): input is { skip_reason: 'too_many_pages' | 'unreadable_pdf'; event_id: string; received_at: string } {
+function isSkip(input: PrepareInput): input is { skip_reason: 'too_many_pages' | 'too_much_text' | 'unreadable_pdf'; event_id: string; received_at: string } {
   return 'skip_reason' in input;
 }
 

@@ -1,6 +1,9 @@
+import { mkdtempSync, rmSync, writeFileSync } from 'node:fs';
+import { tmpdir } from 'node:os';
+import { join } from 'node:path';
 import { expect, test } from 'vitest';
 import type { NormalizedInvoice } from '../../src/lib/invoice.ts';
-import { compareScenario, parseSince, type ScenarioRow } from '../../scripts/check-scenarios.ts';
+import { compareScenario, loadExpectedSamples, parseSince, type ScenarioRow } from '../../scripts/check-scenarios.ts';
 import { expectations, type SampleExpectation } from '../../scripts/lib/sample-invoices.ts';
 
 const EXPECTED_1 = expectations('2026-10-30')[0]!;
@@ -40,3 +43,23 @@ test.each([
   '2026-10-31T10:00:00',
   '2026-1-1T00:00:00Z',
 ])('an invalid --since %s is rejected before any psql call', (value) => expect(() => parseSince(value)).toThrow(/--since/));
+
+// The committed samples/expected.json was generated from its own base_date, which can differ from
+// whatever --since a later run passes (the start of the DB query window, not the date the samples
+// were built from); the expectations compared against must come from the file, not be recomputed
+// from --since, or a run on a different day would expect dates the samples were never built with.
+test('loadExpectedSamples reads the expectations from the committed file, not from a passed-in date', () => {
+  const dir = mkdtempSync(join(tmpdir(), 'mgp-expected-'));
+  try {
+    const path = join(dir, 'expected.json');
+    const payload = { base_date: '2020-01-01', samples: expectations('2020-01-01') };
+    writeFileSync(path, JSON.stringify(payload));
+    const loaded = loadExpectedSamples(path);
+    expect(loaded).toEqual(payload.samples);
+    // Proves it isn't silently recomputing from the file's base_date either - it's the file's own
+    // samples array, verbatim.
+    expect(loaded).not.toEqual(expectations('2026-10-30'));
+  } finally {
+    rmSync(dir, { recursive: true });
+  }
+});

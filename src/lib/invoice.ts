@@ -19,8 +19,13 @@ export type ReviewReason =
   | 'due_before_issue'
   | 'issue_date_in_future'
   | 'totals_mismatch'
+  | 'line_items_mismatch'
+  | 'line_items_incomplete'
+  | 'non_positive_total'
+  | 'amount_out_of_range'
   | 'low_confidence'
   | 'too_many_pages'
+  | 'too_much_text'
   | 'unreadable_pdf';
 
 export interface LineItem {
