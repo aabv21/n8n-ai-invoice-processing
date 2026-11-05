@@ -16,8 +16,7 @@ test('a null currency still prints the amount, with 2 decimals', () => {
   expect(formatMoney(500.5, null)).toBe('500.50');
 });
 
-// es-CO swaps the thousands and decimal separators from en-US: '.' for thousands, ',' for the
-// decimal (global-constraints.md: "COP prices formatted with the locale's own separators").
+// es-CO swaps en-US's separators: '.' for thousands, ',' for the decimal.
 test('formats COP and USD with es-CO separators when locale is es', () => {
   expect(formatMoney(2082500, 'COP', 'es')).toBe('COP 2.082.500');
   expect(formatMoney(2191, 'USD', 'es')).toBe('USD 2.191,00');

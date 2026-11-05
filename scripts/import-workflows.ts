@@ -29,9 +29,8 @@ export function missingTriggerCredentials(wf: Workflow, available: ReadonlySet<s
 const WORKFLOWS_DIR = 'workflows';
 
 /**
- * `err.message` plus the failed command's stdout, when there is one - n8n's CLI prints its own
- * error detail to stdout rather than stderr, so `err.message` alone (just "Command failed: ...")
- * dropped it. Never reads `.env`: this is the stdout of an `n8n` CLI invocation, not env content.
+ * `err.message` plus the failed command's stdout, where n8n's CLI prints its error detail
+ * (`err.message` alone is just "Command failed: ..."). That's CLI output, never `.env` content.
  */
 function errorDetail(err: unknown): string {
   if (!(err instanceof Error)) return String(err);
@@ -84,10 +83,11 @@ async function main(): Promise<void> {
     if (!healthy) {
       failures.push('n8n did not become healthy after restart');
     } else {
-      // /healthz reports healthy well before the publication reconciler registers the webhook
-      // route for the version just published (10 s by default). This fixed wait is longer than
-      // that default interval, not a guarantee against a slower one; the poll below is the real
-      // proof, and this wait just keeps the common case from spending its whole budget on it.
+      // NOTE: /healthz reports healthy before the publication reconciler (every 10 s by default)
+      // registers the new version's webhook. This wait outlasts the default, not a slower
+      // interval: the poll below is the real proof; this wait keeps the common case from spending
+      // its whole budget on it. Upgrade: wait past N8N_WORKFLOW_PUBLICATION_RECONCILE_INTERVAL_SECONDS
+      // instead of a fixed 15 s.
       await new Promise<void>((resolve) => setTimeout(resolve, 15_000));
 
       if (n8nUrl) {

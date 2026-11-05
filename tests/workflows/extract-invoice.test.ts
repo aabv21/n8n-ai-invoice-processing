@@ -79,8 +79,7 @@ test('an unknown path is rejected loudly instead of ending silently', () => {
   const fallbackOutput = (switchNode.parameters.options as { fallbackOutput?: string } | undefined)?.fallbackOutput;
   expect(fallbackOutput).toBe('extra');
 
-  // The "extra" fallback output is always the last entry n8n appends after every rule's own
-  // output, so this still finds it if a later edit adds more rules ahead of it.
+  // n8n appends the "extra" fallback after every rule's output, so it's always the last entry.
   const connections = wf.connections as Record<string, MainConnections>;
   const branches = connections['Route by path']!.main;
   const fallbackBranch = branches[branches.length - 1]!;

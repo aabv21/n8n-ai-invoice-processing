@@ -1,8 +1,7 @@
-// Pinned data for the six demo invoices used to exercise the pipeline end to end, plus the
-// extraction result each one should produce. Dates are offsets from a base date so the samples
-// always look current when regenerated before a demo. Every printed Colombian tax ID deliberately
-// fails the DIAN check digit, and the US supplier's uses the never-issued "00" prefix, so none of
-// them can collide with a real taxpayer.
+// Pinned data for the six demo invoices, plus the extraction result each one should produce. Dates
+// are offsets from a base date, so regenerated samples always look current. Every Colombian tax ID
+// fails the DIAN check digit, and the US one uses the never-issued "00" prefix, so none can belong
+// to a real taxpayer.
 import { invoiceFileName } from '../../src/lib/file-name.ts';
 import type { NormalizedInvoice, ReviewReason } from '../../src/lib/invoice.ts';
 import { normalizeInvoice } from '../../src/lib/normalize-invoice.ts';
@@ -41,8 +40,7 @@ export interface SampleExpectation {
   duplicate_of?: string;
 }
 
-// The printed tax ID is the number only; the PDF template is the one that adds the "NIT"/"Tax ID"
-// label in front of it, the same way a real invoice prints a labeled field.
+// The number only; the PDF template prints the "NIT"/"Tax ID" label in front of it.
 export const BUYER: { name: string; tax_id_printed: string; address: string } = {
   name: 'Magdaport S.A.S.',
   tax_id_printed: '901.555.210-1',
@@ -149,8 +147,7 @@ export const SAMPLES: readonly SampleInvoice[] = [
     ],
     date_style: 'iso',
     lines_per_page: 10,
-    // Printed on the page instead of the true sum of the lines and tax below, so the invoice
-    // looks real but its own numbers don't add up.
+    // Printed instead of the true sum of the lines and tax, so the invoice's numbers don't add up.
     printed_total: 1416600,
   },
 ];
@@ -161,32 +158,28 @@ function round2(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 
-/** The sum of every line's quantity × unit price. */
 export function subtotalOf(sample: SampleInvoice): number {
   return round2(sample.lines.reduce((sum, line) => sum + line.quantity * line.unit_price, 0));
 }
 
-/** The tax amount: the subtotal times the sample's own rate. */
 export function taxOf(sample: SampleInvoice): number {
   return round2(subtotalOf(sample) * sample.tax_rate);
 }
 
-/** Subtotal plus tax - the arithmetically correct total, regardless of what the page prints. */
+/** The arithmetically correct total, regardless of what the page prints. */
 function totalOf(sample: SampleInvoice): number {
   return round2(subtotalOf(sample) + taxOf(sample));
 }
 
-/** The amount that actually appears on the page's Total line. */
+/** The amount the page's Total line prints. */
 export function printedTotalOf(sample: SampleInvoice): number {
   return sample.printed_total ?? totalOf(sample);
 }
 
-/** The label a reader sees in front of a tax ID: Colombian invoices print "NIT", the US one "Tax ID". */
 export function taxIdLabel(currency: SampleInvoice['currency']): string {
   return currency === 'COP' ? 'NIT' : 'Tax ID';
 }
 
-/** `baseDate` shifted by `offsetDays`, as a calendar date - used for both issue and due dates. */
 export function offsetDate(baseDate: string, offsetDays: number): string {
   const result = DateTime.fromISO(baseDate, { zone: 'utc' }).plus({ days: offsetDays }).toISODate();
   if (result === null) throw new Error(`base date is not a valid calendar date: ${baseDate}`);
@@ -194,10 +187,9 @@ export function offsetDate(baseDate: string, offsetDays: number): string {
 }
 
 /**
- * What a model reading the page would extract before normalization: the same label-and-punctuation
- * shape `normalizeTaxId` is built to clean up, ISO dates (the schema asks for those directly,
- * regardless of how the page prints them), and the total that's actually printed - the wrong one,
- * for the sample built to fail its own arithmetic.
+ * What a model would extract before normalization: a labeled, punctuated tax ID for
+ * `normalizeTaxId` to clean, ISO dates (the schema asks for them), and the printed total, even
+ * where it's wrong.
  */
 function rawExtraction(sample: SampleInvoice, baseDate: string): unknown {
   return {

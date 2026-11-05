@@ -39,8 +39,8 @@ test.each([
   ['missing total skips the totals check', { total: null, confidence: 0.5 }, ['missing_total', 'low_confidence']],
 ])('%s', (_name, patch, expected) =>
   expect(validateInvoice({ ...valid, ...patch }, rules, today)).toEqual(expected));
-// 1234.56 + 234.57 is 1469.13 to the cent, but binary floating-point addition leaves a tiny
-// error, which a zero tolerance would otherwise flag as a mismatch that isn't really there.
+// 1234.56 + 234.57 is 1469.13 to the cent, but floating-point addition leaves a tiny error that a
+// zero tolerance would flag.
 test('rounds the totals diff to cents, so float noise is not a mismatch at zero tolerance', () =>
   expect(validateInvoice(
     { ...valid, subtotal: 1234.56, tax: 234.57, total: 1469.13, line_items: [{ ...valid.line_items[0]!, line_total: 1234.56 }] },
@@ -55,14 +55,10 @@ test('reports every missing required field in field order', () =>
 test('throws when rules are missing required fields, instead of silently passing everything', () =>
   expect(() => validateInvoice({ ...valid, total: 999, confidence: 0.1 }, {} as unknown as ValidationRules, today)).toThrow());
 
-// Hidden text or an injected note can make the model report header totals the visible lines don't
-// support; the line items themselves are the ground truth the header is checked against.
 test('header totals ten times the real lines are a line items mismatch', () =>
   expect(validateInvoice({ ...valid, subtotal: 17_500_000, tax: 3_325_000, total: 20_825_000 }, rules, today))
     .toEqual(['line_items_mismatch']));
-// The header claims nothing was billed while the visible lines still show real amounts: a
-// non-positive total alone wouldn't catch a header that zeroes itself out consistently, so the
-// line items (what's actually printed) must disagree with it too.
+// A header that zeroes itself out consistently still disagrees with the printed lines.
 test('all header amounts zero, with the real lines still printed, is both reasons', () =>
   expect(validateInvoice({ ...valid, subtotal: 0, tax: 0, total: 0 }, rules, today))
     .toEqual(['line_items_mismatch', 'non_positive_total']));
@@ -71,9 +67,8 @@ test('a negative total is a non-positive total', () =>
     ...valid, subtotal: -1_750_000, tax: -332_500, total: -2_082_500,
     line_items: valid.line_items.map((li) => ({ ...li, line_total: li.line_total === null ? null : -li.line_total })),
   }, rules, today)).toEqual(['non_positive_total']));
-// A model could null one line's total, or report no line items at all, specifically to dodge
-// line_items_mismatch - skipping the check silently there would make that a free pass, so an
-// incomplete set of line items against a present subtotal is its own review reason instead.
+// A model could null a line total, or report no lines, to dodge line_items_mismatch, so incomplete
+// line items against a present subtotal are their own review reason.
 test('no line items against a present subtotal is line_items_incomplete, not a silent pass', () =>
   expect(validateInvoice({ ...valid, line_items: [] }, rules, today)).toEqual(['line_items_incomplete']));
 test('a null line_total is line_items_incomplete, not a silent pass', () =>

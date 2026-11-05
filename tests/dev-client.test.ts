@@ -1,10 +1,9 @@
 import { afterEach, expect, test, vi } from 'vitest';
 import { callDev } from '../scripts/lib/dev-client.ts';
 
-// callDev calls loadDotEnv() first, which calls the real process.loadEnvFile('.env'). CI has no
-// .env (it's gitignored), so every test here stubs that one call instead of mocking our own
-// runtime module, keeping the rest of loadDotEnv's behavior under test. Each test also stubs the
-// env vars it reads, so a value exported in the developer's shell can't change its outcome.
+// callDev calls loadDotEnv(), which calls process.loadEnvFile('.env'), and CI has no .env. Each
+// test stubs only that call, keeping the rest of loadDotEnv under test, and stubs the env vars it
+// reads, so the developer's shell can't change the outcome.
 afterEach(() => {
   vi.restoreAllMocks();
   vi.unstubAllGlobals();

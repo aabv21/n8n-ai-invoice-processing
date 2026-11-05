@@ -51,9 +51,8 @@ export const WORKFLOWS: readonly WorkflowEntry[] = [
 
 export const CREDENTIALS: readonly CredentialEntry[] = [
   {
-    // Every Postgres node connects as app_runtime, which has DML only on the tables it actually
-    // touches, no DDL, and no access to the n8n database (docs/database.md). No node here issues
-    // DDL on its own, so there's no second, owner-credentialed node to carve out.
+    // Every Postgres node connects as app_runtime: DML on the tables it touches, no DDL, and no
+    // access to the n8n database (docs/database.md). No node issues DDL, so none needs the owner.
     id: 'mgpCredAppDb0001',
     name: 'App DB',
     type: 'postgres',
@@ -96,8 +95,7 @@ export const CREDENTIALS: readonly CredentialEntry[] = [
     data: (env) => ({ clientId: readEnv(env, 'GOOGLE_OAUTH_CLIENT_ID'), clientSecret: readEnv(env, 'GOOGLE_OAUTH_CLIENT_SECRET') }),
   },
   {
-    // The dev harness is localhost-only (no tunnel in this demo), and its workflow must be
-    // unpublished before production. See AGENTS.md.
+    // Localhost only (no tunnel); unpublish this workflow before production use.
     id: 'mgpCredDevToken1',
     name: 'Dev harness token',
     type: 'httpHeaderAuth',

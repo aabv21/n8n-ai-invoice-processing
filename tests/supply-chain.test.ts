@@ -62,9 +62,8 @@ test('every Compose image is pinned by digest', () => {
   }
 });
 
-// Reads the merged, effective Compose config (not the raw YAML text) so `n8n-worker`'s own
-// settings, inherited from `n8n` through `extends` in compose.queue.yaml, are checked too, and
-// `--profile test` so the profile-gated `testdb` service is included.
+// The merged, effective Compose config, so `n8n-worker`'s settings inherited through `extends` are
+// checked too; `--profile test` includes `testdb`.
 const composeConfig = async (args: string[]): Promise<Record<string, { security_opt?: string[]; cap_drop?: string[] }>> => {
   const { stdout } = await execFileAsync('docker', ['compose', ...args, 'config', '--format', 'json']);
   return (JSON.parse(stdout) as { services: Record<string, { security_opt?: string[]; cap_drop?: string[] }> }).services;
@@ -97,10 +96,8 @@ test('every docker run image across .github/workflows/*.yml is pinned by digest'
   const images: string[] = [];
   for (const file of files) {
     for (const line of readFileSync(join(dir, file), 'utf8').split('\n').filter((l) => /\bdocker run\b/.test(l))) {
-      // An image reference is `name:tag`, where `name` may carry `/`s (e.g. `owner/repo`) but an
-      // image with none at all (e.g. `composer:2.11.0`) is just as valid — a parser that requires a
-      // `/` would silently skip it. Any line this can't parse is recorded as `unparsed: ...` instead
-      // of being dropped, so it still fails the digest check below rather than passing vacuously.
+      // `name` may or may not carry a `/` (`owner/repo`, `composer`). An unparsable line is kept as
+      // `unparsed: ...`, so it fails the digest check instead of passing vacuously.
       images.push(/\s([a-z0-9][\w./-]*:\S+)/.exec(line)?.[1] ?? `unparsed: ${line.trim()}`);
     }
   }

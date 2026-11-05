@@ -61,9 +61,8 @@ services:
       interval: 5s
       retries: 10
 
-  # NOTE: trust auth would be unsafe for the app/n8n databases above, but this one is opt-in
-  # (profile `test`), tmpfs-backed (nothing survives a restart), and bound to 127.0.0.1 like every
-  # other service here, for `pnpm run test:db` (tests/db/**) only.
+  # NOTE: trust auth would be unsafe for the app and n8n databases, but this one is opt-in
+  # (profile `test`), tmpfs-backed, bound to 127.0.0.1, and used only by `pnpm run test:db`.
   testdb:
     image: postgres:17-alpine@sha256:266d3c257594e195b309ae9d1805e54c788f1d7b375f56bf6c367aac6c917e7b
     profiles: [test]

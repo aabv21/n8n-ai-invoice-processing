@@ -38,9 +38,8 @@ test('lists review reasons and links the PDF', () => {
   expect(run(day).html).toContain('totals_mismatch');
   expect(run(day).html).toContain('<a href="https://drive.google.com/file/d/abc/view">');
 });
-// Only an https:// drive_url ever becomes a link, so a planted javascript: URL in the database
-// can't execute in the recipient's mail client. No link renders a placeholder, the same as any
-// other empty cell (cell()'s own rule), not a silently blank one.
+// Only an https:// drive_url becomes a link, so a planted javascript: URL can't run in the
+// recipient's mail client. No link renders the empty-cell placeholder.
 test('renders a placeholder, not a blank cell, for a non-https drive_url', () => {
   const html = run({ ...day, review_items: [{ ...day.review_items[0]!, drive_url: 'javascript:alert(1)' }] }).html;
   expect(html).not.toContain('<a href="javascript:alert(1)">');
@@ -54,28 +53,24 @@ test('renders the same placeholder for a null drive_url', () => {
 test('still sends a summary on an empty day', () => {
   const out = run({ ...day, arrived: 0, ok: 0, review: 0, duplicates: 0, totals_by_supplier: [], review_items: [], due_soon: [] });
   expect(out.subject).toBe('Magdaport invoices 2026-10-30: 0 arrived, 0 to review');
-  // The window is rolling (the last 24 hours ending at the run's timestamp), not a calendar day,
-  // so the empty-day line must not claim "today".
+  // The window is the rolling 24 hours ending at the run, so the empty-day line must not claim "today".
   expect(out.html).toContain('No invoices arrived in the last 24 hours.');
 });
-// The summary can't point only at n8n's own executions: they're pruned after 168 h, and a lost
-// Record event response leaves an unfinished invoice with no failed execution at all. The warning
-// also names the README's recovery steps for exactly that case.
+// n8n prunes executions after 168 h, and a lost Record event response leaves no failed execution
+// at all, so the warning also points at the README's recovery steps.
 test.each([[1, '1 invoice did not finish processing.'], [2, '2 invoices did not finish processing.']])(
   'warns about %i unfinished', (n, line) => expect(run({ ...day, unfinished: n }).html).toContain(
     `${line} See n8n's failed executions, or the README's recovery steps for stuck events.`));
 
-// A missing run_at (an invalid or absent query parameter) makes the query return report_date:
-// null instead of a string. Without this check, that null reaches escapeHtml's .replace and
-// crashes with a message that doesn't say why - throw a clear error here instead.
+// A missing or invalid run_at makes the query return report_date: null, which would otherwise
+// crash inside escapeHtml with no clear reason.
 test('throws a clear error instead of crashing when report_date is missing', () => {
   expect(() => run({ ...day, report_date: null as unknown as string })).toThrow(
     'Daily summary: the query returned no report_date; run_at is missing or invalid');
 });
 
-// team_locale drives the daily summary's own language. A missing team_locale (an
-// in-flight config predating this field, or a caller that forgot it) must still render in English
-// rather than throwing - the same default checkConfig applies.
+// A missing team_locale (an older config, or a caller that forgot it) renders in English, as in
+// checkConfig.
 test('renders in English when team_locale is missing, matching the default', () => {
   const html = run(day).html;
   expect(html).toContain('Magdaport invoices: 2026-10-30');

@@ -1,9 +1,7 @@
--- Summarizes the 24 hours ending at the run's timestamp, for an email sent at a fixed local time
--- (18:00 Bogota) that must not lose invoices arriving between that run and midnight. The window is
--- half-open: [run - 24h, run). The totals and review list only draw from invoices whose event has
--- actually finished (a non-NULL outcome) -- the same population the counts use -- so a saved but
--- still-processing invoice never appears in a total while missing from its own outcome count.
--- "Due soon" stays a calendar-date window: the run's own Bogota date through seven days after it.
+-- Summarizes the half-open 24 hours [run - 24h, run), so an email sent at 18:00 Bogota never loses
+-- invoices arriving between that run and midnight. Totals and the review list draw only from
+-- finished events (a non-NULL outcome), the same population the counts use, so a still-processing
+-- invoice never shows in a total. "Due soon" is the run's Bogota date through seven days after.
 -- Parameter: run (timestamptz), the moment the summary is generated
 WITH bounds AS (
   SELECT
@@ -30,9 +28,7 @@ unfinished AS (
   FROM processed_events
   WHERE outcome IS NULL AND received_at < now() - interval '30 minutes'
 ),
--- Only invoices whose processed_events row has actually finished (outcome IS NOT NULL). DISTINCT
--- collapses an invoice that two events reference (its own arrival, plus a later duplicate of it)
--- back to one row, so it isn't double-counted.
+-- DISTINCT collapses an invoice two events reference (its arrival and a later duplicate) to one row.
 finished_invoices AS (
   SELECT DISTINCT i.*
   FROM invoices i

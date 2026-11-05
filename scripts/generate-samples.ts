@@ -1,6 +1,5 @@
-// Regenerates the six sample invoices and the extraction result each one should produce. Run
-// before a demo so the "due in the next 7 days" section of the daily summary has entries: see
-// `pnpm run samples` in the README.
+// Regenerates the six sample invoices and the extraction result each one should produce. Run it
+// before a demo so the daily summary's "due in the next 7 days" section has entries.
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
@@ -9,8 +8,7 @@ import { renderInvoicePdf, rasterizeToScan } from './lib/invoice-pdf.ts';
 import { COPY_OF_FIRST, SAMPLES, expectations } from './lib/sample-invoices.ts';
 
 export async function generateSamples(opts: { baseDate: string; outDir: string }): Promise<void> {
-  // `invoiceFileName` (used by `expectations`) reads Luxon's `DateTime` off the global, the same
-  // way the n8n Code-node sandbox provides it; nothing else sets that up outside of a test run.
+  // `expectations` reads Luxon's `DateTime` off the global, as in the Code-node sandbox; outside n8n only these scripts and tests/setup.ts set it.
   globalThis.DateTime = DateTime;
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- outDir is this script's own fixed samples directory, not user input
   mkdirSync(opts.outDir, { recursive: true });

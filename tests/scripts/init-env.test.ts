@@ -8,8 +8,7 @@ import { ensureN8nImportDir, fillSecrets, writeEnvFile } from '../../scripts/ini
 
 const execFileAsync = promisify(execFile);
 
-// A crashed writeEnvFile (or a crashed prior init-env run) can leave .env.tmp behind, full of the
-// same secrets .env itself holds - it must never be committed.
+// A crashed run can leave .env.tmp behind, holding .env's secrets: it must never be committed.
 test('.env.tmp is gitignored', async () => {
   await expect(execFileAsync('git', ['check-ignore', '-q', '.env.tmp'])).resolves.toBeDefined();
 });
@@ -33,9 +32,8 @@ describe('writeEnvFile', () => {
     const dir = mkdtempSync(join(tmpdir(), 'mgp-env-'));
     try {
       const path = join(dir, '.env');
-      // A crashed prior run can leave `.env.tmp` behind at whatever mode it was created with.
-      // `writeFileSync`'s `{ mode }` option only applies when the file doesn't already exist, so
-      // without the defensive chmod this stale file would keep its looser mode.
+      // A stale `.env.tmp` keeps its looser mode without the chmod: `writeFileSync`'s `{ mode }` applies
+      // only to a new file.
       writeFileSync(`${path}.tmp`, 'stale', { mode: 0o644 });
       writeEnvFile(path, 'A=1\nN8N_ENCRYPTION_KEY=secret\n');
       expect(readFileSync(path, 'utf8')).toBe('A=1\nN8N_ENCRYPTION_KEY=secret\n');

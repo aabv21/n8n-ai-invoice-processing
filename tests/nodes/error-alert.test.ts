@@ -33,8 +33,7 @@ test('renders the Spanish subject and body', () => {
   );
 });
 
-// Missing means 'en', the same default checkConfig applies - an in-flight config predating this
-// field must not crash the error handler that reports its own failures.
+// Missing means 'en', as in checkConfig: a config predating this field must not crash the error handler.
 test('defaults to English when team_locale is missing', () => {
   const withoutLocale: ErrorAlertInput = {
     workflow_name: input.workflow_name,
@@ -47,9 +46,7 @@ test('defaults to English when team_locale is missing', () => {
   expect(out.subject).toBe('[Magdaport demo] Workflow failed: Process invoice');
 });
 
-// The workflow name, failed node, error message, and execution URL are plain text, not HTML - this
-// alert is sent with emailType: text (platform.test.ts pins that), so escaping is unchanged: none
-// of these values need HTML-escaping, in either language.
+// The alert is plain text (platform.test.ts pins emailType: text), so no value is HTML-escaped.
 test('does not HTML-escape plain-text values', () => {
   const out = run({ ...input, workflow_name: 'A & B <workflow>' });
   expect(out.subject).toBe('[Magdaport demo] Workflow failed: A & B <workflow>');

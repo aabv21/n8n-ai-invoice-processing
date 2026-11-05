@@ -28,9 +28,8 @@ export default defineConfig([
     },
   },
   {
-    // The Code-node sandbox has neither Node builtins nor fetch, and Luxon must stay a global
-    // (see src/globals.d.ts) so esbuild doesn't bundle it into the generated jsCode. src/lib holds
-    // pure logic shared by more than one Code node and carries the same constraint.
+    // The Code-node sandbox has no Node builtins or fetch, and Luxon must stay a global
+    // (src/globals.d.ts) so esbuild doesn't bundle it. src/lib is bundled into Code nodes too.
     files: ['src/nodes/**', 'src/lib/**'],
     rules: {
       'no-restricted-imports': ['error', { paths: ['luxon'], patterns: ['node:*'] }],

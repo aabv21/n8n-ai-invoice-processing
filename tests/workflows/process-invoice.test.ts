@@ -73,10 +73,8 @@ test('a conflicting duplicate (different total or issue date) gets the Review la
   expect(leftValues).toContain('.invoice.total');
   expect(leftValues).toContain('.invoice.issue_date');
 });
-// save-invoice.sql returns duplicate_of_issue_date as an already-formatted YYYY-MM-DD string
-// (to_char, not the raw date column), so the IF compares it directly - no String(...).slice(0, 10)
-// workaround for a JS Date the Postgres node (like node-postgres) would otherwise parse a `date`
-// column into, which would never equal the extracted invoice's own ISO date string.
+// save-invoice.sql returns duplicate_of_issue_date as YYYY-MM-DD text, so the IF compares it
+// directly, with no String(...).slice(0, 10) workaround for a JS Date.
 test('the issue-date comparison compares the SQL-formatted string directly, with no Date coercion', () => {
   const conditions = nodeOf(wf, 'Is duplicate conflicting?').parameters.conditions as { conditions: { leftValue: string }[] };
   const dateCondition = conditions.conditions.find((c) => c.leftValue.includes('duplicate_of_issue_date'));

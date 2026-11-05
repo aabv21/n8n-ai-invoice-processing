@@ -1,11 +1,9 @@
 #!/bin/sh
-# Runs once, on an empty volume (docker-entrypoint-initdb.d). Creates the n8n
-# and app roles/databases, sets the app database's time zone, then loads the
-# schema as the app role. psql reads each password from the environment
-# itself (\getenv), so none reaches argv, and the session keeps failed
-# statements, which would carry a password, out of the server log. Later
-# changes, the runtime role included, are db/migrations/, applied by
-# pnpm run db:migrate.
+# Runs once, on an empty volume (docker-entrypoint-initdb.d): creates the n8n and
+# app roles and databases, then loads the schema as the app role. psql reads each
+# password itself (\getenv), so none reaches argv, and the session keeps failed
+# statements, which would carry a password, out of the server log. Later changes,
+# the runtime role included, are db/migrations/ (pnpm run db:migrate).
 set -eu
 : "${N8N_DB_PASSWORD:?must be set in .env}" "${APP_DB_PASSWORD:?must be set in .env}"
 

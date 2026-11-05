@@ -12,9 +12,8 @@ function nonEmptyLeaves(value: unknown, path: string): [string, unknown][] {
   return [[path, value]];
 }
 
-// Completeness (global-constraints.md): every key in the table exists in both languages with a
-// non-empty value, and the two languages' own key sets match exactly -- neither table can drift
-// by adding a key to one language and forgetting the other.
+// Every key exists in both languages with a non-empty value, and the key sets match, so neither
+// language can drift.
 test.each([
   ['SUMMARY_STRINGS', SUMMARY_STRINGS],
   ['ERROR_ALERT_STRINGS', ERROR_ALERT_STRINGS],
@@ -37,7 +36,7 @@ test.each(LOCALES)('ERROR_ALERT_STRINGS has every locale %s reachable by its own
   expect(ERROR_ALERT_STRINGS[locale]).toBeDefined();
 });
 
-// Spanish register (global-constraints.md): usted, not tú, for anything addressed to a person.
+// Spanish register: usted, not tú, for anything addressed to a person.
 test('the Spanish error alert uses usted register, not tú', () => {
   const blob = JSON.stringify(ERROR_ALERT_STRINGS.es);
   expect(blob).not.toMatch(/\btu\b|\btú\b|\bti\b/i);

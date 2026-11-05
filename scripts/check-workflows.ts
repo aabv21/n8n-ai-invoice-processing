@@ -20,10 +20,9 @@ const RETRY_REQUIRED_TYPES = new Set([
 ]);
 
 /**
- * Pulls out the text of every `--` line comment and block comment in a SQL string, in source
- * order. Not a SQL lexer: it has no notion of string literals, so a comment marker inside a
- * quoted string would be misread as a comment start. None of this repo's queries do that, and
- * neither does n8n's own query formatter, which is the thing this check guards against.
+ * The text of every `--` and block comment in a SQL string, in source order. Not a SQL lexer: a
+ * comment marker inside a string literal would be misread. No query here has one, and n8n's own
+ * query formatter, which this check guards against, has no notion of string literals either.
  */
 export function sqlComments(query: string): string[] {
   const comments: string[] = [];

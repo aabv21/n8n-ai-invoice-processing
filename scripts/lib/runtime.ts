@@ -41,9 +41,8 @@ export function compose(args: readonly string[], opts?: { input?: string }): Pro
     child.stderr.on('data', (chunk: Buffer) => {
       stderr += chunk.toString();
     });
-    // Writing more than the child reads before it exits raises EPIPE here. Node treats an
-    // unhandled stream 'error' as fatal and crashes the process, so this must reject instead of
-    // being left to the default behavior.
+    // Writing more than the child reads raises EPIPE here, and Node crashes on an unhandled
+    // stream 'error', so this rejects instead.
     child.stdin.on('error', (err: Error) => {
       const message = `docker compose ${args.join(' ')} failed to write to stdin: ${err.message}`;
       reject(composeError(stderr ? `${message}\n${stderr}` : message, stdout, stderr));
@@ -53,9 +52,8 @@ export function compose(args: readonly string[], opts?: { input?: string }): Pro
     });
     child.on('close', (code) => {
       if (code === 0) resolve({ stdout, stderr });
-      // Keep stderr in the message, not just on the error's own property: our CLIs print
-      // err.message on failure (see export-workflows.ts/setup-credentials.ts), the same way
-      // promisify(execFile)'s own "Command failed: ...\n<stderr>" does.
+      // stderr goes in the message, as in promisify(execFile)'s "Command failed: ...\n<stderr>":
+      // the CLIs print only err.message on failure.
       else reject(composeError(`docker compose ${args.join(' ')} exited with code ${String(code)}\n${stderr}`, stdout, stderr));
     });
     child.stdin.end(input);
@@ -69,21 +67,15 @@ export interface PsqlOptions {
   /** Variables the script reads with `\getenv`, forwarded by name from this process's environment. */
   forwardEnv: readonly string[];
   singleTransaction: boolean;
-  /**
-   * The Compose service to run psql inside. Defaults to `postgres`, the real stack's own
-   * container; `db-migrate.ts` reads `DB_MIGRATE_CONTAINER` so `pnpm run test:db` can point the
-   * same migration run at `testdb` instead, without a second migration implementation.
-   */
+  /** The Compose service to run psql in: `postgres` by default, `testdb` for `pnpm run test:db`. */
   container?: string;
 }
 
 /**
- * The `compose()` arguments that run psql inside `container` (the `postgres` service by default)
- * over its local socket, reading the script from stdin. Each variable in `forwardEnv` is passed
- * as a bare `-e NAME`, so Docker copies its value from this process's environment (`.env`, once
- * `loadDotEnv` has run): the value never appears in an argument list, and a changed `.env` takes
- * effect without recreating the container. psql stops at the first error and prints tuples only,
- * unaligned.
+ * The `compose()` arguments that run psql inside `container` over its local socket, reading the
+ * script from stdin. Each `forwardEnv` name is passed as a bare `-e NAME`, so Docker copies the
+ * value from this process's environment: it never appears in an argument list, and a changed
+ * `.env` applies without recreating the container.
  */
 export function psqlArgs({ role, database, forwardEnv, singleTransaction, container = 'postgres' }: PsqlOptions): string[] {
   const transaction = singleTransaction ? ' --single-transaction' : '';
@@ -146,13 +138,10 @@ export function isWebhookLive(status: number): boolean {
 
 /**
  * Polls `${baseUrl}/webhook/${path}` with an unauthenticated POST, once a second, until
- * `isWebhookLive` is true or `budgetMs` elapses. `publish:workflow` only takes effect after an
- * n8n restart, and the publication reconciler that actually registers the webhook route runs on
- * its own schedule after that (10 s by default) — so a call made right after `/healthz` turns
- * healthy can still 404 for a few more seconds. The dev harness's webhook checks `X-Dev-Token`
- * before running anything, so an unauthenticated request answers 403 once it's live — the
- * cheapest possible proof the publish actually took effect, with no credential needed.
- * `fetchImpl` is injectable so the polling logic can be unit-tested with no real network.
+ * `isWebhookLive` or `budgetMs` elapses. The publication reconciler registers the route on its own
+ * schedule (10 s by default), so a call right after `/healthz` turns healthy can still 404. The dev
+ * harness checks `X-Dev-Token` first, so a live route answers 403: proof the publish took effect,
+ * with no credential. `fetchImpl` is injectable for tests.
  */
 export async function waitForWebhookLive(
   baseUrl: string,

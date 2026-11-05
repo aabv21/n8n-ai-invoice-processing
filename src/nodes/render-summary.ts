@@ -1,15 +1,12 @@
-// Renders the daily summary's subject and HTML body from the one row daily-summary.sql returns,
-// in the language `team_locale` names. Every value it touches came from the database -
-// a supplier name, an invoice number, a review reason, a Drive URL - so every value is escaped
-// before it reaches the HTML, URLs included, in either language. Pure: no I/O, no clock (dates and
-// money are formatted with Luxon's setLocale and Intl.NumberFormat, both locale tables, no clock
-// read of their own).
+// Renders the daily summary's subject and HTML body from daily-summary.sql's one row, in the
+// team_locale language. Every database value (a supplier name, a review reason, a Drive URL) is
+// escaped, URLs included. Pure: no I/O, no clock; Luxon's setLocale and Intl.NumberFormat read none.
 import { escapeHtml, formatMoney } from '../lib/format.ts';
 import { SUMMARY_STRINGS } from '../lib/strings.ts';
 
 export interface SummaryRow {
   report_date: string;
-  /** The team's own email language; missing means 'en', the same default checkConfig applies. */
+  /** Missing means 'en', as in checkConfig. */
   team_locale?: 'en' | 'es';
   arrived: number;
   ok: number;
@@ -35,8 +32,7 @@ export interface SummaryRow {
   }[];
 }
 
-/** `text`, escaped, or an em dash when it's null - never an empty cell with no explanation. The
- * placeholder itself carries no words, so it needs no locale. */
+/** `text`, escaped, or an em dash when it's null, never a blank cell. The dash needs no locale. */
 function cell(text: string | null): string {
   return text === null ? '—' : escapeHtml(text);
 }
@@ -51,20 +47,16 @@ function table(headers: string[], rows: string[][], none: string): string {
   return `<table><thead>${head}</thead><tbody>${rows.map(row).join('')}</tbody></table>`;
 }
 
-/** The ISO (YYYY-MM-DD) due date as a long localized date (e.g. "November 1, 2026" / "1 de
- * noviembre de 2026"), via Luxon's setLocale - never a hand-rolled month-name table. Falls back to
- * the raw ISO string if the date somehow fails to parse, so a bad value degrades instead of
- * crashing the whole summary. */
+/** The ISO due date as a long localized date ("November 1, 2026" / "1 de noviembre de 2026"). An
+ * unparseable date falls back to the raw string, so it degrades instead of crashing the summary. */
 function formatDueDate(iso: string, locale: 'en' | 'es'): string {
   const dt = DateTime.fromISO(iso, { zone: 'utc' }).setLocale(locale);
   return dt.isValid ? dt.toFormat('DDD') : iso;
 }
 
-/** A PDF link only when `drive_url` is an `https://` URL - a planted `javascript:` or other
- * scheme in the database must never become a clickable link in the recipient's mail client. The
- * href is escaped like any other attribute value, since an https URL can still carry `&` or `"`.
- * No link renders `cell()`'s own placeholder, not a silently blank cell. The link text ("PDF") is
- * the same word in both languages, but still comes from the strings table, not a literal. */
+/** A PDF link only for an `https://` `drive_url`: a planted `javascript:` or other scheme must
+ * never become clickable in the recipient's mail client. The href is escaped too, since an https
+ * URL can carry `&` or `"`. No link renders `cell()`'s placeholder. */
 function pdfLink(driveUrl: string | null, linkText: string): string {
   if (driveUrl === null || !driveUrl.startsWith('https://')) return cell(null);
   const escaped = escapeHtml(driveUrl);
@@ -72,14 +64,13 @@ function pdfLink(driveUrl: string | null, linkText: string): string {
 }
 
 export function run(input: SummaryRow): { subject: string; html: string } {
-  // The query's own WITH bounds always computes a report_date from $1, so null here means $1 was
-  // itself missing or malformed - make that failure obvious instead of crashing inside escapeHtml.
+  // The query always computes report_date from run_at, so null means run_at was missing or
+  // malformed: fail clearly here instead of inside escapeHtml.
   // eslint-disable-next-line @typescript-eslint/no-unnecessary-condition -- report_date is typed as string, but the query's real output isn't type-checked at runtime
   if (input.report_date === null || input.report_date === '') {
     throw new Error('Daily summary: the query returned no report_date; run_at is missing or invalid');
   }
 
-  // Missing means 'en', the same default checkConfig applies to a config predating this field.
   const locale = input.team_locale ?? 'en';
   // eslint-disable-next-line security/detect-object-injection -- locale is typed to SUMMARY_STRINGS's own two keys, not user input
   const t = SUMMARY_STRINGS[locale];
@@ -88,14 +79,12 @@ export function run(input: SummaryRow): { subject: string; html: string } {
 
   const counts = `<p>${t.arrived}: ${String(input.arrived)} | ${t.ok}: ${String(input.ok)} | ${t.review}: ${String(input.review)} | ${t.duplicates}: ${String(input.duplicates)}</p>`;
 
-  // These two lines come from the strings table, not the database, so - like the heading and
-  // section titles below - they're trusted text and never pass through escapeHtml (only a
-  // database-sourced value, or an attribute value built from one, needs that).
+  // Strings-table text, like the headings below, is trusted and skips escapeHtml; only database
+  // values need it.
   const unfinishedLine =
     input.unfinished > 0 ? `<p>${(input.unfinished === 1 ? t.unfinishedOne : t.unfinishedMany).replace('{count}', String(input.unfinished))}</p>` : '';
 
-  // The window is rolling (the 24 hours ending at the run's timestamp), not the calendar day, so
-  // an empty report never claims "today" - the report could have been run at any hour.
+  // The window is the rolling 24 hours ending at the run, so an empty report never claims "today".
   const emptyDayLine = input.arrived === 0 ? `<p>${t.emptyDay}</p>` : '';
 
   const totalsTable = table(

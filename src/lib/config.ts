@@ -108,9 +108,8 @@ export function checkConfig(config: unknown): Config {
 
   requireNonEmptyString('config.team_email', root.team_email);
 
-  // Missing means the default, 'en' (global-constraints.md); an explicit value must be exactly
-  // 'en' or 'es' -- team_locale is operator-set config, not inbound traffic, so there's no other
-  // spelling to normalize here.
+  // Missing means 'en'. team_locale is operator-set config, not inbound traffic, so there's no
+  // other spelling to normalize.
   if (root.team_locale === undefined) {
     root.team_locale = 'en';
   } else if (typeof root.team_locale !== 'string' || !TEAM_LOCALE_VALUES.includes(root.team_locale as (typeof TEAM_LOCALE_VALUES)[number])) {
