@@ -1,8 +1,6 @@
-# Hashes for every platform wheel and the sdist of zizmor 1.31.1, from PyPI's JSON API
-# (https://pypi.org/pypi/zizmor/1.31.1/json): zizmor declares no runtime dependencies (a
-# self-contained Rust binary wheel), so this is the only entry --require-hashes needs. Bump by
-# hand: change the version, then refetch every wheel's sha256 the same way before updating this
-# file (see AGENTS.md's "Bumping pinned CI tools and zizmor by hand").
+# Every wheel's and the sdist's sha256 for zizmor 1.31.1, from https://pypi.org/pypi/zizmor/1.31.1/json.
+# zizmor has no runtime dependencies, so this is the only entry --require-hashes needs.
+# To bump it, see AGENTS.md "Bumping pinned CI tools and zizmor by hand".
 zizmor==1.31.1 \
     --hash=sha256:9696d3c10919a3a2eb086c102f1bc10717f53ef3700a0d6c55a709c274995476 \
     --hash=sha256:4a70ee3c2721122aff04d5bbad5e448d15384f45de2ecb3c9493fe9dac2bc95f \

@@ -1,7 +1,6 @@
-// Builds the Drive file name and year/month folder for a processed invoice. Uses the printed
-// issue date when it's a real calendar date; otherwise falls back to the Gmail receive time
-// converted to Bogota, since Colombian invoices arrive in UTC-tagged email metadata but are
-// filed by the business's own calendar day.
+// Builds the Drive file name and year/month folder for an invoice from its printed issue date when
+// that's a real date, else from the Gmail receive time in Bogota: email metadata is UTC, but the
+// business files by its own calendar day.
 import { isValidIsoDate } from './util.ts';
 
 const SUPPLIER_SLUG_MAX = 40;

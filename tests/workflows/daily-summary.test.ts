@@ -13,9 +13,8 @@ test('runs at 18:00 Bogota time', () => {
 test('emails HTML without n8n attribution', () => expect(nodeOf(workflowFile('daily-summary.json'), 'Email summary').parameters)
   .toMatchObject({ emailType: 'html', options: { appendAttribution: false } }));
 
-// A second trigger lets the dev harness preview a summary without waiting on the clock. It
-// accepts all data rather than declaring named inputs; dev-harness.test.ts pins what the caller
-// ("Call daily-summary") actually maps onto it (run_at and dry_run).
+// A second trigger lets the dev harness preview a summary. It accepts all data; dev-harness.test.ts
+// pins what "Call daily-summary" maps onto it (run_at and dry_run).
 test('the harness trigger accepts all data, declaring no named inputs of its own', () => {
   const wf = workflowFile('daily-summary.json');
   const trigger = nodeOf(wf, 'When called by the harness');
@@ -49,8 +48,7 @@ test('both triggers normalize into one { run_at, dry_run } item', () => {
   expect(sourcesOf(wf, 'Load config', 0)).toEqual(expect.arrayContaining(['Shape schedule run', 'Shape harness run']));
 });
 
-// Load config's own output is always exactly { config } (checked against real executions), so
-// run_at and dry_run don't survive that call on their own; this merge puts them back next to it.
+// Load config outputs only { config }, so this merge puts run_at and dry_run back next to it.
 test('Attach config to run merges config back onto the normalized run, since Load config drops it', () => {
   const wf = workflowFile('daily-summary.json');
 
@@ -68,17 +66,14 @@ test('Query summary passes the run timestamp, not a date', () => {
   expect(query.typeVersion).toBeGreaterThanOrEqual(2.8);
   expect(sourcesOf(wf, 'Query summary', 0)).toEqual(['Attach config to run']);
   const options = query.parameters.options as { queryReplacement?: string } | undefined;
-  // The one bind parameter is the normalized item's run_at (an ISO timestamp), never
-  // $now.toISODate() - a date (midnight Bogota on report day D) would shift the whole window to
-  // D-1, the previous calendar day, while report_date still labels the email day D.
+  // The bind parameter is run_at (an ISO timestamp), never $now.toISODate(): midnight Bogota on day D
+  // would shift the window to D-1 while report_date still says D.
   expect(options?.queryReplacement).toBe('={{ $json.run_at }}');
   expect(options?.queryReplacement).not.toContain('toISODate');
 });
 
-// The daily summary's own language follows team_locale. Query summary's own Postgres
-// output carries only the SQL row (report_date, arrived, ...), not config, so a dedicated
-// extract+merge step puts team_locale back next to it before Render summary ever runs - the same
-// pattern Attach config to run already uses to survive Load config's own { config }-only output.
+// Query summary outputs only the SQL row, so an extract+merge puts team_locale back next to it
+// before Render summary, the same pattern as Attach config to run.
 test('Extract team locale reads it off the already-loaded config', () => {
   const wf = workflowFile('daily-summary.json');
   const extract = nodeOf(wf, 'Extract team locale');

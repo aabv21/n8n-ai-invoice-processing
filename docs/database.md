@@ -85,7 +85,7 @@ One documented exception reads by a sequential scan, on purpose:
 
 - **The `finished_invoices` join** (`invoices i JOIN processed_events pe ON pe.invoice_id = i.id WHERE pe.outcome IS NOT NULL`) plans as two `Seq Scan`s joined with a hash, because neither table has an index on `invoice_id`/`id` sized for this shape (the join key is already each table's own primary key or a foreign key with no secondary index), and the planner judges a full read of the small result sets cheaper than building one for a single daily report. It runs once a day, and honestly: this scan grows with the invoice count, since `invoices`/`invoice_items` are kept indefinitely (see Retention below) — it isn't a cost that stays flat as the table grows, only one judged acceptable today, at this report's frequency and this table's current size.
 
-  NOTE: the upgrade path is to move the `received_at` window (currently applied after the join, in `finished_invoices`'s own callers) into the `finished_invoices` CTE itself, so `invoices_received_at_idx` can serve it instead of a sequential scan. Not done in this pass — it's a query change, not a grant or doc fix, and belongs with an actual performance need; `pnpm run test:db` would cover it once it lands.
+  NOTE: the upgrade path is to move the `received_at` window (currently applied after the join, in `finished_invoices`'s own callers) into the `finished_invoices` CTE itself, so `invoices_received_at_idx` can serve it instead of a sequential scan. It isn't done yet: it's a query change, not a grant or doc fix, and belongs with an actual performance need; `pnpm run test:db` would cover it once it lands.
 
 ### 4. Queries
 
@@ -124,7 +124,7 @@ The ledger already skips applied files, so a second `pnpm run setup` prints `no 
 
 Every query test in `tests/db/queries.test.ts` then runs over a second connection pool, opened as `app_runtime` (not the superuser), so the exact grants these migrations create are proven by every one of those tests, not only by `check-db.ts` against the real stack. `reset()` (the per-test `TRUNCATE`) still runs over the superuser pool, since `app_runtime` has no `TRUNCATE` — proving that gap is `check-db`'s job, not this harness's. Because `testdb` runs with trust auth, this proves **authorization** — that the grants `app_runtime` holds are exactly right for the queries the workflow runs — not **authentication**. `check-db.ts` itself also connects over the real stack's local socket (see "Authentication by path" below), under the same `trust` default, so it doesn't exercise `scram-sha-256` either; the password check `app_runtime`'s real-stack network connection enforces is only exercised by n8n itself, through `check-dev-response.ts`.
 
-CI's `db` job now brings up `testdb` the same way a local run does (`docker compose --profile test up -d --wait testdb`), rather than a separate GitHub Actions service container, so CI exercises the identical path.
+CI's `db` job brings up `testdb` the same way a local run does (`docker compose --profile test up -d --wait testdb`), rather than a separate GitHub Actions service container, so CI exercises the identical path.
 
 ### 6. Retention
 

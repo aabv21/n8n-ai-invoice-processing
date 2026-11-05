@@ -3,10 +3,8 @@ import { spawn } from 'node:child_process';
 import { afterEach, expect, test, vi } from 'vitest';
 import { compose, isWebhookLive, waitForWebhookLive } from '../scripts/lib/runtime.ts';
 
-// compose(args, { input }) spawns instead of using execFile, so these tests mock
-// node:child_process.spawn instead of talking to a real docker compose process — the same
-// "fake the dependency, trigger its events, assert on the outcome" shape as the fetch tests in
-// dev-client.test.ts, applied to vi.mock since spawn is a module export, not a global.
+// compose(args, { input }) spawns, so these tests mock node:child_process.spawn (a module export,
+// hence vi.mock) instead of running docker compose.
 vi.mock('node:child_process', async (importOriginal) => {
   const actual = await importOriginal<typeof import('node:child_process')>();
   return { ...actual, spawn: vi.fn() };
@@ -63,10 +61,8 @@ test('isWebhookLive treats any other status as live too', () => {
   expect(isWebhookLive(500)).toBe(true);
 });
 
-// A fake fetch standing in for n8n's webhook endpoint, so the poll's timing and decision logic
-// (live immediately, still-404-then-live, and timeout) are provable with no real network and no
-// live stack — the mechanism `import-workflows.ts` relies on to know a publish actually took
-// effect before `pnpm run setup` returns.
+// A fake fetch for n8n's webhook endpoint, so the publish poll's cases (live at once, 404 then
+// live, timeout) run with no network or stack.
 function fakeFetch(statuses: readonly number[]): typeof fetch {
   let call = 0;
   return ((): Promise<Pick<Response, 'status'>> => {

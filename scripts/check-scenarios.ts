@@ -1,7 +1,6 @@
-// Compares the six sample invoices against what the pipeline actually recorded, by reading
-// scripts/sql/scenario-report.sql through the real local Postgres over psql's stdin \bind
-// protocol - the same one n8n's own Postgres node binds a Query Parameter through - so this
-// exercises that path end to end instead of querying through a separate pg connection.
+// Compares the six sample invoices against what the pipeline recorded, reading
+// scripts/sql/scenario-report.sql over psql's stdin \bind, the same binding n8n's Postgres node
+// uses, instead of a separate pg connection.
 import { fileURLToPath } from 'node:url';
 import { readFileSync } from 'node:fs';
 import type { NormalizedInvoice } from '../src/lib/invoice.ts';
@@ -13,9 +12,8 @@ import { parseSince } from './lib/since.ts';
 export { parseSince };
 
 /**
- * The expectations to compare against, read verbatim from the committed samples/expected.json
- * (`pnpm run samples`'s own output) - never recomputed from --since, which is only the start of
- * the database query window and can fall on a different day than the samples were generated for.
+ * The expectations, read verbatim from the committed samples/expected.json. Never recomputed from
+ * --since: that's only the query window's start, and can fall on a different day than the samples.
  */
 export function loadExpectedSamples(path = 'samples/expected.json'): SampleExpectation[] {
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- path defaults to this script's own fixed file; only tests override it, with a path under a temp dir they create

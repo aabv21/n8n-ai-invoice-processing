@@ -26,9 +26,8 @@ test('prompt states the rules the checks rely on', () => {
 // The Information Extractor appends its own format instructions to this text as a LangChain
 // template, which treats `{`/`}` as template syntax - a brace here would break the text path.
 test('prompt contains no braces', () => expect(prompt).not.toMatch(/[{}]/));
-// The inputSchema is this same file's text, so it must pass the same hygiene scan as the prompt -
-// no run of 10+ digits, no '@' - or a leaked example would only be caught once it's already
-// generated into workflow JSON.
+// The inputSchema is this file's text, so it must pass the prompt's hygiene scan too (no run of
+// 10+ digits, no '@') before it's generated into workflow JSON.
 test('schema text passes the hygiene scan too', () => {
   expect(schemaText).not.toMatch(/\d{10}|@/);
 });

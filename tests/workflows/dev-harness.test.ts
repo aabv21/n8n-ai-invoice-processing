@@ -18,9 +18,8 @@ test('an unmatched target reaches the 404 responder through the Switch fallback'
   const fallbackOutput = (switchNode.parameters.options as { fallbackOutput?: string } | undefined)?.fallbackOutput;
   expect(fallbackOutput).toBe('extra');
 
-  // The "extra" fallback is always the last output n8n appends after every rule's own output, so
-  // the fallback branch is the connections array's last entry, not a hard-coded index — this still
-  // finds it once a later task adds more rules ahead of it.
+  // n8n appends the "extra" fallback output after every rule's output, so it's the connections
+  // array's last entry, not a fixed index, however many rules come before it.
   const connections = wf.connections as Record<string, MainConnections>;
   const switchBranches = connections['Route by target']!.main;
   const fallbackBranch = switchBranches[switchBranches.length - 1]!;
@@ -41,19 +40,17 @@ test('intake-email target shapes one Gmail-like item and keeps its binary', () =
     operation: 'toBinary', sourceProperty: 'body.input.pdf_base64', binaryPropertyName: 'attachment_0',
     options: { fileName: '={{ $json.body.input.file_name }}', mimeType: '={{ $json.body.input.mime_type }}' } });
 
-  // Same binary-preserving shape as intake-email's own "Describe attachment": include: 'none'
-  // (forced whenever includeOtherFields is off) always drops binary data, regardless of
-  // stripBinary, so the only way to both drop every other field and keep the binary is to select
-  // zero fields instead of turning other fields off.
+  // Same binary-preserving shape as intake-email's "Describe attachment": include: 'none' (forced
+  // when includeOtherFields is off) always drops binary, so selecting zero fields is the only way to
+  // drop every other field and keep the binary.
   const shape = nodeOf(wf, 'Shape Gmail item');
   expect(shape.parameters).toMatchObject({
     includeOtherFields: true, include: 'selected', includeFields: '',
     options: { stripBinary: false } });
   const assignments = (shape.parameters.assignments as { assignments: { name: string; value: string }[] }).assignments;
   expect(assignments).toHaveLength(1);
-  // Convert to File (checked against the compiled node source) replaces $json with {} on its own
-  // output, keeping only the binary it added - "message_id" has to be read back from the webhook
-  // node by name, the same way "Call process-invoice" already does for its own fields.
+  // Convert to File (checked against the compiled node source) outputs {} plus the binary it added,
+  // so "message_id" is read back from the webhook node by name, as "Call process-invoice" does.
   expect(assignments[0]).toMatchObject({ name: 'id', type: 'string', value: "={{ $('Receive dev call').first().json.body.input.message_id }}" });
 
   // intake-email's trigger accepts all data (checked against the compiled node source): the
@@ -71,9 +68,8 @@ test('intake-email target shapes one Gmail-like item and keeps its binary', () =
   expect(connections['Call intake-email']!.main[0]!.map((c) => c.node)).toEqual(['Respond with result']);
 });
 
-// summary-preview passes { run_at, dry_run } to daily-summary and returns its output (the preview
-// when dry_run is true, same as what Email summary would have sent when false), exercising the
-// IF branch on daily-summary's own dry_run split offline, through real Postgres.
+// summary-preview passes { run_at, dry_run } to daily-summary and returns its output, exercising
+// daily-summary's dry_run IF offline, through real Postgres.
 test('summary-preview target passes { run_at, dry_run } to daily-summary and responds with its output', () => {
   const wf = workflowFile('dev-harness.json');
 

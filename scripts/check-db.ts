@@ -6,12 +6,10 @@ import { loadDotEnv, runPsql, type PsqlOptions, type PsqlResult } from './lib/ru
 import { listJsonFiles, readWorkflow, type Workflow } from './lib/workflow.ts';
 
 /**
- * What the runtime role may do, table by table: exactly what `001_runtime_role.sql` grants.
- * `invoices.id` is `GENERATED ALWAYS AS IDENTITY`, but its implicit `nextval()` runs with no
- * privilege check on the backing sequence at all (proven empirically; see
- * `003_drop_sequence_grant.sql`), so there is no sequence grant to list here — `GRANTS_SQL` below
- * still reports any sequence privilege the role might hold, so a hand-granted one still fails the
- * exact-grant check as an "extra".
+ * What the runtime role may do, table by table: exactly what `001_runtime_role.sql` grants. No
+ * sequence grant: an identity column's implicit `nextval()` skips the sequence privilege check (see
+ * `003_drop_sequence_grant.sql`). `GRANTS_SQL` still reports sequence privileges, so a hand-granted
+ * one fails as an "extra".
  */
 export const RUNTIME_GRANTS: Readonly<Record<string, readonly string[]>> = {
   processed_events: ['SELECT', 'INSERT', 'UPDATE'],
@@ -20,9 +18,8 @@ export const RUNTIME_GRANTS: Readonly<Record<string, readonly string[]>> = {
 };
 
 /**
- * True only when psql failed with `message` — the denial a check expects. A statement that
- * succeeded, or psql failing for another reason (a missing role, a stopped container), is not a
- * denial, so neither can pass.
+ * True only when psql failed with `message`, the denial a check expects. A success, or a failure
+ * for another reason (a missing role, a stopped container), never passes.
  */
 export function isDenied(result: PsqlResult, message: string): boolean {
   return !result.ok && result.stderr.includes(message);
@@ -96,10 +93,8 @@ export interface Probe {
   node: string;
   params: readonly string[];
   /**
-   * When set, this statement's own result row is captured with `\gset <prefix>` instead of sent
-   * to `/dev/null`: psql assigns each returned column to a variable named `<prefix><column>`. Used
-   * by "Save invoice", whose `RETURNING` list includes `invoice_id`, so a later probe can bind the
-   * real row it just inserted with `ref('<prefix>invoice_id')`.
+   * Captures this statement's result row with `\gset <prefix>` instead of discarding it, so a later
+   * probe can bind a returned column with `ref('<prefix><column>')`, as with "Save invoice"'s `invoice_id`.
    */
   captureAs?: string;
 }
@@ -129,13 +124,10 @@ function isRef(param: string): string | undefined {
 }
 
 /**
- * One set of values per workflow statement, run in this order: "Record event" first, so
- * "Save invoice" has a processed_events row to reference by event id, and "Save invoice" before
- * "Record duplicate", "Save Drive link", and "Record outcome", which all take the invoice id
- * "Save invoice" actually returns (`invoice_id`'s real value, captured with `\gset` and referenced
- * with `ref(...)`), since `processed_events.invoice_id` is a foreign key into `invoices`, and the
- * Drive-link update's own `WHERE id = $1` must point at a row that really exists — even inside a
- * transaction that's rolled back at the end.
+ * One set of values per workflow statement, in run order: "Record event" first, so "Save invoice"
+ * has an event to reference, then "Save invoice" before every statement that takes its real
+ * `invoice_id` (via `ref(...)`): `processed_events.invoice_id` is a foreign key, and "Save Drive
+ * link" must update a row that exists, even in a transaction that's rolled back.
  */
 export const PROBES: readonly Probe[] = [
   { file: 'intake-email.json', node: 'Record event', params: [PROBE_EVENT, 'check-db-probe.pdf'] },
@@ -154,12 +146,11 @@ export const PROBES: readonly Probe[] = [
 const label = (s: { file: string; node: string }): string => `${s.file} › ${s.node}`;
 
 /**
- * A psql script that runs every statement exactly as its workflow wrote it, with `\bind` supplying
- * the `$n` values, inside one transaction it rolls back. `\warn` names each statement on stderr
- * first, so a failure shows which node's grant is missing. A probe with `captureAs` ends in
- * `\gset <prefix>` instead of `\g /dev/null`, so psql assigns each of its own returned columns to
- * `<prefix><column>`; a later probe's `ref(...)` param substitutes that variable's value unquoted,
- * so psql resolves it as the bound parameter instead of the literal text `ref(...)` would be.
+ * A psql script that runs every statement exactly as its workflow wrote it, binding `$n` with
+ * `\bind`, in one transaction it rolls back. `\warn` names each statement on stderr first, so a
+ * failure shows which node's grant is missing. A `captureAs` probe ends in `\gset <prefix>`
+ * instead of `\g /dev/null`, and a later `ref(...)` param is substituted unquoted, so psql binds
+ * the captured value.
  */
 export function probeScript(statements: readonly WorkflowStatement[], probes: readonly Probe[]): string {
   for (const statement of statements) {

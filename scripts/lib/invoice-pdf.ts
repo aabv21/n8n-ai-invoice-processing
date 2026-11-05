@@ -1,8 +1,6 @@
-// Renders the sample invoices as PDFs. The five text invoices are drawn with pdf-lib so their
-// bytes come out the same every time they're regenerated from the same base date; one of them is
-// then turned into an image-only "scanned" PDF with pdfjs-dist and @napi-rs/canvas, whose bytes
-// are free to vary between machines because nothing reads them back - only its visible content and
-// structure matter.
+// Renders the sample invoices as PDFs. The five text invoices are drawn with pdf-lib, byte-identical
+// for the same base date. The scanned one is rasterized with pdfjs-dist and @napi-rs/canvas; its
+// bytes may vary by machine, since only its visible content matters.
 import path from 'node:path';
 import { createCanvas, type Canvas } from '@napi-rs/canvas';
 import { PDFDocument, PageSizes, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
@@ -18,9 +16,8 @@ const PRICE_RIGHT = 430;
 const BODY_SIZE = 11;
 const ROW_HEIGHT = 18;
 
-// pdfjs-dist resolves this by simple string concatenation with a font file name and reads it from
-// disk directly (it detects Node and never fetches), so it needs a plain filesystem path with a
-// trailing separator, not a `file://` URL.
+// pdfjs-dist appends a font file name to this and reads it from disk (under Node it never fetches),
+// so it must be a plain path with a trailing separator, not a `file://` URL.
 const STANDARD_FONT_DATA_URL = `${path.join(process.cwd(), 'node_modules/pdfjs-dist/standard_fonts')}${path.sep}`;
 
 function groupDigits(digits: string, separator: string): string {
@@ -78,9 +75,8 @@ export async function renderInvoicePdf(sample: SampleInvoice, baseDate: string):
   }));
   const pages = chunk(rows, sample.lines_per_page);
 
-  // `updateMetadata: false` skips pdf-lib's own habit of stamping the real wall clock and its own
-  // name into a freshly created document; the four fields below are set explicitly instead, once,
-  // so two runs against the same base date produce the same bytes.
+  // `updateMetadata: false` stops pdf-lib stamping the wall clock and its own name; the four fields
+  // below are set explicitly, so the same base date always gives the same bytes.
   const doc = await PDFDocument.create({ updateMetadata: false });
   const fixedDate = new Date(`${baseDate}T12:00:00Z`);
   doc.setProducer(PRODUCER);
@@ -175,9 +171,8 @@ export async function renderPage(pdf: Uint8Array, pageNumber: number, dpi: numbe
   const context = canvas.getContext('2d');
   context.fillStyle = 'white';
   context.fillRect(0, 0, canvas.width, canvas.height);
-  // pdfjs-dist's own type expects a DOM `HTMLCanvasElement`, which this project's lib list doesn't
-  // include; @napi-rs/canvas's `Canvas` duck-types the same surface (getContext, width, height)
-  // that `render` actually calls at runtime.
+  // pdfjs-dist types this as a DOM `HTMLCanvasElement`, outside this project's lib list;
+  // @napi-rs/canvas's `Canvas` has what `render` calls (getContext, width, height).
   const renderParams = { canvas, canvasContext: context, viewport } as unknown as Parameters<typeof page.render>[0];
   await page.render(renderParams).promise;
   await loadingTask.destroy();
@@ -203,11 +198,8 @@ function seededRandom(seed: number): () => number {
 }
 
 export async function rasterizeToScan(pdf: Uint8Array): Promise<Uint8Array> {
-  // Reusing the source invoice's own fixed creation date keeps this file's metadata tied to the
-  // same base date as the other five, without needing that date as a separate parameter here.
-  // pdf-lib only reads the bytes, so this must run before `renderPage`, which hands the same
-  // array to pdfjs-dist - pdfjs-dist's Node loader transfers (and so empties) whatever buffer it's
-  // given once it's done with it.
+  // The source's creation date ties this file's metadata to the same base date. Must run before
+  // `renderPage`: pdfjs-dist's Node loader transfers, and so empties, the buffer it's given.
   const source = await PDFDocument.load(pdf, { updateMetadata: false });
   const sourceDate = source.getCreationDate() ?? new Date(`${String(new Date().getUTCFullYear())}-01-01T12:00:00Z`);
 

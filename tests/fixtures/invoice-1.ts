@@ -1,6 +1,5 @@
-// Sample invoice #1 (Bolsamar Empaques S.A.S., BE-2041), reused across this repo's invoice tests.
-// The NIT's check digit deliberately fails the DIAN algorithm, so it can't belong to a real
-// taxpayer.
+// Sample invoice 1 (Bolsamar Empaques S.A.S., BE-2041), shared by the invoice tests. Its NIT
+// deliberately fails the DIAN check digit, so it can't belong to a real taxpayer.
 import type { NormalizedInvoice, ValidationRules } from '../../src/lib/invoice.ts';
 
 /** The invoice once normalized: every field in its clean, check-ready form. */

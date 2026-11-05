@@ -86,9 +86,8 @@ jobs:
           cache: pnpm
       - run: pnpm install --frozen-lockfile
       - run: node scripts/init-env.ts
-      # testdb is Compose's own opt-in, tmpfs-backed, trust-auth service (profile test) — the same
-      # container db-migrate.ts's DB_MIGRATE_CONTAINER adapter targets locally, so CI exercises the
-      # one migration implementation instead of a second, hand-rolled one.
+      # The same testdb service db-migrate.ts's DB_MIGRATE_CONTAINER targets locally, so CI runs
+      # the one migration implementation, not a second one.
       - run: docker compose --profile test up -d --wait testdb
       - run: pnpm run test:db
         env:

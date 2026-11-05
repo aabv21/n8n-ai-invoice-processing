@@ -150,9 +150,7 @@ test('a missing directory lists no files', () => expect(listJsonFiles('tests/fix
 test('generated code runs like a Code node', async () =>
   expect(runGenerated(await built(), { n: 2 })).toEqual([{ json: { n: 4 } }]));
 test('generated code still exports run when Object.defineProperty is frozen, like the real n8n Task Runner sandbox', async () => {
-  // @n8n/task-runner's createVmExecutableCode runs Code-node JS after `Object.defineProperty = ()
-  // => ({})`. esbuild's own export plumbing calls that function, so without
-  // hardenAgainstFrozenDefineProperty, __node.run silently comes back undefined there.
+  // Simulates the Task Runner's `Object.defineProperty = () => ({})` (see build-workflows.ts).
   const hardened = `Object.defineProperty = () => ({});\n${await built()}`;
   expect(runGenerated(hardened, { n: 2 })).toEqual([{ json: { n: 4 } }]);
 });
@@ -181,9 +179,8 @@ test('check mode reports a stale text parameter', async () =>
 test('an unknown assignment name is an error', async () =>
   await expect(buildWorkflows({ dir: tempCopy(), entries: [{ ...promptEntry, parameter: 'assignments:nope' }], write: true }))
     .rejects.toThrow('assignment nope not found in clean.json › Request settings'));
-// The parent object of a nested dot path (here `options`) may not exist yet on the node, the way
-// `options.systemPromptTemplate` won't on a freshly hand-written Information Extractor node before
-// its first build. buildWorkflows must create the missing intermediate object.
+// A fresh Information Extractor node has no `options` until its first build, so buildWorkflows
+// must create the missing parent of a nested dot path.
 test('a nested parameter path is created when its parent object is absent', async () => {
   const dir = tempCopy();
   const nestedEntry = { file: 'clean.json', node: 'Read rows', parameter: 'options.systemPromptTemplate', source: 'tests/fixtures/text/system.md' };
@@ -205,10 +202,8 @@ test('an existing Google OAuth2 credential is skipped unless forced', () => {
   expect(skipExisting([drive, appDb], existing, true)).toEqual({ toImport: [drive, appDb], alreadyExists: [] });
 });
 
-// On a Linux CI runner the import step used to fail: a credentials.json file written by the
-// runner's own uid is unreadable by n8n's own, different uid inside the container. Streaming
-// the JSON over stdin instead means buildImportCall's `input` is the only place the decrypted
-// data appears — never a file argument, and never written to `.n8n-import/` at all.
+// The decrypted data travels only as stdin `input`, never as a file argument or in
+// `.n8n-import/` (see IMPORT_SCRIPT for why a host-written file fails on Linux).
 test('the import call carries credentials only as stdin input, never as a file argument', () => {
   const appDb = { id: 'mgpCredAppDb0001', name: 'App DB', type: 'postgres', data: { password: 'secret' } };
   const { args, input } = buildImportCall([appDb]);

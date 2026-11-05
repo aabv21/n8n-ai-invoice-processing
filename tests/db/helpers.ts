@@ -1,6 +1,6 @@
-// A thin Postgres harness for tests/db/queries.test.ts: opens the local test database, applies
-// db/migrations/ to it the same way pnpm run setup does on the real stack, runs a query file from
-// db/queries as app_runtime (the way the Postgres node would), and resets state between tests.
+// A thin Postgres harness for tests/db/queries.test.ts: opens the test database, applies
+// db/migrations/ as pnpm run setup does, runs a db/queries file as app_runtime (as the Postgres
+// node would), and resets state between tests.
 import { execFile } from 'node:child_process';
 import { readFileSync } from 'node:fs';
 import { join } from 'node:path';
@@ -17,10 +17,9 @@ export interface TestDb {
 }
 
 /**
- * Mirrors how the Postgres node (2.8+) binds one `{{ }}` Query Parameter expression to one value:
- * null or undefined becomes SQL NULL, a plain object is JSON-stringified, and everything else is
- * sent as its string form. An array isn't a valid single value there — the workflow always passes
- * an array as `{{ JSON.stringify(...) }}` instead — so this throws rather than silently guessing.
+ * Mirrors how the Postgres node (2.8+) binds one `{{ }}` Query Parameter: null or undefined is SQL
+ * NULL, a plain object is JSON-stringified, anything else is its string form. The workflow passes
+ * arrays as `{{ JSON.stringify(...) }}`, so an array throws instead of guessing.
  */
 function bind(value: unknown): unknown {
   if (value === null || value === undefined) return null;
@@ -37,18 +36,12 @@ function bind(value: unknown): unknown {
 const TEST_RUNTIME_ROLE = 'app_runtime';
 
 /**
- * Runs `scripts/db-migrate.ts` against the `testdb` Compose service instead of the real stack's
- * `postgres` container, so there is only one migration implementation to keep correct. `testdb`
- * runs with trust auth and starts with no `app`/`app_runtime` roles of its own (`db/init/` never
- * runs there), so this points db-migrate's roles at ones that already exist or that migration 001
- * itself creates: `POSTGRES_USER` and `APP_DB_USER` both become `postgres`, the one role trust
- * auth and the container already provide, so `SET LOCAL ROLE postgres` in the bootstrap is a valid
- * no-op for a superuser; `APP_RUNTIME_DB_USER` stays `app_runtime`, created by `\gexec` in
- * `001_runtime_role.sql` exactly as it would be on the real stack. The password is never read
- * back — trust auth ignores it — so a fixed placeholder is fine. These are passed as this child
- * process's own environment, which Node's `loadEnvFile` (used by `db-migrate.ts`'s `loadDotEnv`)
- * never overrides once a name is already set, so a developer's own `.env` role names can't leak
- * into this run even if `.env` exists.
+ * Runs `scripts/db-migrate.ts` against `testdb`, so one migration implementation serves both
+ * stacks. `db/init/` never runs on testdb, so `POSTGRES_USER` and `APP_DB_USER` both become
+ * `postgres`, the one role it has (`SET LOCAL ROLE postgres` is then a no-op), and
+ * `APP_RUNTIME_DB_USER` stays `app_runtime`, which migration 001 creates. Trust auth ignores the
+ * placeholder password. These go in the child's environment, which `loadEnvFile` never overrides,
+ * so a developer's `.env` can't leak in.
  */
 async function migrateTestDb(): Promise<void> {
   await execFileAsync('node', ['scripts/db-migrate.ts'], {
@@ -65,14 +58,11 @@ async function migrateTestDb(): Promise<void> {
 }
 
 /**
- * Opens the local test database, resetting `schema public` from db/schema.sql, then applying
- * every file in db/migrations/ through `migrateTestDb`, so the runtime role and its grants exist
- * there too. Refuses to run against anything but a database literally named "postgres" — the one
- * name CI's service and the local `testdb` container both use — so a misconfigured
- * TEST_DATABASE_URL can't drop a real schema. Every query runs as `app_runtime`, over a second
- * pool, so the grants migration 001 creates are proven by every test in this suite, not just by
- * `check-db` against the real stack; `reset()` still needs the superuser pool, since `app_runtime`
- * has no TRUNCATE.
+ * Opens the test database: resets `schema public` from db/schema.sql, then applies db/migrations/
+ * through `migrateTestDb`. Refuses any database not named "postgres" (the name testdb uses
+ * locally and in CI), so a misconfigured TEST_DATABASE_URL can't drop a real schema. Queries run as
+ * `app_runtime` over a second pool, so every test proves migration 001's grants; `reset()` uses
+ * the superuser pool, since `app_runtime` has no TRUNCATE.
  */
 export async function openTestDb(): Promise<TestDb> {
   const url = process.env.TEST_DATABASE_URL;

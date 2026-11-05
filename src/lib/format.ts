@@ -11,15 +11,12 @@ export function escapeHtml(text: string): string {
     .replace(/'/g, '&#39;');
 }
 
-// en-US separates thousands with ',' and the decimal with '.'; es-CO (Colombian Spanish, this
-// repo's only Spanish locale) does the reverse, '.' for thousands and ',' for the decimal -
-// global-constraints.md's "COP prices formatted with the locale's own separators".
+// Each language formats amounts with its own separators: en-US writes 1,234.50, es-CO 1.234,50.
 const NUMBER_LOCALE: Record<'en' | 'es', string> = { en: 'en-US', es: 'es-CO' };
 
-/** `<code> <amount>`, with thousands separators: 0 decimals for COP, 2 for anything else. A null
- * amount is unknown, not zero, so it prints as an em dash; a null currency still prints the
- * amount, with 2 decimals, since there's no code to pick a decimal count from. `locale` ('en' by
- * default) picks the separators only - the currency code itself is never translated. */
+/** `<code> <amount>` with thousands separators: 0 decimals for COP, 2 otherwise. A null amount is
+ * unknown, not zero, so it prints as an em dash; a null currency prints the amount with 2 decimals.
+ * `locale` picks only the separators; the currency code is never translated. */
 export function formatMoney(amount: number | null, currency: string | null, locale: 'en' | 'es' = 'en'): string {
   if (amount === null) return '—';
   const decimals = currency === 'COP' ? 0 : 2;

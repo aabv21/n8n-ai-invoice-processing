@@ -6,11 +6,9 @@ import { compose, loadDotEnv } from './lib/runtime.ts';
 import { listJsonFiles, readWorkflow, writeWorkflow, type Workflow } from './lib/workflow.ts';
 import { BUILD_ENTRIES, WORKFLOWS } from './manifest.ts';
 
-// Fields n8n sets on every export that are never meaningful diff material: pinned test data,
-// server-assigned bookkeeping, and the exporting instance's own identity.
-// `active` and `versionCounter` reflect this instance's own history (publish state, save count),
-// not the workflow's source, so they're dropped the same way as the other bookkeeping fields
-// below. Importing and exporting the same workflows twice in a row must produce no diff.
+// Fields n8n sets on every export that aren't workflow source: pinned test data, server bookkeeping
+// (`active` and `versionCounter` are this instance's publish state and save count), and the
+// instance's identity. Importing and exporting twice in a row must produce no diff.
 const VOLATILE_FIELDS = [
   'pinData',
   'versionId',

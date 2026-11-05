@@ -23,10 +23,8 @@ test('a failed handoff to intake fires the error workflow, not a silent retry', 
   expect(node.onError).toBeUndefined();
 });
 test('intake-email accepts the whole caller item, so Hand to intake carries no field mapping', () => {
-  // ExecuteWorkflow's own builder hint says to omit workflowInputs once the target trigger accepts
-  // all data (checked against the compiled node source): getWorkflowInputValues returns
-  // json: { ...json, ...itemFieldValues } plus binary, and the passthrough trigger on the other side
-  // returns that verbatim, so the caller's own item already carries every field it had - an empty or
-  // missing mapping loses nothing.
+  // ExecuteWorkflow's builder hint says to omit workflowInputs when the target trigger accepts all
+  // data (checked against the compiled node source): the caller's whole item, binary included,
+  // passes through, so an empty or missing mapping loses nothing.
   expect(nodeOf(wf, 'Hand to intake').parameters.workflowInputs).toBeUndefined();
 });

@@ -1,5 +1,4 @@
 import { DateTime } from 'luxon';
 
-// Node sources use the ambient `DateTime` global (see src/globals.d.ts) instead of importing
-// Luxon, matching the real Code-node sandbox. Vitest needs it provided the same way.
+// Provides the ambient `DateTime` global (src/globals.d.ts), as the Code-node sandbox does.
 globalThis.DateTime = DateTime;

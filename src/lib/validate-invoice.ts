@@ -37,17 +37,15 @@ export function validateInvoice(invoice: NormalizedInvoice, rules: ValidationRul
   }
 
   if (invoice.subtotal !== null && invoice.tax !== null && invoice.total !== null) {
-    // Rounded to the cent first: binary floating-point addition of two decimal amounts can leave
-    // an error far smaller than a cent, which a zero tolerance would otherwise flag as a mismatch.
+    // Rounded to the cent first: floating-point addition leaves sub-cent errors that a zero
+    // tolerance would flag as a mismatch.
     const diff = Math.round(Math.abs(invoice.subtotal + invoice.tax - invoice.total) * 100) / 100;
     if (diff > rules.totals_tolerance) reasons.push('totals_mismatch');
   }
 
-  // Hidden text or an injected note can make the model report header totals the visible lines
-  // don't support; the line items themselves are what's actually printed on the page, so they're
-  // checked against the header instead of trusted to agree with it. This fails closed: an empty
-  // line_items array or a null line_total isn't skipped as "nothing to check" - either one would
-  // otherwise let a model dodge the comparison outright by simply not reporting a line total.
+  // Hidden text can make the model report header totals the printed lines don't support, so the
+  // lines are checked against the header. Fails closed: an empty line_items or a null line_total
+  // would otherwise let a model dodge the check.
   if (invoice.subtotal !== null) {
     const incomplete = invoice.line_items.length === 0 || invoice.line_items.some((item) => item.line_total === null);
     if (incomplete) {

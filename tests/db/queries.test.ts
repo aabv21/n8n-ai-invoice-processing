@@ -8,11 +8,9 @@ interface SaveRow {
   saved: boolean;
   invoice_id: number | null;
   duplicate_of: number | null;
-  // node-postgres returns numeric as a string (no type parser registered here), unlike the
-  // Postgres node's own text-oriented binding, but duplicate_of_issue_date is cast to text in SQL
-  // itself (to_char), so it comes back the same ISO YYYY-MM-DD string either way - never a JS Date
-  // that would print "Tue Jun 16 2026 ..." if a caller stringified it, which the extracted
-  // invoice's own ISO date would never match.
+  // node-postgres returns numeric as a string (no type parser registered here).
+  // duplicate_of_issue_date is cast to text in SQL (to_char), so it's YYYY-MM-DD here and in the
+  // Postgres node alike, never a JS Date.
   duplicate_of_total: string | null;
   duplicate_of_issue_date: string | null;
   item_count: number;
@@ -79,9 +77,7 @@ test('a second event with the same supplier tax ID and number is a duplicate', a
   const row = await save('m2:attachment_0');
   expect(row).toMatchObject({ saved: false, invoice_id: null, duplicate_of: first.invoice_id, item_count: 0 });
   expect(Number(row.duplicate_of_total)).toBe(VALID_INVOICE.total);
-  // Asserted as an exact ISO string, not parsed as a Date, so a future regression back to a raw
-  // `date` column (which the Postgres node would otherwise parse into a JS Date, like
-  // node-postgres does here) fails this test instead of silently comparing two different formats.
+  // An exact ISO string, so a regression to a raw `date` column (parsed into a JS Date) fails here.
   expect(row.duplicate_of_issue_date).toBe(VALID_INVOICE.issue_date);
   expect(row.duplicate_of_issue_date).toMatch(/^\d{4}-\d{2}-\d{2}$/);
   expect(await db.sql('SELECT count(*)::int AS n FROM invoices')).toEqual([{ n: 1 }]);
@@ -122,9 +118,8 @@ test('review rows without tax ID or number never conflict', async () => {
   expect((await save('m2:attachment_0', blank, 'review')).saved).toBe(true);
 });
 test('an amount normalized out of its column range saves cleanly as a review row', async () => {
-  // normalizeInvoice (src/lib/normalize-invoice.ts) already turned the out-of-range total into
-  // null before this ever reaches the database; this proves that normalized record actually
-  // saves, instead of the numeric(18,2) column's own overflow failing the insert on every retry.
+  // normalizeInvoice already nulled the out-of-range total; this proves the normalized record saves
+  // instead of overflowing numeric(18,2) on every retry.
   const outOfRange: NormalizedInvoice = { ...VALID_INVOICE, total: null };
   const row = await save('m1:attachment_0', outOfRange, 'review');
   expect(row).toMatchObject({ saved: true, duplicate_of: null });

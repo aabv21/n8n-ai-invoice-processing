@@ -8,17 +8,14 @@ import { emptyInvoice, isPlainObject, isValidIsoDate, roundTo } from './util.ts'
 const TAX_ID_LABEL_RE =
   // eslint-disable-next-line security/detect-unsafe-regex -- no nested/overlapping quantifier over the same class; a 10,000-char probe still resolves in under 1ms
   /^\s*(?:n\.?\s?i\.?\s?t|r\.?\s?u\.?\s?t|e\.?\s?i\.?\s?n|t\.?\s?i\.?\s?n|tax\s*id|vat)(?![a-z])[\s.:#]*(?:no(?![a-z])\.?)?[\s.:#]*/i;
-// Magdaport is a Colombian wholesale distributor billed only in Colombian pesos or US dollars;
-// any other ISO 4217 code - however well-formed - isn't a currency it's ever actually billed in.
+// Magdaport is billed only in Colombian pesos or US dollars, so any other ISO 4217 code is invalid.
 const ACCEPTED_CURRENCIES = new Set(['COP', 'USD']);
 const NO_DESCRIPTION = '(no description)';
 
-// Column ranges in db/schema.sql: an amount at or past them would fail the save with a Postgres
-// "numeric field overflow" on every retry, leaving the event stuck unfinished instead of reviewed.
-// Each pairs the column's own max magnitude with its own decimal scale: a value just under the max
-// can still round up past it once Postgres stores it at that scale (99999999999.9996 rounds to
-// 100000000000.000 in a numeric(14,3) column, for example), so the bound is checked against the
-// value rounded to its column's own scale, not the raw value.
+// Column ranges in db/schema.sql: an amount at or past one fails the save with "numeric field
+// overflow" on every retry, leaving the event stuck instead of reviewed. The bound is checked after
+// rounding to the column's scale, since a value just under it can round past it
+// (99999999999.9996 is 100000000000.000 in numeric(14,3)).
 const SUBTOTAL_TAX_TOTAL_RANGE = { max: 1e16, scale: 2 } as const; // numeric(18,2)
 const LINE_TOTAL_RANGE = { max: 1e16, scale: 2 } as const; // numeric(18,2)
 const QUANTITY_RANGE = { max: 1e11, scale: 3 } as const; // numeric(14,3)
@@ -71,10 +68,9 @@ function normalizeAmount(value: unknown): number | null {
 }
 
 /**
- * An amount bound to a specific column's range: a value at or beyond `range.max` in either
- * direction, once rounded to the column's own `scale`, is null, with a reason. The original
- * (unrounded) value is kept when it's in range - rounding is only how the bound is checked, never
- * a correction applied to what the model reported.
+ * An amount bound to a column's range: at or beyond `range.max` either way, once rounded to
+ * `scale`, it's null with a reason. An in-range value is kept unrounded: rounding only checks the
+ * bound, it never corrects what the model reported.
  */
 function normalizeBoundedAmount(value: unknown, range: { max: number; scale: number }): { value: number | null; reasons: ReviewReason[] } {
   const amount = normalizeAmount(value);

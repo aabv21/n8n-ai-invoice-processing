@@ -1,13 +1,11 @@
-// The { en, es } message tables for the two emails the team receives: the daily summary
-// (render-summary.ts) and the error alert (error-alert.ts). English is the source language; the
-// Spanish strings are neutral Latin American Spanish in a Colombian business register (usted,
-// natural phrasing, correct accents and ¿/¡). See the README's "Team email language" for how to
-// add another one. Pure data: no I/O, no clock, no logic.
+// The { en, es } message tables for the team's two emails: the daily summary (render-summary.ts)
+// and the error alert (error-alert.ts). English is the source; Spanish is neutral Latin American
+// in a Colombian business register (usted, correct accents and ¿/¡). To add a language, see the
+// README's "Team email language".
 
 export interface SummaryStrings {
   title: string;
-  /** "{title} {date}: {n} {subjectArrived}, {m} {subjectReview}" - the subject line's own two
-   * nouns, which read more naturally lowercase than the section labels do. */
+  /** "{title} {date}: {n} {subjectArrived}, {m} {subjectReview}": lowercase nouns, unlike the section labels. */
   subjectArrived: string;
   subjectReview: string;
   arrived: string;

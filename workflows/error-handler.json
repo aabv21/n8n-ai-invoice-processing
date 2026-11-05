@@ -151,7 +151,7 @@
       "parameters": {
         "width": 1340,
         "height": 160,
-        "content": "## Error handler\nRuns whenever a workflow with errorWorkflow set to this one fails. Loads config for team_email and team_locale. Load config's own output is always exactly { config }, so Shape alert input reads the Error Trigger's own fields back by name and pairs them with team_locale into one item; Render error alert - the generated Code node from src/nodes/error-alert.ts - turns it into a plain-text subject and body in the team's own language, naming the failed node, the error, the execution URL, and the time in Bogota. This workflow has no errorWorkflow of its own, so a failure here does not loop back into itself."
+        "content": "## Error handler\nRuns when a workflow that names this one as its errorWorkflow fails. Load config outputs only { config }, so Shape alert input reads the Error Trigger's fields back by name next to team_locale. Render error alert (generated from src/nodes/error-alert.ts) builds a plain-text alert in the team's language with the failed node, the error, the execution URL, and the time in Bogota. This workflow names no errorWorkflow of its own, so a failure here can't loop."
       }
     }
   ],

@@ -17,12 +17,10 @@ test('one failing invoice does not stop the others', () => expect(nodeOf(wf, 'Pr
 // Regression-prone wiring that a careless edit could silently invert or that a UI save could
 // quietly reset to its default.
 test('Describe attachment keeps the PDF binary despite dropping every other input field', () => {
-  // SetV2.node.js forces options.include to 'none' whenever includeOtherFields is off, and
-  // composeReturnItem only keeps binary data when options.include !== 'none' and stripBinary is
-  // false (checked against the compiled node source) - so "other fields off" alone would silently
-  // drop the PDF. Selecting zero fields keeps the JSON output exactly as empty as "none" would,
-  // but leaves options.include at 'selected' (not 'none'), and stripBinary must be turned off
-  // explicitly, since it defaults to true once other fields are included at all.
+  // SetV2 forces options.include to 'none' when includeOtherFields is off, and keeps binary only when
+  // include !== 'none' and stripBinary is false (checked against the compiled node source), so
+  // "other fields off" would drop the PDF. Selecting zero fields keeps the JSON as empty with include
+  // at 'selected'; stripBinary defaults to true there, so it's turned off explicitly.
   expect(nodeOf(wf, 'Describe attachment').parameters).toMatchObject({
     includeOtherFields: true, include: 'selected', includeFields: '',
     options: { stripBinary: false } });

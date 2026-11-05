@@ -1,11 +1,10 @@
-// Small helpers shared by more than one lib/node module, kept here once so the date check used
-// for file names and the one used for validation can never drift apart.
+// Helpers shared by more than one module, so the date check for file names and the one for
+// validation can't drift apart.
 import { EMPTY_INVOICE, type NormalizedInvoice } from './invoice.ts';
 
 const DATE_RE = /^\d{4}-\d{2}-\d{2}$/;
-// Postgres's date type rejects year 0000 outright ("date/time field value out of range"), and no
-// invoice this pipeline will ever see is genuinely dated outside this range; a model echoing a
-// corrupted or out-of-range year lands in review instead of failing the save on every retry.
+// Postgres's date type rejects year 0000 ("date/time field value out of range"), and no real
+// invoice is dated outside this range, so a bad year lands in review instead of failing every save.
 const MIN_YEAR = 1900;
 const MAX_YEAR = 2100;
 
@@ -23,7 +22,7 @@ export function isPlainObject(value: unknown): value is Record<string, unknown> 
   return typeof value === 'object' && value !== null && !Array.isArray(value);
 }
 
-/** `value` rounded to `scale` decimal places - the precision a Postgres `numeric(p, scale)` column actually stores, which can round a value up past a bound a raw comparison would have let through. */
+/** `value` rounded to `scale` decimal places, as a Postgres `numeric(p, scale)` column stores it. */
 export function roundTo(value: number, scale: number): number {
   const factor = 10 ** scale;
   return Math.round(value * factor) / factor;

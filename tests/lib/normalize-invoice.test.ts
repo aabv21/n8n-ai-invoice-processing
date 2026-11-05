@@ -36,8 +36,8 @@ test('blank strings are missing, not invalid', () =>
 // Blank currency and due_date must also be missing-not-invalid, same as supplier/issue_date above.
 test('blank currency and due_date are also missing, not invalid', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, currency: '  ', due_date: '' })).toMatchObject({ invoice: { currency: null, due_date: null }, reasons: [] }));
-// A non-string, non-blank value is a present-but-wrong-shape value, not a missing one - it
-// must carry the field's own invalid_* reason instead of silently passing as null with no reason.
+// A non-string, non-blank value is present but malformed, not missing, so it carries the field's
+// invalid_* reason.
 test('a non-string issue_date is invalid, not silently missing', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, issue_date: 20261101 }))
     .toMatchObject({ invoice: { issue_date: null }, reasons: ['invalid_issue_date'] }));
@@ -49,8 +49,7 @@ test('a non-string currency is invalid, not silently missing', () =>
     .toMatchObject({ invoice: { currency: null }, reasons: ['invalid_currency'] }));
 test('amounts must be numbers', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, total: '2082500' }).invoice.total).toBeNull());
-// numeric(18,2): the magnitude must stay below 1e16, or the save would fail with a Postgres
-// "numeric field overflow" on every retry, leaving the event stuck unfinished instead of reviewed.
+// numeric(18,2) needs a magnitude below 1e16, or every save retry fails with "numeric field overflow".
 test('a total at or above the numeric(18,2) column range becomes null with a reason', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, total: 1e16 })).toMatchObject({ invoice: { total: null }, reasons: ['amount_out_of_range'] }));
 // 1e16 - 1 rounds back to 1e16 at this magnitude in IEEE-754 double precision, so "just inside"
@@ -70,9 +69,8 @@ test('a line item field just inside its own column range is kept', () =>
   expect(normalizeInvoice({
     ...INVOICE_1_RAW, line_items: [{ description: 'x', quantity: 1e11 - 1, unit_price: 1e14 - 1, line_total: 9_999_999_999_999_998 }],
   }).invoice.line_items).toEqual([{ line_no: 1, description: 'x', quantity: 1e11 - 1, unit_price: 1e14 - 1, line_total: 9_999_999_999_999_998 }]));
-// A value under the raw max can still round up past it at the column's own stored scale (3 decimal
-// places for quantity): 99999999999.9996 rounds to 100000000000.000 once Postgres stores it,
-// which is exactly 1e11 - a raw, unrounded comparison would have let this one overflow the save.
+// 99999999999.9996 is under the raw max but rounds to 1e11 at quantity's scale (3 decimals), so a
+// raw comparison would let it overflow the save.
 test('a quantity that rounds up to the column max at its own scale is rejected', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, line_items: [{ description: 'x', quantity: 99_999_999_999.9996, unit_price: 1, line_total: 1 }] }).invoice.line_items)
     .toEqual([{ line_no: 1, description: 'x', quantity: null, unit_price: 1, line_total: 1 }]));
@@ -81,8 +79,7 @@ test('a quantity that stays under the column max even after rounding to its own 
     .toEqual([{ line_no: 1, description: 'x', quantity: 99_999_999_999.9994, unit_price: 1, line_total: 1 }]));
 test.each([
   ['cop', 'COP', []], ['usd', 'USD', []], ['PESOS', null, ['invalid_currency']], ['$', null, ['invalid_currency']],
-  // Three letters alone used to pass CURRENCY_RE; only COP and USD are currencies Magdaport is
-  // actually billed in, so anything else - however well-formed - is invalid.
+  // A well-formed ISO 4217 code isn't enough: Magdaport is billed only in COP and USD.
   ['XYZ', null, ['invalid_currency']], ['EUR', null, ['invalid_currency']],
 ])('currency %j', (input, out, reasons) => expect(normalizeInvoice({ ...INVOICE_1_RAW, currency: input })).toMatchObject({ invoice: { currency: out }, reasons }));
 test('line items are numbered and keep a description', () =>
@@ -95,8 +92,7 @@ test('confidence outside 0..1 is dropped', () =>
   expect(normalizeInvoice({ ...INVOICE_1_RAW, confidence: 1.2 }).invoice.confidence).toBeNull());
 test.each([[null], ['text'], [[1]]])('a non-object reply %j is an empty invoice', (raw) =>
   expect(normalizeInvoice(raw)).toEqual({ invoice: EMPTY_INVOICE, reasons: [] }));
-// The empty invoice returned here must be an independent copy - mutating it must never leak
-// into the shared EMPTY_INVOICE constant that every other caller also reads.
+// The empty invoice must be an independent copy: mutating it must never leak into EMPTY_INVOICE.
 test('the empty invoice is a fresh copy, not the shared constant', () => {
   const { invoice } = normalizeInvoice(null);
   invoice.line_items.push({ line_no: 99, description: 'x', quantity: null, unit_price: null, line_total: null });

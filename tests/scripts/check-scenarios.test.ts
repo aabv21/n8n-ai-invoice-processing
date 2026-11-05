@@ -44,10 +44,8 @@ test.each([
   '2026-1-1T00:00:00Z',
 ])('an invalid --since %s is rejected before any psql call', (value) => expect(() => parseSince(value)).toThrow(/--since/));
 
-// The committed samples/expected.json was generated from its own base_date, which can differ from
-// whatever --since a later run passes (the start of the DB query window, not the date the samples
-// were built from); the expectations compared against must come from the file, not be recomputed
-// from --since, or a run on a different day would expect dates the samples were never built with.
+// --since is only the query window's start and can differ from the samples' base_date, so the
+// expectations must come from the committed file, not be recomputed from it.
 test('loadExpectedSamples reads the expectations from the committed file, not from a passed-in date', () => {
   const dir = mkdtempSync(join(tmpdir(), 'mgp-expected-'));
   try {
@@ -56,8 +54,7 @@ test('loadExpectedSamples reads the expectations from the committed file, not fr
     writeFileSync(path, JSON.stringify(payload));
     const loaded = loadExpectedSamples(path);
     expect(loaded).toEqual(payload.samples);
-    // Proves it isn't silently recomputing from the file's base_date either - it's the file's own
-    // samples array, verbatim.
+    // Nor recomputed from the file's base_date: it's the file's samples array, verbatim.
     expect(loaded).not.toEqual(expectations('2026-10-30'));
   } finally {
     rmSync(dir, { recursive: true });

@@ -1,12 +1,10 @@
-// Renders the error handler's team alert subject and plain-text body in the language team_locale
-// names. This email is plain text (platform.test.ts pins emailType: 'text'), so none of
-// these values need HTML-escaping in either language - the Gmail node sends the string as-is.
-// Pure: no I/O, no clock - `time` is formatted upstream (America/Bogota, via an n8n expression)
-// and passed in verbatim, the same way every other value here comes from the Error Trigger.
+// Renders the error handler's alert subject and body in the team_locale language. The email is
+// plain text (platform.test.ts pins emailType: 'text'), so nothing needs HTML-escaping. Pure: no
+// I/O, no clock; `time` arrives already formatted in America/Bogota.
 import { ERROR_ALERT_STRINGS } from '../lib/strings.ts';
 
 export interface ErrorAlertInput {
-  /** The team's own email language; missing means 'en', the same default checkConfig applies. */
+  /** Missing means 'en', as in checkConfig. */
   team_locale?: 'en' | 'es';
   workflow_name: string;
   failed_node: string;

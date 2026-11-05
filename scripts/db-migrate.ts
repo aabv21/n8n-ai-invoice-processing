@@ -26,13 +26,12 @@ SELECT filename FROM schema_migrations ORDER BY filename;
 
 /**
  * Runs after the migrations, every time: `setup-credentials` rebuilds n8n's app credential from
- * `.env` on every run, so the role's password must follow `.env` on every run too, or a changed
- * value would lock n8n out. psql quotes the value itself; it never reaches an argument list.
+ * `.env` on every run, so the role's password must follow it, or a changed value would lock n8n
+ * out. psql quotes the value itself; it never reaches an argument list.
  *
- * Postgres logs a failed statement's full text by default (`log_min_error_statement = error`),
- * and this one carries the password, so the transaction raises that threshold first, and turns
- * statement logging off in case a server enables it. The same statement re-asserts the role's
- * attributes, so a hand-granted `CREATEDB` or `SUPERUSER` doesn't survive the next run.
+ * Postgres logs a failed statement's text by default (`log_min_error_statement = error`), and this
+ * one carries the password, so the transaction raises that threshold and turns statement logging
+ * off first. Re-asserting the attributes drops a hand-granted `CREATEDB` or `SUPERUSER`.
  */
 export const RUNTIME_PASSWORD_SQL = `SET LOCAL log_min_error_statement = panic;
 SET LOCAL log_statement = 'none';
@@ -169,17 +168,14 @@ export function migrationScript(file: string, sql: string): string {
 }
 
 /**
- * The Compose service and database this run targets. Defaults to the real stack's own `postgres`
- * container and its `app` database. `pnpm run test:db` sets `DB_MIGRATE_CONTAINER=testdb` and
- * `DB_MIGRATE_DATABASE=postgres` (the name `TEST_DATABASE_URL` itself connects to) to apply the
- * same migrations there, so there is only one migration implementation to keep correct.
+ * The Compose service and database this run targets: the real stack's `postgres` container and
+ * `app` database by default. `pnpm run test:db` sets `DB_MIGRATE_CONTAINER=testdb` and
+ * `DB_MIGRATE_DATABASE=postgres`, so one migration implementation serves both.
  */
 function target(): { container: string; database: 'app' } {
   const container = process.env.DB_MIGRATE_CONTAINER ?? 'postgres';
-  // PsqlOptions.database is typed 'app' | 'n8n' because those are the only two databases the real
-  // stack ever has; pnpm run test:db sets DB_MIGRATE_DATABASE=postgres (testdb's only database),
-  // which isn't really either one, so the override is cast past that type rather than widening it
-  // for a value only a test harness ever supplies.
+  // Cast rather than widening PsqlOptions.database ('app' | 'n8n', the real stack's databases):
+  // only the test harness supplies `postgres`, testdb's one database.
   const database = (process.env.DB_MIGRATE_DATABASE ?? 'app') as 'app';
   return { container, database };
 }
@@ -187,11 +183,8 @@ function target(): { container: string; database: 'app' } {
 /** Runs `sql` as the superuser in one transaction, failing with psql's own error, redacted. */
 async function apply(label: string, sql: string): Promise<string> {
   const { container, database } = target();
-  // POSTGRES_USER is always forwarded explicitly, not just the SQL's own \getenv names: the real
-  // stack's postgres container already carries it permanently, so this is a harmless duplicate
-  // there, but testdb (pnpm run test:db's DB_MIGRATE_CONTAINER target) never sets it in Compose at
-  // all, so without this, -U "$POSTGRES_USER" would expand to empty and fall back to the
-  // container's OS user instead of the role this run actually means to connect as.
+  // Forwarded explicitly: testdb never sets POSTGRES_USER, so -U "$POSTGRES_USER" would expand to
+  // empty there and connect as the container's OS user instead.
   const forwardEnv = [...new Set(['POSTGRES_USER', ...requiredEnv(sql)])];
   const result = await runPsql({ role: 'POSTGRES_USER', database, forwardEnv, singleTransaction: true, container }, sql);
   if (!result.ok) throw new Error(`${label} failed, and nothing in it was applied:\n${redact(result.stderr.trim(), secretValues(process.env))}`);
