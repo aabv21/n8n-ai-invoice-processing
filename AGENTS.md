@@ -130,7 +130,7 @@ Then match each one to its cause:
 - Test data is invented: suppliers and NITs are fictional, email addresses are on `example.com`, and every printed NIT carries a check digit that deliberately fails the DIAN algorithm. There are no phone numbers and no real people.
 - Everything in the repo is in English.
 - Database topology: role `$N8N_DB_USER` owns database `n8n`, role `$APP_DB_USER` owns database `app`, and neither can connect to the other's database (`REVOKE ALL ... FROM PUBLIC`). The Postgres superuser exists only to bootstrap those roles in `db/init/`; it is never configured in the n8n container.
-- n8n is pinned to `2.45.6`; never move to an unstable `3.x` tag before one is stable. Dependabot's automated updates for `n8nio/n8n` exclude minor and major bumps, because beta and stable releases share plain semver tags.
+- n8n is pinned to the `2.45` line, by digest: patch releases arrive through Dependabot once CI's `n8n` job passes on them, and `tests/runtime.test.ts` rejects any other line. Never move to an unstable `3.x` tag before one is stable. Dependabot's automated updates for `n8nio/n8n` exclude minor and major bumps, because beta and stable releases share plain semver tags.
 - Point tooling only at this repo's local n8n instance (`http://localhost:5678`), never another instance.
 
 ## Supply-chain hardening
