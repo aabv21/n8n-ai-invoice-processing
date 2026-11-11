@@ -12,7 +12,10 @@ export interface SummaryRow {
   ok: number;
   review: number;
   duplicates: number;
+  /** Every event still without an outcome 30 minutes before the run, however old. */
   unfinished: number;
+  /** The oldest of those events, at most 20; `received_at` is already Bogota time, `YYYY-MM-DD HH:MM`. */
+  unfinished_events: { event_id: string; file_name: string | null; received_at: string }[];
   totals_by_supplier: { supplier: string | null; currency: string | null; invoices: number; total: number | null }[];
   review_items: {
     supplier: string | null;
@@ -83,6 +86,16 @@ export function run(input: SummaryRow): { subject: string; html: string } {
   // values need it.
   const unfinishedLine =
     input.unfinished > 0 ? `<p>${(input.unfinished === 1 ? t.unfinishedOne : t.unfinishedMany).replace('{count}', String(input.unfinished))}</p>` : '';
+  const unfinishedTable =
+    input.unfinished_events.length > 0
+      ? table(
+          [t.unfinishedColumns.file, t.unfinishedColumns.received, t.unfinishedColumns.eventId],
+          input.unfinished_events.map((e) => [cell(e.file_name), cell(e.received_at), cell(e.event_id)]),
+          t.none,
+        )
+      : '';
+  const notShown = input.unfinished - input.unfinished_events.length;
+  const unfinishedMoreLine = notShown > 0 ? `<p>${t.unfinishedMore.replace('{count}', String(notShown))}</p>` : '';
 
   // The window is the rolling 24 hours ending at the run, so an empty report never claims "today".
   const emptyDayLine = input.arrived === 0 ? `<p>${t.emptyDay}</p>` : '';
@@ -115,6 +128,8 @@ export function run(input: SummaryRow): { subject: string; html: string } {
     `<h1>${escapeHtml(t.title)}: ${escapeHtml(input.report_date)}</h1>`,
     counts,
     unfinishedLine,
+    unfinishedTable,
+    unfinishedMoreLine,
     emptyDayLine,
     `<h2>${escapeHtml(t.totalsHeading)}</h2>`,
     totalsTable,

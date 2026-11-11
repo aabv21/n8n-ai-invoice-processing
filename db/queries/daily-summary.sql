@@ -23,10 +23,28 @@ counts AS (
     count(*) FILTER (WHERE outcome = 'duplicate')::int AS duplicates
   FROM window_events
 ),
+-- Stuck events: received at least 30 minutes before the run, on any day, and still without an
+-- outcome when the query runs. The 30-minute bound uses the run's own moment, not now(), so a
+-- backfilled summary (a past run_at) ignores events that arrived after it; an event that has
+-- finished since is no longer listed, since no history records when an outcome was set.
+stuck AS (
+  SELECT pe.event_id, pe.file_name, pe.received_at
+  FROM processed_events pe
+  CROSS JOIN bounds
+  WHERE pe.outcome IS NULL AND pe.received_at < bounds.run_at - interval '30 minutes'
+),
 unfinished AS (
-  SELECT count(*)::int AS n
-  FROM processed_events
-  WHERE outcome IS NULL AND received_at < now() - interval '30 minutes'
+  SELECT count(*)::int AS n FROM stuck
+),
+-- The oldest 20 stuck events, each with its Bogota arrival time; the count above stays the total.
+unfinished_list AS (
+  SELECT jsonb_agg(
+    jsonb_build_object(
+      'event_id', s.event_id, 'file_name', s.file_name,
+      'received_at', to_char(s.received_at AT TIME ZONE 'America/Bogota', 'YYYY-MM-DD HH24:MI')
+    ) ORDER BY s.received_at, s.event_id
+  ) AS rows
+  FROM (SELECT * FROM stuck ORDER BY received_at, event_id LIMIT 20) s
 ),
 -- DISTINCT collapses an invoice two events reference (its arrival and a later duplicate) to one row.
 finished_invoices AS (
@@ -80,7 +98,8 @@ SELECT
   bounds.report_date::text AS report_date,
   counts.arrived, counts.ok, counts.review, counts.duplicates,
   unfinished.n AS unfinished,
+  COALESCE(unfinished_list.rows, '[]'::jsonb) AS unfinished_events,
   COALESCE(totals.rows, '[]'::jsonb) AS totals_by_supplier,
   COALESCE(review.rows, '[]'::jsonb) AS review_items,
   COALESCE(due.rows, '[]'::jsonb) AS due_soon
-FROM bounds, counts, unfinished, totals, review, due;
+FROM bounds, counts, unfinished, unfinished_list, totals, review, due;

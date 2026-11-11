@@ -22,9 +22,14 @@ const schema: unknown = JSON.parse(readFileSync('schemas/invoice.schema.json', '
 const ECHO_FIELDS = ['event_id', 'received_at', 'path', 'model', 'attempt', 'rules', 'today'] as const satisfies readonly (keyof CheckInput)[];
 
 function assignmentNames(node: WorkflowNode): string[] {
-  const assignments = (node.parameters.assignments as { assignments: { name: string }[] }).assignments;
+  const assignments = (node.parameters.assignments as { assignments?: { name: string }[] } | undefined)?.assignments;
+  if (!assignments) throw new Error(`node ${node.name} has no assignments; is it still a Set node?`);
   return assignments.map((a) => a.name);
 }
+test('assignmentNames fails clearly on a node without assignments', () => {
+  const node = { name: 'Not a Set node', type: 'n8n-nodes-base.noOp', typeVersion: 1, position: [0, 0], parameters: {} } as unknown as WorkflowNode;
+  expect(() => assignmentNames(node)).toThrow('node Not a Set node has no assignments; is it still a Set node?');
+});
 
 test('the chat model thinks adaptively and sends no sampling parameters', () => {
   const claude = nodeOf(wf, 'Claude');
@@ -55,7 +60,7 @@ test('neither AI call node swallows its own failure', () => {
   for (const name of ['Extract from text', 'Read PDF with Claude']) {
     const node = nodeOf(wf, name);
     expect(node.onError).toBeUndefined();
-    // n8n 2.45.6 still honors this legacy flag; when set, the input item passes through the
+    // n8n still honors this legacy flag (checked against 2.45.7 on 2026-11-11); when set, the input item passes through the
     // success output instead of the execution failing.
     expect(node.continueOnFail).not.toBe(true);
   }

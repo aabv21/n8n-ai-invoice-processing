@@ -29,8 +29,7 @@ function bind(value: unknown): unknown {
     throw new Error('array parameters are not supported; pass JSON.stringify(...) instead, the way the workflow does');
   }
   if (typeof value === 'object') return JSON.stringify(value);
-  // By this point value is a primitive (object, array, null, and undefined are all handled above).
-  // eslint-disable-next-line @typescript-eslint/no-base-to-string -- see above
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string -- value is a primitive here; objects, arrays and nullish values returned above
   return String(value);
 }
 

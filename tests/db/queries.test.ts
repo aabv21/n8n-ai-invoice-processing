@@ -23,6 +23,7 @@ interface Summary {
   review: number;
   duplicates: number;
   unfinished: number;
+  unfinished_events: { event_id: string; file_name: string | null; received_at: string }[];
   totals_by_supplier: { supplier: string; currency: string; invoices: number; total: number }[];
   review_items: {
     supplier: string | null;
@@ -60,8 +61,6 @@ const save = (event: string, invoice: NormalizedInvoice = VALID_INVOICE, status 
 // Backdates a processed_events row after record-event.sql has stamped it with now().
 const setReceivedAt = (eventId: string, at: string) =>
   db.sql('UPDATE processed_events SET received_at = $1::timestamptz WHERE event_id = $2', [at, eventId]);
-const setReceivedAtAgo = (eventId: string, agoInterval: string) =>
-  db.sql('UPDATE processed_events SET received_at = now() - $1::interval WHERE event_id = $2', [agoInterval, eventId]);
 
 test('records a new event once', async () => {
   expect((await db.run('record-event.sql', ['m1:attachment_0', 'a.pdf']))[0]).toMatchObject({ event_id: 'm1:attachment_0' });
@@ -285,16 +284,23 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
     expect(await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]))
       .toEqual([{ event_id: 'dup:attachment_0', outcome: 'duplicate' }]);
 
-    // Stuck for two hours: counts as unfinished. Stuck for five minutes: still within the grace period.
+    // Unfinished at the run's own time, not now(): stuck two hours before the run counts; 15 minutes
+    // before the run is still within the 30-minute grace period; after the run doesn't exist yet.
     await db.run('record-event.sql', ['stuck:attachment_0', 'stuck.pdf']);
-    await setReceivedAtAgo('stuck:attachment_0', '2 hours');
+    await setReceivedAt('stuck:attachment_0', '2026-06-15T21:00:00Z');
     await db.run('record-event.sql', ['fresh:attachment_0', 'fresh.pdf']);
-    await setReceivedAtAgo('fresh:attachment_0', '5 minutes');
+    await setReceivedAt('fresh:attachment_0', '2026-06-15T22:45:00Z');
+    await db.run('record-event.sql', ['later:attachment_0', 'later.pdf']);
+    await setReceivedAt('later:attachment_0', '2026-06-16T10:00:00Z');
   });
 
+  // stuck and fresh arrived inside the window too, so they count as arrived, with no outcome yet.
   test('the window counts match', async () =>
-    expect(await summary()).toMatchObject({ report_date: '2026-06-15', arrived: 4, ok: 2, review: 1, duplicates: 1 }));
-  test('unfinished counts events stuck for 30 minutes, on any day', async () => expect((await summary()).unfinished).toBe(1));
+    expect(await summary()).toMatchObject({ report_date: '2026-06-15', arrived: 6, ok: 2, review: 1, duplicates: 1 }));
+  test('unfinished is measured at run_at, not now()', async () => expect((await summary()).unfinished).toBe(1));
+  test('the unfinished list names each stuck event, oldest first', async () =>
+    expect((await summary()).unfinished_events).toEqual([
+      { event_id: 'stuck:attachment_0', file_name: 'stuck.pdf', received_at: '2026-06-15 16:00' }]));
   test('totals by supplier keep currencies apart', async () => expect((await summary()).totals_by_supplier).toEqual([
     { supplier: 'Bolsamar Empaques S.A.S.', currency: 'COP', invoices: 1, total: 1_000_000 },
     { supplier: 'Bolsamar Empaques S.A.S.', currency: 'USD', invoices: 1, total: 500.5 }]));
@@ -302,6 +308,25 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
     expect((await summary()).review_items).toMatchObject([{ supplier: 'Marbetaria S.A.S.', review_reasons: ['totals_mismatch'] }]));
   test('due soon covers the report day through day +7', async () =>
     expect((await summary()).due_soon.map((d) => d.due_date)).toEqual(['2026-06-15', '2026-06-22']));
+});
+
+test('the unfinished list stops at 20', async () => {
+  const run = '2026-06-15T23:00:00Z';
+  for (let i = 0; i < 25; i++) {
+    const event = `stuck-${String(i).padStart(2, '0')}:attachment_0`;
+    await db.run('record-event.sql', [event, `${event}.pdf`]);
+    // stuck-00 is the oldest, one hour before the run.
+    await setReceivedAt(event, new Date(Date.parse(run) - (60 + 25 - i) * 60_000).toISOString());
+  }
+  const row = (await db.run<Summary>('daily-summary.sql', [run]))[0]!;
+  expect(row.unfinished).toBe(25);
+  expect(row.unfinished_events).toHaveLength(20);
+  expect(row.unfinished_events[0]?.event_id).toBe('stuck-00:attachment_0');
+  expect(row.unfinished_events[19]?.event_id).toBe('stuck-19:attachment_0');
+});
+test('the unfinished list is an empty array when nothing is stuck', async () => {
+  const row = (await db.run<Summary>('daily-summary.sql', ['2026-06-15T23:00:00Z']))[0]!;
+  expect(row).toMatchObject({ unfinished: 0, unfinished_events: [] });
 });
 
 test('the scenario report joins events, invoices, items, and duplicates', async () => {

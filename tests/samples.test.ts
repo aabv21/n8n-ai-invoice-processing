@@ -78,3 +78,12 @@ test('the scan is rendered from visible text', async () => {
   for (let i = 0; i < data.length; i += 4) if ((data[i] ?? 255) < 128) dark++;
   expect(dark / (data.length / 4)).toBeGreaterThan(0.01);
 });
+// Spanish supplier names carry accents, ñ, and dashes; the samples' standard font must encode them
+// so the text path sees the same string the PDF shows.
+test('accented supplier names survive the text layer', async () => {
+  const supplier = 'Distribuidora Cañaveral – Café Ñandú';
+  const pdf = await renderInvoicePdf({ ...SAMPLES[0]!, supplier }, expected.base_date);
+  const doc = await getDocument({ data: pdf }).promise;
+  const items = (await (await doc.getPage(1)).getTextContent()).items.map((x) => ('str' in x ? x.str : ''));
+  expect(items).toContain(supplier);
+});

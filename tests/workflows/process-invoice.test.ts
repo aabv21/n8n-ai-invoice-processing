@@ -167,3 +167,20 @@ test('the duplicate and outcome paths anchor to their actual source node, not a 
   const recordOutcome = nodeOf(wf, 'Record outcome').parameters.options as { queryReplacement?: string };
   expect(recordOutcome.queryReplacement).toContain("$('Save Drive link').first().json.invoice");
 });
+
+// The text-or-vision decision stays an expression (native-first), so its edges are pinned here:
+// non-whitespace characters per page against min_text_chars_per_page.
+describe("Extract with default model's path", () => {
+  const path = () =>
+    ((nodeOf(wf, 'Extract with default model').parameters.workflowInputs as { value: Record<string, string> }).value.path)!;
+  const route = (text: string, numpages = 1) =>
+    evaluateExpression(path(), { json: { text, numpages, config: { extraction: { min_text_chars_per_page: 100 } } } });
+
+  test('a page with exactly min_text_chars_per_page non-whitespace characters takes the text path', () => {
+    expect(route('x'.repeat(100))).toBe('text');
+    expect(route('x'.repeat(99))).toBe('vision');
+    expect(route('x'.repeat(199), 2)).toBe('vision');
+  });
+  test("whitespace doesn't count toward the text path", () => expect(route('x'.repeat(99) + ' '.repeat(500) + '\n\t')).toBe('vision'));
+  test('accented characters count as text', () => expect(route('í'.repeat(100))).toBe('text'));
+});
