@@ -1,5 +1,10 @@
 import { expect, test } from 'vitest';
+import { evaluateExpression } from '../helpers/expression.ts';
 import { nodeOf, sourcesOf, workflowFile } from '../helpers/workflow-file.ts';
+
+interface MainConnections {
+  main: ({ node: string }[] | null)[];
+}
 
 const wf = workflowFile('intake-email.json');
 
@@ -13,6 +18,42 @@ test('only newly recorded attachments reach the core, with their PDF', () => {
 test('one failing invoice does not stop the others', () => expect(nodeOf(wf, 'Process invoice')).toMatchObject({
   onError: 'continueErrorOutput',
   parameters: { mode: 'each', workflowId: { value: 'mgpProcessInv001' }, options: { waitForSubWorkflow: true } } }));
+
+// Gmail can send a PDF as application/octet-stream; Keep PDFs lets it through by its .pdf name,
+// and Mark as PDF relabels it so Drive stores it as a PDF.
+test('every new attachment is marked as a PDF before Process invoice', () => {
+  expect(sourcesOf(wf, 'Mark as PDF', 0)).toEqual(['Keep new attachments']);
+  expect(sourcesOf(wf, 'Process invoice', 0)).toEqual(['Mark as PDF']);
+  expect(nodeOf(wf, 'Mark as PDF')).toMatchObject({ type: 'n8n-nodes-base.code', parameters: { mode: 'runOnceForEachItem' } });
+});
+// One bad PDF fails only its own call, so the rest of the batch still runs. Its error item then
+// fails this execution once, so error-handler alerts even when the call failed before
+// process-invoice could start (and so had no execution of its own to alert from).
+test('a failed Process invoice item ends the batch at Fail the batch', () => {
+  const connections = wf.connections as Record<string, MainConnections>;
+  expect(connections['Process invoice']!.main[1]!.map((c) => c.node)).toEqual(['Fail the batch']);
+  expect(connections['Process invoice']!.main[0] ?? []).toEqual([]);
+  expect(nodeOf(wf, 'Fail the batch')).toMatchObject({ type: 'n8n-nodes-base.stopAndError', typeVersion: 1, parameters: { errorType: 'errorMessage' } });
+});
+// The batch semantics rest on this wiring, not on a stack run: Process invoice calls process-invoice
+// once per item and routes each failed item to its error output instead of stopping, and n8n's v1
+// order runs a node once on everything its parent output, so Fail the batch runs once, after every
+// attachment had its call, with all the failed items as its input.
+test('a failed attachment never stops the others, and the batch fails once after every call', () => {
+  expect(wf.settings.executionOrder).toBe('v1');
+  const call = nodeOf(wf, 'Process invoice');
+  expect(call).toMatchObject({ onError: 'continueErrorOutput', parameters: { mode: 'each' } });
+  expect(call.continueOnFail).toBeUndefined();
+  expect(sourcesOf(wf, 'Fail the batch', 0)).toEqual(['Process invoice']);
+  const connections = wf.connections as Record<string, MainConnections>;
+  expect(connections['Fail the batch']).toBeUndefined();
+  expect(String(nodeOf(wf, 'Fail the batch').parameters.errorMessage)).toContain('$input.all().length');
+});
+test('Fail the batch names how many attachments failed', () => {
+  const message = nodeOf(wf, 'Fail the batch').parameters.errorMessage as string;
+  expect(evaluateExpression(message, { inputAll: [{}, {}] }))
+    .toBe('process-invoice failed for 2 attachment(s) in this batch; see its failed executions.');
+});
 
 // Regression-prone wiring that a careless edit could silently invert or that a UI save could
 // quietly reset to its default.

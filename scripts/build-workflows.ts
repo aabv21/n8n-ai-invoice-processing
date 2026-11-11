@@ -5,9 +5,17 @@ import { build } from 'esbuild';
 import { readWorkflow, writeWorkflow, type WorkflowNode } from './lib/workflow.ts';
 import { BUILD_ENTRIES, type BuildEntry, type CodeNodeEntry, type TextParamEntry } from './manifest.ts';
 
-export function wrapBundle(bundle: string, entry: Pick<CodeNodeEntry, 'source' | 'why'>): string {
+/** The n8n Code node mode a per-item entry's node must run in. */
+const PER_ITEM_MODE = 'runOnceForEachItem';
+
+/**
+ * Wraps an esbuild bundle as a Code node body. A default entry runs once for all items and maps
+ * the first item's `json`; a `perItem` entry runs once for each item and maps the whole item
+ * (`json` and `binary`), returning the item `run()` builds.
+ */
+export function wrapBundle(bundle: string, entry: Pick<CodeNodeEntry, 'source' | 'why' | 'perItem'>): string {
   const header = `// Why Code: ${entry.why}. Generated from ${entry.source} by pnpm run build:workflows; edit the source.`;
-  const footer = 'return [{ json: __node.run($input.first().json) }];';
+  const footer = entry.perItem ? 'return __node.run($input.item);' : 'return [{ json: __node.run($input.first().json) }];';
   return `${header}\n${bundle.trim()}\n${footer}\n`;
 }
 
@@ -100,17 +108,31 @@ function findAssignment(node: WorkflowNode, name: string, file: string): Assignm
   return found;
 }
 
-function readParamValue(node: WorkflowNode, parameter: string, file: string): unknown {
-  if (parameter.startsWith('assignments:')) return findAssignment(node, parameter.slice('assignments:'.length), file).value;
-  return getDotPath(node.parameters, parameter);
+interface ParamSlot {
+  read(): unknown;
+  write(value: string): void;
 }
 
-function writeParamValue(node: WorkflowNode, parameter: string, value: string, file: string): void {
+/**
+ * Resolves a manifest parameter address once: `assignments:<name>` is a Set node assignment's value,
+ * anything else a dot path under the node's parameters.
+ */
+function paramSlot(node: WorkflowNode, parameter: string, file: string): ParamSlot {
   if (parameter.startsWith('assignments:')) {
-    findAssignment(node, parameter.slice('assignments:'.length), file).value = value;
-    return;
+    const assignment = findAssignment(node, parameter.slice('assignments:'.length), file);
+    return {
+      read: () => assignment.value,
+      write: (value) => {
+        assignment.value = value;
+      },
+    };
   }
-  setDotPath(node.parameters, parameter, value);
+  return {
+    read: () => getDotPath(node.parameters, parameter),
+    write: (value) => {
+      setDotPath(node.parameters, parameter, value);
+    },
+  };
 }
 
 export async function buildWorkflows(opts: {
@@ -146,10 +168,11 @@ export async function buildWorkflows(opts: {
       if (isTextParam(entry)) {
         const text = readTextSource(entry.source);
         const label = `${file} › ${entry.node} › ${entry.parameter}`;
-        if (readParamValue(node, entry.parameter, file) === text) continue;
+        const slot = paramSlot(node, entry.parameter, file);
+        if (slot.read() === text) continue;
 
         if (opts.write) {
-          writeParamValue(node, entry.parameter, text, file);
+          slot.write(text);
           dirty = true;
           updated.push(label);
         } else {
@@ -158,6 +181,9 @@ export async function buildWorkflows(opts: {
         continue;
       }
 
+      if (entry.perItem && node.parameters.mode !== PER_ITEM_MODE) {
+        throw new Error(`${file} › ${entry.node} must run in mode ${PER_ITEM_MODE}, since its manifest entry is perItem`);
+      }
       const jsCode = wrapBundle(await bundleSource(entry.source), entry);
       const label = `${file} › ${entry.node}`;
       if (node.parameters.jsCode === jsCode) continue;

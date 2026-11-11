@@ -159,6 +159,30 @@
                 ]
               },
               "renameOutput": true
+            },
+            {
+              "outputKey": "ensure-folder",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "40000000-0001-4000-8000-0000000a0106",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.body.target }}",
+                    "rightValue": "ensure-folder"
+                  }
+                ]
+              },
+              "renameOutput": true
             }
           ]
         },
@@ -370,7 +394,7 @@
       "parameters": {
         "width": 1200,
         "height": 160,
-        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input } runs a fixed sub-workflow and responds with its result; an unknown target answers 404. Localhost only (no tunnel in this demo); unpublish before any production use. Targets: load-config, extract-invoice, process-invoice, intake-email, and summary-preview."
+        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input } runs a fixed sub-workflow and responds with its result; an unknown target answers 404. Localhost only (no tunnel in this demo); unpublish before any production use. Targets: load-config, extract-invoice, process-invoice, intake-email, summary-preview, and ensure-folder."
       }
     },
     {
@@ -417,6 +441,22 @@
         "options": {
           "waitForSubWorkflow": true
         }
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000016",
+      "name": "Check config for process-invoice",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        540,
+        780
+      ],
+      "notes": "Why Code: validates the loaded config so a bad value fails loudly instead of silently disabling a check",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Why Code: validates the loaded config so a bad value fails loudly instead of silently disabling a check. Generated from src/nodes/check-config.ts by pnpm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/check-config.ts\n  var check_config_exports = {};\n  __export(check_config_exports, {\n    run: () => run\n  });\n\n  // src/lib/util.ts\n  function isPlainObject(value) {\n    return typeof value === \"object\" && value !== null && !Array.isArray(value);\n  }\n\n  // src/lib/config.ts\n  var CONFIG_PLACEHOLDER = \"REPLACE_ME\";\n  function rejectPlaceholders(value, path) {\n    if (typeof value === \"string\") {\n      if (value.trim() === CONFIG_PLACEHOLDER) {\n        throw new Error(`${path} is still the ${CONFIG_PLACEHOLDER} placeholder; fill it in config/config.json`);\n      }\n    } else if (Array.isArray(value)) {\n      value.forEach((entry, index) => {\n        rejectPlaceholders(entry, `${path}[${String(index)}]`);\n      });\n    } else if (isPlainObject(value)) {\n      for (const [key, entry] of Object.entries(value)) rejectPlaceholders(entry, `${path}.${key}`);\n    }\n  }\n  var LABEL_ID_KEYS = [\"processed\", \"review\", \"duplicate\"];\n  var GOOGLE_KEYS = [\"drive_root_folder_id\", \"spreadsheet_id\", \"invoices_tab\", \"items_tab\"];\n  var EXTRACTION_KEYS = [\"min_text_chars_per_page\", \"max_pages\", \"max_text_chars\"];\n  var EFFORT_VALUES = [\"low\", \"medium\", \"high\"];\n  var TEAM_LOCALE_VALUES = [\"en\", \"es\"];\n  function asObject(value, path) {\n    if (!isPlainObject(value)) throw new Error(`${path} must be an object`);\n    return value;\n  }\n  function requireFiniteAtLeast(path, value, min) {\n    if (typeof value !== \"number\" || !Number.isFinite(value) || value < min) {\n      throw new Error(`${path} must be a finite number >= ${String(min)}`);\n    }\n  }\n  function requireNumberInRange(path, value, min, max) {\n    if (typeof value !== \"number\" || !(value >= min && value <= max)) {\n      throw new Error(`${path} must be a number between ${String(min)} and ${String(max)}`);\n    }\n  }\n  function requireIntegerAtLeast(path, value, min) {\n    if (typeof value !== \"number\" || !Number.isInteger(value) || value < min) {\n      throw new Error(`${path} must be an integer >= ${String(min)}`);\n    }\n  }\n  function requireNonEmptyString(path, value) {\n    if (typeof value !== \"string\" || value === \"\") {\n      throw new Error(`${path} must be a non-empty string`);\n    }\n  }\n  function checkConfig(config) {\n    const root = asObject(config, \"config\");\n    rejectPlaceholders(root, \"config\");\n    const validation = asObject(root.validation, \"config.validation\");\n    requireFiniteAtLeast(\"config.validation.totals_tolerance\", validation.totals_tolerance, 0);\n    requireNumberInRange(\"config.validation.min_confidence\", validation.min_confidence, 0, 1);\n    const extraction = asObject(root.extraction, \"config.extraction\");\n    for (const key of EXTRACTION_KEYS) {\n      requireIntegerAtLeast(`config.extraction.${key}`, extraction[key], 1);\n    }\n    const ai = asObject(root.ai, \"config.ai\");\n    requireNonEmptyString(\"config.ai.default_model\", ai.default_model);\n    if (typeof ai.effort !== \"string\" || !EFFORT_VALUES.includes(ai.effort)) {\n      throw new Error(`config.ai.effort must be one of ${EFFORT_VALUES.join(\", \")}`);\n    }\n    if (ai.retry_model !== void 0 && typeof ai.retry_model !== \"string\") {\n      throw new Error(\"config.ai.retry_model must be a string ('' turns the retry off)\");\n    }\n    const gmail = asObject(root.gmail, \"config.gmail\");\n    const labelIds = asObject(gmail.label_ids, \"config.gmail.label_ids\");\n    for (const key of LABEL_ID_KEYS) {\n      requireNonEmptyString(`config.gmail.label_ids.${key}`, labelIds[key]);\n    }\n    const google = asObject(root.google, \"config.google\");\n    for (const key of GOOGLE_KEYS) {\n      requireNonEmptyString(`config.google.${key}`, google[key]);\n    }\n    requireNonEmptyString(\"config.team_email\", root.team_email);\n    if (root.team_locale === void 0) {\n      root.team_locale = \"en\";\n    } else if (typeof root.team_locale !== \"string\" || !TEAM_LOCALE_VALUES.includes(root.team_locale)) {\n      throw new Error(`config.team_locale must be one of ${TEAM_LOCALE_VALUES.join(\", \")}`);\n    }\n    return config;\n  }\n\n  // src/nodes/check-config.ts\n  function run(input) {\n    return { config: checkConfig(input.config) };\n  }\n  return __toCommonJS(check_config_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
       }
     },
     {
@@ -650,6 +690,58 @@
           "waitForSubWorkflow": true
         }
       }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000017",
+      "name": "Call ensure-folder",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        1200
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpEnsureFolder1"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "parent_id": "={{ $json.body.input.parent_id }}",
+            "name": "={{ $json.body.input.name }}"
+          },
+          "schema": [
+            {
+              "id": "parent_id",
+              "displayName": "parent_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "name",
+              "displayName": "name",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
     }
   ],
   "connections": {
@@ -708,6 +800,13 @@
         ],
         [
           {
+            "node": "Call ensure-folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
             "node": "Respond unknown target",
             "type": "main",
             "index": 0
@@ -752,9 +851,9 @@
       "main": [
         [
           {
-            "node": "Attach config to PDF",
+            "node": "Check config for process-invoice",
             "type": "main",
-            "index": 1
+            "index": 0
           }
         ]
       ]
@@ -815,6 +914,28 @@
       ]
     },
     "Call daily-summary": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check config for process-invoice": {
+      "main": [
+        [
+          {
+            "node": "Attach config to PDF",
+            "type": "main",
+            "index": 1
+          }
+        ]
+      ]
+    },
+    "Call ensure-folder": {
       "main": [
         [
           {

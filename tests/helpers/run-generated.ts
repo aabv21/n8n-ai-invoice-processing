@@ -10,3 +10,9 @@ export function runGenerated(jsCode: string, json: unknown): unknown {
   };
   return runInNewContext(`(function () {\n${jsCode}\n})()`, sandbox) as unknown;
 }
+
+/** Runs a per-item (`runOnceForEachItem`) Code node's `jsCode` on one whole item, exposed as `$input.item`. */
+export function runGeneratedItem(jsCode: string, item: unknown): unknown {
+  const sandbox = { $input: { item }, DateTime };
+  return runInNewContext(`(function () {\n${jsCode}\n})()`, sandbox) as unknown;
+}

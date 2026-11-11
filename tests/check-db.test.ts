@@ -102,6 +102,7 @@ describe('workflow statements', () => {
     expect(statements.map(key).sort()).toEqual([
       'daily-summary.json › Query summary',
       'intake-email.json › Record event',
+      'process-invoice.json › Look up the original',
       'process-invoice.json › Record duplicate',
       'process-invoice.json › Record outcome',
       'process-invoice.json › Save Drive link',

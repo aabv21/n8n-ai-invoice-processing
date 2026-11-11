@@ -106,6 +106,45 @@ test('a genuine re-send (same key, same total and issue date) returns values tha
   expect(Number(row.duplicate_of_total)).toBe(genuine.total);
   expect(row.duplicate_of_issue_date).toBe(genuine.issue_date);
 });
+// Two emails carrying the same new invoice in one poll: the second save blocks on the first's
+// uncommitted row, then finds the conflict, but its statement snapshot predates the first's
+// commit, so it can't name the original. The workflow labels this Duplicate, not Review.
+test('a save racing an uncommitted save of the same key returns no duplicate_of', async () => {
+  const text = readFileSync('db/queries/save-invoice.sql', 'utf8');
+  const params = (event: string) => [
+    event, event.split(':')[0], '2026-10-30T15:00:00Z', 'ok', '[]', 'text', 'claude-haiku-5-5', '1',
+    JSON.stringify(VALID_INVOICE), null, 'race.pdf', '2026/10'];
+  const clientA = await db.connect();
+  try {
+    await clientA.query('BEGIN');
+    await clientA.query(text, params('race-a:attachment_0'));
+    const raceB = db.sql<SaveRow>(text, params('race-b:attachment_0'));
+    // Wait until B is blocked on A's uncommitted row (a lock it hasn't been granted).
+    for (let tries = 0; ; tries++) {
+      const [waiting] = await db.sql<{ n: number }>('SELECT count(*)::int AS n FROM pg_locks WHERE NOT granted');
+      if (waiting!.n > 0) break;
+      if (tries === 100) throw new Error('the racing save never blocked on the first save');
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    await clientA.query('COMMIT');
+    expect((await raceB)[0]).toEqual({
+      saved: false, invoice_id: null, duplicate_of: null, duplicate_of_total: null, duplicate_of_issue_date: null, item_count: 0,
+    });
+    // The workflow's next statement takes a new snapshot, which does see the committed original.
+    const [original] = await db.sql<{ id: string }>("SELECT id FROM invoices WHERE source_event_id = 'race-a:attachment_0'");
+    expect(await db.run('find-original.sql', [VALID_INVOICE.supplier_tax_id, VALID_INVOICE.invoice_number])).toEqual([
+      { id: original!.id, total: '2082500.00', issue_date: VALID_INVOICE.issue_date }]);
+  } finally {
+    clientA.release();
+  }
+});
+test('find-original returns one row of NULLs when no invoice holds the key', async () =>
+  expect(await db.run('find-original.sql', ['9013845522', 'NO-SUCH-NUMBER'])).toEqual([{ id: null, total: null, issue_date: null }]));
+test('record-outcome stores an empty invoice id as NULL', async () => {
+  await db.run('record-event.sql', ['ev', 'ev.pdf']);
+  expect(await db.run('record-outcome.sql', ['ev', 'duplicate', ''])).toEqual([{ event_id: 'ev', outcome: 'duplicate' }]);
+  expect(await db.sql("SELECT invoice_id FROM processed_events WHERE event_id = 'ev'")).toEqual([{ invoice_id: null }]);
+});
 test('saving the same event twice returns the first invoice', async () => {
   const first = await save('m1:attachment_0');
   expect(await save('m1:attachment_0')).toEqual({
@@ -207,7 +246,7 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
       event, event.split(':')[0], receivedAt, status, reviewReasons,
       'text', 'claude-haiku-5-5', 1, invoice, null, `${event}.pdf`, '2026/06',
     ]))[0]!;
-    await db.run('record-outcome.sql', [event, status, row.invoice_id]);
+    expect(await db.run('record-outcome.sql', [event, status, row.invoice_id])).toEqual([{ event_id: event, outcome: status }]);
     return row;
   };
 
@@ -243,7 +282,8 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
       'dup:attachment_0', 'dup', '2026-06-15T09:00:00Z', 'ok', '[]', 'text', 'claude-haiku-5-5', 1,
       { ...VALID_INVOICE, invoice_number: 'BE-1002' }, null, 'dup.pdf', '2026/06',
     ]))[0]!;
-    await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]);
+    expect(await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]))
+      .toEqual([{ event_id: 'dup:attachment_0', outcome: 'duplicate' }]);
 
     // Stuck for two hours: counts as unfinished. Stuck for five minutes: still within the grace period.
     await db.run('record-event.sql', ['stuck:attachment_0', 'stuck.pdf']);
@@ -270,12 +310,14 @@ test('the scenario report joins events, invoices, items, and duplicates', async 
   await db.run('record-event.sql', ['orig:attachment_0', 'invoice-01-two-items.pdf']);
   await setReceivedAt('orig:attachment_0', '2026-10-30T15:00:00Z');
   const original = await save('orig:attachment_0', VALID_INVOICE, 'ok');
-  await db.run('record-outcome.sql', ['orig:attachment_0', 'ok', original.invoice_id]);
+  expect(await db.run('record-outcome.sql', ['orig:attachment_0', 'ok', original.invoice_id]))
+    .toEqual([{ event_id: 'orig:attachment_0', outcome: 'ok' }]);
 
   await db.run('record-event.sql', ['dup:attachment_0', 'invoice-06-copy-of-01.pdf']);
   await setReceivedAt('dup:attachment_0', '2026-10-30T16:00:00Z');
   const dup = await save('dup:attachment_0', VALID_INVOICE, 'ok');
-  await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]);
+  expect(await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]))
+    .toEqual([{ event_id: 'dup:attachment_0', outcome: 'duplicate' }]);
 
   const sql = readFileSync('scripts/sql/scenario-report.sql', 'utf8');
   const [row] = await db.sql<{ report: unknown[] }>(sql, [since]);

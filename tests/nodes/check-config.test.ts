@@ -1,9 +1,8 @@
-import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
-import type { Config } from '../../src/lib/config.ts';
 import { run } from '../../src/nodes/check-config.ts';
+import { filledConfig } from '../fixtures/config.ts';
 
-const VALID = JSON.parse(readFileSync('config/config.example.json', 'utf8')) as Config;
+const VALID = filledConfig();
 
 test('passes the loaded config through once checked', () => expect(run({ config: VALID })).toEqual({ config: VALID }));
 test('a bad config fails loudly instead of passing through unchecked', () =>

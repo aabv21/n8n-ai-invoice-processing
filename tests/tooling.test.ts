@@ -2,7 +2,7 @@ import { cpSync, mkdtempSync, readdirSync, readFileSync } from 'node:fs';
 import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
-import { buildWorkflows, hardenAgainstFrozenDefineProperty } from '../scripts/build-workflows.ts';
+import { buildWorkflows, hardenAgainstFrozenDefineProperty, wrapBundle } from '../scripts/build-workflows.ts';
 import { checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows.ts';
 import { normalizeWorkflow } from '../scripts/export-workflows.ts';
 import { missingTriggerCredentials } from '../scripts/import-workflows.ts';
@@ -161,6 +161,13 @@ test('generated code carries the header and footer', async () => {
   expect(lines[0]).toBe('// Why Code: fixture. Generated from tests/fixtures/nodes/double-value.ts by pnpm run build:workflows; edit the source.');
   expect(lines.at(-1)).toBe('return [{ json: __node.run($input.first().json) }];');
 });
+test('a per-item Code node returns run($input.item)', () => {
+  const lines = wrapBundle('var __node = {};', { source: 'src/nodes/x.ts', why: 'fixture', perItem: true }).trimEnd().split('\n');
+  expect(lines.at(-1)).toBe('return __node.run($input.item);');
+});
+test("a per-item entry on a node that doesn't run once for each item is an error", async () =>
+  await expect(buildWorkflows({ dir: tempCopy(), entries: [{ ...entry, perItem: true }], write: true }))
+    .rejects.toThrow('clean.json › Double value must run in mode runOnceForEachItem, since its manifest entry is perItem'));
 test('check mode reports a stale node and write mode fixes it', async () => {
   const dir = tempCopy();
   expect((await buildWorkflows({ dir, entries: [entry], write: false })).stale).toEqual(['clean.json › Double value']);

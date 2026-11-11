@@ -12,6 +12,8 @@ const execFileAsync = promisify(execFile);
 export interface TestDb {
   run<T>(queryFile: string, params: unknown[]): Promise<T[]>;
   sql<T>(text: string, params?: unknown[]): Promise<T[]>;
+  /** A client from the runtime pool, for a test that needs its own explicit `BEGIN`/`COMMIT`. The caller releases it. */
+  connect(): Promise<pg.PoolClient>;
   reset(): Promise<void>;
   close(): Promise<void>;
 }
@@ -101,6 +103,9 @@ export async function openTestDb(): Promise<TestDb> {
     async sql<T>(text: string, params: unknown[] = []): Promise<T[]> {
       const { rows } = await runtimePool.query(text, params);
       return rows as T[];
+    },
+    connect(): Promise<pg.PoolClient> {
+      return runtimePool.connect();
     },
     async reset(): Promise<void> {
       await superPool.query('TRUNCATE invoices, invoice_items, processed_events RESTART IDENTITY CASCADE');
