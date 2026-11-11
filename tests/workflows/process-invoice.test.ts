@@ -1,5 +1,6 @@
-import { expect, test } from 'vitest';
+import { describe, expect, test } from 'vitest';
 import { listJsonFiles, readWorkflow, type WorkflowNode } from '../../scripts/lib/workflow.ts';
+import { evaluateExpression, evaluateSegments } from '../helpers/expression.ts';
 import { nodeOf, sourcesOf, workflowFile } from '../helpers/workflow-file.ts';
 
 interface MainConnections {
@@ -53,7 +54,7 @@ test('both position merges resolve a field clash in favor of the later input', (
 test('the duplicate, retry, and page-count decisions route true/false to the documented branches', () => {
   const connections = wf.connections as Record<string, MainConnections>;
   const expected: Record<string, readonly [string, string]> = {
-    'Is duplicate?': ['Is duplicate conflicting?', 'Ensure year folder'],
+    'Is duplicate?': ['Look up the original', 'Ensure year folder'],
     'Is duplicate conflicting?': ['Label as review (conflicting duplicate)', 'Label as duplicate'],
     'Needs retry?': ['Attach PDF for retry', 'Prepare record'],
     'Too many pages?': ['Skip: too many pages', 'Extract with default model'],
@@ -68,21 +69,62 @@ test('a conflicting duplicate (different total or issue date) gets the Review la
   const conditions = nodeOf(wf, 'Is duplicate conflicting?').parameters.conditions as { combinator: string; conditions: { leftValue: string }[] };
   expect(conditions.combinator).toBe('or');
   const leftValues = conditions.conditions.map((c) => c.leftValue).join(' ');
-  expect(leftValues).toContain("$('Save invoice').first().json.duplicate_of_total");
-  expect(leftValues).toContain("$('Save invoice').first().json.duplicate_of_issue_date");
+  expect(leftValues).toContain("$('Look up the original').first().json.total");
+  expect(leftValues).toContain("$('Look up the original').first().json.issue_date");
   expect(leftValues).toContain('.invoice.total');
   expect(leftValues).toContain('.invoice.issue_date');
 });
-// save-invoice.sql returns duplicate_of_issue_date as YYYY-MM-DD text, so the IF compares it
-// directly, with no String(...).slice(0, 10) workaround for a JS Date.
+// find-original.sql returns issue_date as YYYY-MM-DD text, so the IF compares it directly, with no
+// String(...).slice(0, 10) workaround for a JS Date.
 test('the issue-date comparison compares the SQL-formatted string directly, with no Date coercion', () => {
   const conditions = nodeOf(wf, 'Is duplicate conflicting?').parameters.conditions as { conditions: { leftValue: string }[] };
-  const dateCondition = conditions.conditions.find((c) => c.leftValue.includes('duplicate_of_issue_date'));
+  const dateCondition = conditions.conditions.find((c) => c.leftValue.includes('.issue_date'));
   expect(dateCondition?.leftValue).not.toContain('String(');
   expect(dateCondition?.leftValue).not.toContain('.slice(');
   expect(dateCondition?.leftValue).toBe(
-    "={{ $('Save invoice').first().json.duplicate_of_issue_date !== $('Prepare record').first().json.invoice.issue_date }}",
+    "={{ $('Look up the original').first().json.issue_date !== $('Prepare record').first().json.invoice.issue_date }}",
   );
+});
+
+// The save statement's snapshot can miss an original that a concurrent save committed (two copies
+// in one poll), so every duplicate is compared against its original read back in a new statement.
+test('a duplicate looks up its original in a new statement before the comparison', () => {
+  expect(sourcesOf(wf, 'Look up the original', 0)).toEqual(['Is duplicate?']);
+  expect(sourcesOf(wf, 'Is duplicate conflicting?', 0)).toEqual(['Look up the original']);
+  const lookup = nodeOf(wf, 'Look up the original');
+  expect(lookup).toMatchObject({ type: 'n8n-nodes-base.postgres', typeVersion: 2.8, retryOnFail: true, maxTries: 3, waitBetweenTries: 1000 });
+  const queryReplacement = (lookup.parameters.options as { queryReplacement: string }).queryReplacement;
+  expect(evaluateSegments(queryReplacement, {
+    nodes: { 'Prepare record': { invoice: { supplier_tax_id: '9013845522', invoice_number: 'BE-2041' } } },
+  })).toEqual(['9013845522', 'BE-2041']);
+});
+
+describe('Is duplicate conflicting?', () => {
+  const conditions = () => (nodeOf(wf, 'Is duplicate conflicting?').parameters.conditions as { conditions: { leftValue: string }[] })
+    .conditions.map((c) => c.leftValue);
+  const PREPARED = { invoice: { total: 2082500, issue_date: '2026-10-03' } };
+  const conflicting = (original: Record<string, unknown>) =>
+    conditions().some((leftValue) => evaluateExpression(leftValue, { nodes: { 'Look up the original': original, 'Prepare record': PREPARED } }) === true);
+
+  // A genuine re-send, or a copy that raced the original in the same poll: the lookup runs after
+  // the race, so it sees the winner's committed row and the values agree.
+  test('a duplicate, racing or not, with a matching total and date is not conflicting', () =>
+    expect(conflicting({ id: '7', total: '2082500.00', issue_date: '2026-10-03' })).toBe(false));
+  test('a duplicate, racing or not, with a different total or issue date is conflicting', () => {
+    expect(conflicting({ id: '7', total: '3082500.00', issue_date: '2026-10-03' })).toBe(true);
+    expect(conflicting({ id: '7', total: '2082500.00', issue_date: '2026-10-04' })).toBe(true);
+  });
+  // Fail closed: a duplicate whose original can't be read back goes to a person, never to Duplicate.
+  test('a duplicate whose original is not found is conflicting', () =>
+    expect(conflicting({ id: null, total: null, issue_date: null })).toBe(true));
+});
+test('Record duplicate links the original it looked up, or sends an empty id when there was none', () => {
+  const queryReplacement = (nodeOf(wf, 'Record duplicate').parameters.options as { queryReplacement: string }).queryReplacement;
+  const values = (id: unknown) => evaluateSegments(queryReplacement, {
+    nodes: { 'When called': { event_id: 'm2:attachment_0' }, 'Look up the original': { id } },
+  });
+  expect(values('7')).toEqual(['m2:attachment_0', 'duplicate', '7']);
+  expect(values(null)).toEqual(['m2:attachment_0', 'duplicate', '']);
 });
 test('a conflicting duplicate still records the duplicate outcome, linked to the original', () => {
   const connections = wf.connections as Record<string, MainConnections>;
@@ -117,11 +159,28 @@ test('the duplicate and outcome paths anchor to their actual source node, not a 
   // that replaces $json with its own API response, so the value they need is no longer on the
   // current item - it has to be read back from the node that actually produced it.
   const recordDuplicate = nodeOf(wf, 'Record duplicate').parameters.options as { queryReplacement?: string };
-  expect(recordDuplicate.queryReplacement).toContain("$('Save invoice').first().json.duplicate_of");
+  expect(recordDuplicate.queryReplacement).toContain("$('Look up the original').first().json.id");
 
   const labelEmail = nodeOf(wf, 'Label email').parameters.labelIds;
   expect(String(labelEmail)).toContain("$('Save Drive link').first().json.invoice");
 
   const recordOutcome = nodeOf(wf, 'Record outcome').parameters.options as { queryReplacement?: string };
   expect(recordOutcome.queryReplacement).toContain("$('Save Drive link').first().json.invoice");
+});
+
+// The text-or-vision decision stays an expression (native-first), so its edges are pinned here:
+// non-whitespace characters per page against min_text_chars_per_page.
+describe("Extract with default model's path", () => {
+  const path = () =>
+    ((nodeOf(wf, 'Extract with default model').parameters.workflowInputs as { value: Record<string, string> }).value.path)!;
+  const route = (text: string, numpages = 1) =>
+    evaluateExpression(path(), { json: { text, numpages, config: { extraction: { min_text_chars_per_page: 100 } } } });
+
+  test('a page with exactly min_text_chars_per_page non-whitespace characters takes the text path', () => {
+    expect(route('x'.repeat(100))).toBe('text');
+    expect(route('x'.repeat(99))).toBe('vision');
+    expect(route('x'.repeat(199), 2)).toBe('vision');
+  });
+  test("whitespace doesn't count toward the text path", () => expect(route('x'.repeat(99) + ' '.repeat(500) + '\n\t')).toBe('vision'));
+  test('accented characters count as text', () => expect(route('í'.repeat(100))).toBe('text'));
 });

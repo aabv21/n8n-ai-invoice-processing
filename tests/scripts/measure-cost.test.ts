@@ -1,6 +1,10 @@
-import { expect, test } from 'vitest';
+import { afterEach, expect, test, vi } from 'vitest';
 import { costUsd } from '../../scripts/lib/pricing.ts';
-import { parseArgs, summarizeCosts } from '../../scripts/measure-cost.ts';
+import { fetchPage, parseArgs, summarizeCosts } from '../../scripts/measure-cost.ts';
+
+afterEach(() => {
+  vi.unstubAllGlobals();
+});
 
 const exec = (event_id: string, path: string, model: string, attempt: number, calls: { chat?: [number, number][]; http?: [number, number] }) => ({
   data: { resultData: { runData: {
@@ -40,3 +44,10 @@ test.each([
   '2026-1-1T00:00:00Z',
   'x; \\! ls',
 ])('an invalid --since %s is rejected', (value) => expect(() => parseArgs(['--since', value])).toThrow(/--since/));
+
+// A bare status code hides why n8n refused: the body says whether the key is wrong or missing a scope.
+test('an API error keeps the response body', async () => {
+  vi.stubGlobal('fetch', vi.fn(() => Promise.resolve(new Response('{"message":"unauthorized"}', { status: 401 }))));
+  await expect(fetchPage('http://localhost:5678', 'bad-key', undefined))
+    .rejects.toThrow('n8n API returned 401 for /api/v1/executions: {"message":"unauthorized"}');
+});

@@ -45,7 +45,7 @@
         "resource": "fileFolder",
         "operation": "search",
         "searchMethod": "query",
-        "queryString": "={{ \"name = '\" + $('When called').first().json.name + \"' and '\" + $('When called').first().json.parent_id + \"' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}",
+        "queryString": "={{ \"name = '\" + $('When called').first().json.name.replaceAll('\\\\', '\\\\\\\\').replaceAll(\"'\", \"\\\\'\") + \"' and '\" + $('When called').first().json.parent_id.replaceAll('\\\\', '\\\\\\\\').replaceAll(\"'\", \"\\\\'\") + \"' in parents and mimeType = 'application/vnd.google-apps.folder' and trashed = false\" }}",
         "returnAll": false,
         "limit": 1,
         "filter": {},
@@ -159,21 +159,6 @@
         "width": 1200,
         "height": 160,
         "content": "## Ensure folder\nReturns the Drive folder id for name directly under parent_id, creating it first if it doesn't already exist. Find folder always returns an item, even on zero matches, so Folder exists? can tell \"not found\" from \"found\" instead of the branch silently stopping."
-      }
-    },
-    {
-      "id": "30000000-0000-4000-8000-000000000007",
-      "name": "Sticky Note1",
-      "type": "n8n-nodes-base.stickyNote",
-      "typeVersion": 1,
-      "position": [
-        100,
-        460
-      ],
-      "parameters": {
-        "width": 500,
-        "height": 180,
-        "content": "NOTE: the query concatenates name and parent_id into the Drive query string with no quote escaping. Safe only because every caller passes digits (a year or month folder name) or a Drive-assigned id, never free text. Upgrade path: escape ' as \\' and \\ as \\\\ before interpolating, if a caller ever passes arbitrary text."
       }
     },
     {

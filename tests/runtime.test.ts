@@ -31,7 +31,7 @@ test('the test database is local and opt-in', () => {
   expect(service('testdb')).toContain('127.0.0.1:55432:5432');
 });
 test('config example carries the spec values', () => expect(config).toEqual({
-  team_email: 'team@example.com',
+  team_email: 'REPLACE_ME',
   team_locale: 'en',
   gmail: { label_ids: { processed: 'REPLACE_ME', review: 'REPLACE_ME', duplicate: 'REPLACE_ME' } },
   google: { drive_root_folder_id: 'REPLACE_ME', spreadsheet_id: 'REPLACE_ME', invoices_tab: 'Invoices', items_tab: 'Items' },

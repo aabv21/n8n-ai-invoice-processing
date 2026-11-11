@@ -12,6 +12,8 @@ const execFileAsync = promisify(execFile);
 export interface TestDb {
   run<T>(queryFile: string, params: unknown[]): Promise<T[]>;
   sql<T>(text: string, params?: unknown[]): Promise<T[]>;
+  /** A client from the runtime pool, for a test that needs its own explicit `BEGIN`/`COMMIT`. The caller releases it. */
+  connect(): Promise<pg.PoolClient>;
   reset(): Promise<void>;
   close(): Promise<void>;
 }
@@ -27,8 +29,7 @@ function bind(value: unknown): unknown {
     throw new Error('array parameters are not supported; pass JSON.stringify(...) instead, the way the workflow does');
   }
   if (typeof value === 'object') return JSON.stringify(value);
-  // By this point value is a primitive (object, array, null, and undefined are all handled above).
-  // eslint-disable-next-line @typescript-eslint/no-base-to-string -- see above
+  // eslint-disable-next-line @typescript-eslint/no-base-to-string -- value is a primitive here; objects, arrays and nullish values returned above
   return String(value);
 }
 
@@ -101,6 +102,9 @@ export async function openTestDb(): Promise<TestDb> {
     async sql<T>(text: string, params: unknown[] = []): Promise<T[]> {
       const { rows } = await runtimePool.query(text, params);
       return rows as T[];
+    },
+    connect(): Promise<pg.PoolClient> {
+      return runtimePool.connect();
     },
     async reset(): Promise<void> {
       await superPool.query('TRUNCATE invoices, invoice_items, processed_events RESTART IDENTITY CASCADE');

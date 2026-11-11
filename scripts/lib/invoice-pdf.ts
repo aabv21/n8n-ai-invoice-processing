@@ -83,6 +83,7 @@ export async function renderInvoicePdf(sample: SampleInvoice, baseDate: string):
   doc.setCreator(PRODUCER);
   doc.setCreationDate(fixedDate);
   doc.setModificationDate(fixedDate);
+  // NOTE: Helvetica is a WinAnsi standard font, so sample text is limited to WinAnsi characters and pdf-lib throws on anything else. Upgrade path: embed a TTF through `@pdf-lib/fontkit`.
   const font = await doc.embedFont(StandardFonts.Helvetica);
 
   pages.forEach((pageRows, pageIndex) => {

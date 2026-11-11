@@ -19,6 +19,8 @@ export interface CodeNodeEntry {
   node: string;
   source: string;
   why: string;
+  /** The node runs once for each item (`runOnceForEachItem`), and `run()` takes and returns the whole item, binary included. */
+  perItem?: true;
 }
 
 export interface TextParamEntry {
@@ -130,6 +132,19 @@ export const CODE_NODES: readonly CodeNodeEntry[] = [
     why: 'validates the loaded config so a bad value fails loudly instead of silently disabling a check',
   },
   {
+    file: 'dev-harness.json',
+    node: 'Check config for process-invoice',
+    source: 'src/nodes/check-config.ts',
+    why: 'validates the loaded config so a bad value fails loudly instead of silently disabling a check',
+  },
+  {
+    file: 'intake-email.json',
+    node: 'Mark as PDF',
+    source: 'src/nodes/mark-as-pdf.ts',
+    why: "rewrites the attachment's binary MIME type, which no native node can change",
+    perItem: true,
+  },
+  {
     file: 'daily-summary.json',
     node: 'Render summary',
     source: 'src/nodes/render-summary.ts',
@@ -149,6 +164,7 @@ export const TEXT_PARAMS: readonly TextParamEntry[] = [
   { file: 'extract-invoice.json', node: 'Request settings', parameter: 'assignments:system', source: 'prompts/extract-invoice.md' },
   { file: 'extract-invoice.json', node: 'Request settings', parameter: 'assignments:schema_json', source: 'schemas/invoice.schema.json' },
   { file: 'process-invoice.json', node: 'Save invoice', parameter: 'query', source: 'db/queries/save-invoice.sql' },
+  { file: 'process-invoice.json', node: 'Look up the original', parameter: 'query', source: 'db/queries/find-original.sql' },
   { file: 'process-invoice.json', node: 'Record duplicate', parameter: 'query', source: 'db/queries/record-outcome.sql' },
   { file: 'process-invoice.json', node: 'Save Drive link', parameter: 'query', source: 'db/queries/save-drive-link.sql' },
   { file: 'process-invoice.json', node: 'Record outcome', parameter: 'query', source: 'db/queries/record-outcome.sql' },

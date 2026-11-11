@@ -176,12 +176,13 @@ export function summarizeCosts(executions: unknown[]): CostRow[] {
     .concat(summarizeOnePath('all', invoices));
 }
 
-interface ExecutionsPage {
+export interface ExecutionsPage {
   data: unknown[];
   nextCursor: string | null;
 }
 
-async function fetchPage(n8nUrl: string, apiKey: string, cursor: string | undefined): Promise<ExecutionsPage> {
+/** One page of extract-invoice's executions, with their data. A non-OK response throws with n8n's own body, cut to 500 characters. */
+export async function fetchPage(n8nUrl: string, apiKey: string, cursor: string | undefined): Promise<ExecutionsPage> {
   const url = new URL('/api/v1/executions', n8nUrl);
   url.searchParams.set('workflowId', EXTRACT_INVOICE_WORKFLOW_ID);
   url.searchParams.set('includeData', 'true');
@@ -189,7 +190,10 @@ async function fetchPage(n8nUrl: string, apiKey: string, cursor: string | undefi
   if (cursor !== undefined) url.searchParams.set('cursor', cursor);
 
   const res = await fetch(url, { headers: { 'X-N8N-API-KEY': apiKey } });
-  if (!res.ok) throw new Error(`n8n API returned ${String(res.status)} for ${url.pathname}`);
+  if (!res.ok) {
+    const body = await res.text();
+    throw new Error(`n8n API returned ${String(res.status)} for ${url.pathname}: ${body.slice(0, 500)}`);
+  }
   return res.json() as Promise<ExecutionsPage>;
 }
 
