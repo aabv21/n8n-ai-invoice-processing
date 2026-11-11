@@ -4,104 +4,243 @@
 
 An n8n workflow that reads supplier invoices from Gmail, extracts them with Claude, files each PDF in Google Drive, lists it in Google Sheets, and flags doubtful ones for review.
 
+**Status:** complete and verified offline, through the unit, workflow, and database suites and the local stack. The [live checks](#live-checks) below run once the Google and Anthropic accounts are connected.
+
+## Video
+
+Added after recording.
+
 ![Architecture: Gmail feeds gmail-entry and intake-email; process-invoice saves each invoice to Postgres, files the PDF in Google Drive, lists it in Google Sheets, and labels the email; extract-invoice calls Anthropic](docs/diagrams/architecture.svg)
 
-[docs/architecture.md](docs/architecture.md) explains how each part works, what happens when one fails and how to recover, where the stack stops scaling, and why each design choice beat its alternative. [docs/red-team.md](docs/red-team.md) covers the invoice PDF as untrusted input: the attack surface map, the adversarial fixtures in `samples/adversarial/`, and the procedure for running them against the real models once the live accounts are connected.
+## What it does
 
-## Status
+- Polls Gmail every minute for mail labeled `Invoices` with a PDF attachment, and records each attachment once, so a re-delivered email is never processed twice.
+- Reads each PDF's text layer locally and sends it to Claude Haiku 5.5 as text, or sends the PDF itself when it has no usable text, such as a scan.
+- Checks totals, line items, dates, and the model's confidence, and retries a doubtful invoice once on Claude Sonnet 5.5.
+- Saves the invoice and its line items in Postgres, once per email and once per supplier invoice number, so a re-sent invoice becomes a `Duplicate`.
+- Files the PDF in Google Drive under `Invoices/<yyyy>/<mm>`, lists the invoice and its items in Google Sheets, and labels the email `Processed`, `Review`, or `Duplicate`.
+- Emails the team a summary at 18:00 Bogota time: counts, totals by supplier, the invoices to review, what falls due in the next 7 days, and any event that didn't finish.
 
-In progress: local runtime, toolchain, workflow tooling, the invoice extraction contract, the sample invoices, the SQL the workflow will run, the platform workflows (config loading, error alerts, Drive folder lookup), the `extract-invoice` workflow (text and PDF extraction, routed by path), the `process-invoice` workflow (extraction with a retry, saving, Drive filing, listing each invoice and its line items in Sheets, and labeling the source email), the `intake-email` workflow (a config check and an idempotency gate before any invoice is processed, called once per poll with every new email), the `gmail-entry` workflow (a thin polling entry point that just hands its poll to `intake-email`), the `daily-summary` workflow (an 18:00 Bogota email of the last rolling 24 hours, previewable through the dev harness), a localhost dev harness for exercising the others without the Gmail poll, a scenario check and cost measurement for the live integration check, an optional queue-mode override for running executions off the main process, and the architecture doc with its system and sequence diagrams.
-
-### What works now
-
-- A strict TypeScript toolchain: `typecheck`, `lint`, and `test` scripts.
-- The local runtime: Postgres and n8n in Docker Compose, with separate, least-privilege database roles for n8n and the application, and the app database's time zone set to `America/Bogota`.
-- The application schema (`db/schema.sql`): `invoices`, `invoice_items`, and `processed_events`. Every change after the baseline ships as a file in `db/migrations/`, applied by `pnpm run db:migrate` (which `pnpm run setup` runs first) and proven by `node scripts/check-db.ts`; see `docs/database.md`.
-- A config template (`config/config.example.json`) for the values the workflows will read at runtime.
-- Workflow tooling: `pnpm run build:workflows` compiles Code-node sources and writes generated text parameters (SQL queries, prompts, schemas) into workflow JSON; `pnpm run check` runs hygiene checks (no pinned data, no literal secrets or ids, every external call retries, every generated value really is generated); `pnpm run setup` and `pnpm run export` import, publish, and export workflows and credentials against the local n8n instance. Verified both against the tooling's own fixtures and end to end against the real workflows: two back-to-back `setup` + `export` rounds produce an identical `workflows/` directory.
-- Three platform workflows: `load-config` (reads and parses `/files/config/config.json` into `{ config }`, with Always Output Data on the read step so a missing file reaches the parse step as an item with no binary data and throws instead of stopping silently), `error-handler` (the shared error workflow: loads config, then emails the team a plain-text alert naming the failed node, the error, the execution URL, and the Bogota time, in the language `team_locale` names — the generated `Render error alert` Code node, `src/nodes/error-alert.ts`, picks the `{ en, es }` message table), and `ensure-folder` (finds or creates a Drive folder by exact name under a parent, always returning a `folder_id`). `load-config`'s happy path and its missing-config failure are both verified offline through the dev harness. `error-handler` and `ensure-folder` are validated (no errors from an n8n-aware validation tool) and published to the local instance, but their Gmail and Drive calls need real credentials.
-- A localhost-only dev harness (`workflows/dev-harness.json`, called through `node scripts/dev-call.ts <target> '<json>'`): a token-protected webhook that routes by `target` to a fixed sub-workflow. Verified offline: `load-config` runs end to end and returns `{ config }`; `extract-invoice`'s text path, called with no working Anthropic credential, fails the execution loudly and never returns `status: 'ok'`; `process-invoice` (see below) runs its unreadable-PDF branch end to end against real Postgres and is replay-safe; `intake-email` (see below) runs its full idempotency gate end to end against real Postgres, with the PDF binary crossing an Execute Workflow boundary intact; `summary-preview` (see `daily-summary` below) returns a rendered, escaped preview against real Postgres on both an empty day and a seeded one; an unknown target answers `404 {"error":"unknown_target"}`; a request without the dev token is rejected. Localhost only (no tunnel in this demo) and must be unpublished before any production use.
-- The invoice extraction contract: `schemas/invoice.schema.json` (the structured-output JSON Schema) and `prompts/extract-invoice.md` (the extraction system prompt), plus the pure TypeScript that turns a model reply into a checked result (`src/lib/invoice.ts`, `parse-reply.ts`, `normalize-invoice.ts`, `validate-invoice.ts`, `file-name.ts`, `util.ts`) and the two Code-node sources: `check-invoice.ts` (used by both extraction paths) and `build-pdf-request.ts` (the vision path's request body, which also refuses, before the call, a PDF too large for the first-party Messages API's 128 MB request limit, about 95.3 MB of PDF). All verified offline by Vitest, and now wired into the `extract-invoice` workflow below.
-- The `extract-invoice` workflow (`workflows/extract-invoice.json`): routes on `path` to a text branch (an Information Extractor reading already-extracted text through an Anthropic Chat Model sub-node, adaptive thinking, no sampling parameters) or a PDF branch (encodes the PDF to base64, builds a Messages API request with a document block and structured output, and posts it to the Anthropic API with the predefined credential, 120 s timeout), and both branches converge on the generated check that applies the review rules; an unmatched `path` is rejected loudly by a Stop and Error node instead of ending the execution with zero items. Rule failures, and a refusal or truncation on the PDF path, come back as `status: 'review'` (see Limitations for the Information Extractor's different failure mode, by design). Validated (no errors from an n8n-aware validation tool) and published to the local instance; two back-to-back `setup` + `export` rounds produce an identical `workflows/` directory. Verified offline through the dev harness: the text path, called with no working Anthropic credential, fails loudly and never returns `status: 'ok'`.
-- Sample invoices for testing and demos (`pnpm run samples`; `scripts/lib/sample-invoices.ts`, `scripts/lib/invoice-pdf.ts`): six PDFs in `samples/` — two short COP invoices, a ten-item COP invoice spanning three pages, a USD invoice, an image-only scanned invoice, one whose printed total doesn't match its own lines, and a byte-for-byte duplicate — plus the extraction result each one should produce (`samples/expected.json`). All verified offline by Vitest: the five text invoices regenerate byte for byte from their recorded base date, the scanned invoice carries no text layer and renders from a real page image, and every printed Colombian tax ID fails the DIAN check digit.
-- Adversarial fixtures for the AI red team (`pnpm run adversarial`; `scripts/generate-adversarial-samples.ts`): 17 PDFs in `samples/adversarial/` built from the attack surface map in `docs/red-team.md` — hidden-text injections that plant an instruction override, a wrong header total, a zeroed or negated total, an out-of-range amount, an unaccepted currency, a year-0000 date, a system-prompt-extraction attempt, an off-schema phishing reply, and a false confidence claim; a line that disagrees with its own header; a self-consistent currency restatement; a ~600,000-character text-length attack; a conflicting-duplicate pair (a forged copy, then the genuine invoice); an image-only PDF with a planted, extractable text layer; and an image-only PDF carrying the same hidden text to confirm it never survives rasterization — plus the attack, every safe Gmail label and saved-record outcome, and the guard each one exercises (`samples/adversarial/expected.json`). Each fixture's underlying guard, and that its planted content actually survives the same pdf.js text extraction the workflow performs, is verified offline by Vitest; the fixtures themselves are for the live check docs/red-team.md describes, once the Anthropic and Google accounts are connected.
-- The five SQL queries the workflow's Postgres nodes will run (`db/queries/`): recording a Gmail event once, saving an invoice and its line items (replay-safe, and duplicate-safe on a repeated supplier tax ID and invoice number), attaching a Drive link, recording an event's outcome, and the daily summary (a rolling 24-hour window ending at the run's timestamp, so the 18:00 report never loses an invoice that arrives that evening). All verified offline by Vitest against a disposable local Postgres (`pnpm run test:db`); `save-invoice.sql`, `save-drive-link.sql`, and `record-outcome.sql` are now also wired into `process-invoice` below.
-- The `process-invoice` workflow (`workflows/process-invoice.json`) is built to read the PDF's text locally and screen its page count before any AI call runs, call `extract-invoice` on the default model with one retry on a stronger model when a review verdict comes back and a retry model is configured, save the checked record once per event through `save-invoice.sql` (a second save for the same supplier and invoice number comes back as a duplicate instead of a new row), file the original PDF under its year and month Drive folder, append the invoice and its line items to Sheets by key, and label the source email before marking the event's outcome. The generated `Prepare record` Code node (`src/nodes/prepare-record.ts`) turns every extraction outcome — a real check result, or a skip taken before any AI call ran — into one record and builds the Drive file name; verified offline by Vitest. Validated (no errors from an n8n-aware validation tool, aside from the known Postgres 2.8 false positive) and published to the local instance; two back-to-back `setup` + `export` rounds produce an identical `workflows/` directory. **Verified offline** through the dev harness's `process-invoice` target, against real Postgres: a non-PDF attachment saves exactly one `invoices` row (`status: 'review'`, `review_reasons: ['unreadable_pdf']`); sending the same event again adds no second row; the run then stops loudly at the Drive step, since there's no Google credential yet. **Not yet verified live** — built only, pending a connected Google account: the retry on a stronger model, the Drive filing (see Limitations for a duplicate-on-retry risk), the Sheets writes, the email labeling, and the outcome recording.
-- The `intake-email` workflow (`workflows/intake-email.json`) holds everything a poll needs done once it has mail: called once per poll with every new email (still as separate items), it loads the config and checks it before anything else runs; splits each email into one item per attachment, keeping only the fields the rest of the workflow needs; keeps only PDF attachments, by MIME type or a case-insensitive `.pdf` name (so one sent as `application/octet-stream` still gets through); records each attachment's event once in `processed_events`; and calls `process-invoice` once per attachment that was newly recorded, continuing with the rest of the batch when one call fails (`process-invoice` has already fired its own error email by then). The generated `Check config` node (`src/nodes/check-config.ts`, over `src/lib/config.ts`'s `checkConfig`) rejects a config with a bad totals tolerance or confidence bound, a non-positive extraction limit, an empty default model, an unrecognized AI effort, a non-string retry model, or a missing label, Drive folder, spreadsheet, tab, or team email, before `process-invoice` or any AI call can run on it; every rule, and the committed `config/config.example.json`, are verified offline by Vitest. Unlike a Gmail-triggered workflow, `intake-email`'s own trigger (`When called`, "accept all data") needs no credential, so it publishes normally. **Verified offline**, through the dev harness's `intake-email` target, against real Postgres: a fresh sample reaches `extract-invoice` and fails loudly on the missing Anthropic credential — not `unreadable_pdf` — which only happens if the PDF binary survived the Set node that drops every other field and the Execute Workflow call into `intake-email`; exactly one `processed_events` row is recorded, with `outcome` left `NULL` and no `invoices` row; sending the same message id and file again adds no second row and never reaches `process-invoice`; a `.txt` attachment is dropped before anything is recorded. **Not yet verified live**: the Drive filing, Sheets writes, and email labeling downstream of `process-invoice` still need a connected Google account (see `process-invoice` above).
-- The `gmail-entry` workflow (`workflows/gmail-entry.json`) is a thin entry point: `Gmail Trigger` polls every minute for mail labeled `Invoices` with a PDF attachment that isn't already labeled `Processed`, `Review`, or `Duplicate`, and `Hand to intake` passes the whole poll to `intake-email` in one call, waiting for it to finish; neither retries, and neither catches a failure, so one goes straight to the error workflow instead of silently repeating `intake-email`'s side effects. **Verified offline:** the workflow JSON's structure and wiring (pinned by Vitest against the real file), validation (no errors from an n8n-aware validation tool), and import/export round-tripping it unchanged. **Not yet published, and nothing in it has run:** the Gmail credential doesn't exist yet, so `pnpm run setup` holds it back (`hold gmail-entry.json: needs Gmail`) instead of publishing an inactive trigger; the live poll and the handoff itself are deferred until the live accounts are connected.
-- The `daily-summary` workflow (`workflows/daily-summary.json`) is built to email the team an HTML report of the rolling 24 hours ending at the run's own timestamp, at 18:00 Bogota time or on demand through the dev harness's `summary-preview` target (`{ run_at, dry_run }`; an explicit `dry_run: false` sends, anything else previews). Both triggers normalize into that shape; a `Merge` node puts it back next to `config` after `Load config`, since `load-config` always drops it (see Conventions in AGENTS.md). Because `Query summary`'s own Postgres output replaces the item outright, `Extract team locale` reads `team_locale` back off that same config and `Attach locale to summary` merges it onto the summary row by position before the generated `Render summary` Code node (`src/nodes/render-summary.ts`, over `src/lib/format.ts` and `src/lib/strings.ts`) runs. `Render summary` escapes every database value including URLs, links a review item's PDF only when its Drive URL starts with `https://` (a placeholder otherwise), formats money and the due date per `team_locale` (Luxon `setLocale` for the date, `Intl`-backed `toLocaleString` with `en-US` or `es-CO` separators for money), and warns about unfinished events by pointing at n8n's failed executions and this file's recovery steps, never at emails the summary can't know were sent; it also throws a clear error if the query ever comes back with no `report_date`, instead of crashing inside its own HTML escaping. All verified offline by Vitest, in both languages. **Verified offline** through `summary-preview`, against real Postgres, on the `dry_run: true` (preview) path only: an empty day previews the expected subject and "no invoices arrived" line; a seeded finished invoice previews the expected counts and the totals table in `formatMoney`'s format. Validated (no errors from an n8n-aware validation tool, aside from the known Postgres 2.8 false positive) and published to the local instance; two back-to-back `setup` + `export` rounds produce an identical `workflows/` directory. **Not yet verified live:** `Email summary` itself — its Gmail credential doesn't exist yet (see Limitations) — so the `dry_run: false` send path has never actually run.
-- A scenario check (`pnpm run scenarios -- --since <ISO>`; `scripts/check-scenarios.ts`, `scripts/sql/scenario-report.sql`) that compares the six sample invoices against what the pipeline actually recorded, by piping the SQL into real Postgres over `psql`'s stdin `\bind` protocol — the same binding path n8n's own Postgres node uses — printing a `| file | result | details |` table and exiting 1 on any `FAIL`. `--since` is checked against `YYYY-MM-DDTHH:MM:SSZ` before anything is sent to `psql`, since that value lands on a psql meta-command line; a malformed value (a space-separated datetime, or an attempted shell injection) is rejected immediately, with no `psql` call at all. When a file name appears more than once in the report, only its earliest row is compared, and each extra row is its own `FAIL` detail. **Verified offline**, against real Postgres with no invoices saved yet: all six samples come back `FAIL: not processed`, exiting 1 — this exercises the full `\bind` path end to end.
-- A cost measurement (`pnpm run cost -- --since <ISO>`; `scripts/measure-cost.ts`, `scripts/lib/pricing.ts`) that will page through `extract-invoice`'s executions from the n8n public API and print a per-path cost table, priced from `claude-haiku-5-5` and `claude-sonnet-5-5`'s published per-token rates (prices as of 2026-10-30; see `platform.claude.com/docs/en/about-claude/pricing`). The pricing table and the per-execution token-usage parsing and averaging are verified offline by Vitest. **Verified offline**: without `N8N_API_KEY` set, the script exits 1 with `N8N_API_KEY is not set (Settings → n8n API)` before making any request. **Not yet verified live**: reading real executions from a running n8n instance.
-- An optional queue-mode override (`compose.queue.yaml`): adds Redis and one or more `n8n-worker` containers so executions run off the main process, which stays free to receive the dev harness (and, once it's live, the Gmail poll) throughout. `n8n-worker` extends `compose.yaml`'s own `n8n` service (same encryption key, database settings, and read-only `/files` mounts), with its published port reset so it scales past one replica without a conflict. See "When you'd need queue mode" below. **Verified**: `docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2` brings every service up healthy, with `/healthz` answering `{"status":"ok"}`; called through the dev harness 15 s later, `intake-email` ran on a worker (confirmed in both `docker compose -f compose.yaml -f compose.queue.yaml logs n8n-worker` and the stored execution's own data), read the sample PDF (no `unreadable_pdf`), and reached the same missing-Anthropic-credential failure this demo's build mode hits everywhere else — proving n8n 2.45.6 stores binary data in queue mode where a worker can read it, with no `N8N_DEFAULT_BINARY_DATA_MODE` set. Returning to the regular stack (`docker compose -f compose.yaml -f compose.queue.yaml down && docker compose up -d --wait`) leaves it healthy on the one `compose.yaml` again. That run predates `redis` and `n8n-worker` running under `no-new-privileges` and `n8n-worker` inheriting `n8n`'s dropped capabilities, so a queue-mode run under those settings is still pending — `tests/supply-chain.test.ts` checks the hardening offline, through the merged Compose config, but not a live container's own `docker inspect` output. **Not yet verified**: a resent duplicate landing on a worker and ending up labeled `Duplicate` (deferred to the live integration check), queue mode under the current container hardening, and running queue mode against real Google/Anthropic credentials.
-- The architecture doc (`docs/architecture.md`) covers the workflows, the invoice lifecycle, the data model, failure modes with recovery steps, scaling and security notes, and the design decisions. Archify renders its two diagrams in `docs/diagrams/`, the system architecture and the invoice sequence, from committed JSON sources, and `AGENTS.md` has the regeneration steps. **Verified**: both sources pass archify's showcase validation on archify 2.17, 3.0.0, and 3.2.0, with all 9 artifact checks passing, 0 composition errors, and 0 warnings. Both pages render with no console errors from the page itself, and archify's browser check finds no overflow or unreadable text at four desktop sizes, from 1440×900 to 2048×1320.
-- Credential setup skips a Google OAuth2 credential (Gmail, Drive, Sheets) that already exists, so a re-run can't silently wipe out an interactive Google sign-in.
-- CI: lint/typecheck/test/build/check and ShellCheck on one job, `pnpm audit` and gitleaks on another, actionlint and zizmor on a third, the database tests (`pnpm run test:db`) against the Compose `testdb` profile — the same opt-in, tmpfs-backed, trust-auth service a local run uses, not a separate GitHub Actions service container — on a fourth; a fifth job boots the real n8n and Postgres in Docker Compose, applies migrations, and calls the dev harness's `summary-preview` target end to end, proving a generated Code node and an app-database query both actually run — see AGENTS.md's "The `n8n` job"; CodeQL (once the repo is public); Dependabot for npm, GitHub Actions, and Docker Compose images. CI doesn't run `pnpm run scenarios` (needs a real Anthropic credential), `pnpm run cost` (a report, not a check), or the queue-mode stack.
-- Supply-chain hardening: pnpm with a release-age gate, trust-policy enforcement, blocked exotic sub-dependencies, and build-script approval (`pnpm-workspace.yaml`); every Compose image pinned by digest; a Dependabot cooldown on every ecosystem — see AGENTS.md's "Supply-chain hardening" section.
-
-### Limitations
-
-Each linked item has a row in the architecture doc's [failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery), with its behavior, detection, and recovery in full. [AGENTS.md](AGENTS.md#recovering-stuck-events) has the commands for recovering a stuck event.
-
-- **An Information Extractor parse failure fails the run instead of becoming a review row**, and a retry alone repeats it ([failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery)).
-- **An `extract-invoice` failure leaves the event unfinished, with no invoice row** until someone retries the failed execution ([failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery)).
-- **A Drive upload retry can leave a duplicate file**, and the saved link then points at the newer copy ([failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery)).
-- **A lost `Record event` response strands its attachment**, which shows only as unfinished, with no error email ([failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery)).
-- **One failure can send two or more alerts**, one for each failed execution in the chain ([failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery)).
-- **The 18:00 cron fails every day until a Gmail credential exists**: `daily-summary` publishes because its triggers need no credential, but `Email summary` and the error workflow's alert both need Gmail, so both fail until the live accounts are connected. Accepted rather than held back.
-- **n8n skips a missed 18:00 run instead of catching it up**, so its 24 hours never appear in a report ([failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery)).
-- **A call right after n8n restarts can run the previous published version**, so `pnpm run setup` waits 15 s past `/healthz` before it returns ([failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery)).
-
-## Send the samples
-
-Owner step, once the Gmail, Drive, and Sheets pipeline is live: from the demo Gmail account, send each PDF in `samples/` to that same account, one PDF per email. Send `invoice-06-copy-of-01.pdf` last, after `invoice-01-two-items.pdf` already shows its `Processed` label — it's a byte-for-byte copy of that first invoice, so sending it too soon would make both look like the first arrival. The Gmail filter applies the `Invoices` label to each one as it arrives.
+[docs/architecture.md](docs/architecture.md) explains each part, every failure mode and its recovery, the scaling limits, and the design decisions. [docs/red-team.md](docs/red-team.md) treats the invoice PDF as untrusted input.
 
 ## Quick start
 
 ```bash
-node scripts/init-env.ts   # writes .env with fresh local secrets; leaves Anthropic/Google blank
-cp config/config.example.json config/config.json
 pnpm install --frozen-lockfile
+node scripts/init-env.ts
+cp config/config.example.json config/config.json
 docker compose up -d --wait
-pnpm test
-pnpm run setup   # applies db/migrations/ first, then imports credentials with .env values set and publishes workflows once any exist
+pnpm run setup
 ```
 
-Fill in the blank third-party values (Anthropic, Google) in `.env` by hand before relying on anything that needs them; `init-env.ts` already generated the local secrets (Postgres roles, `N8N_ENCRYPTION_KEY`, `DEV_HARNESS_TOKEN`) — see `.env.example` for what's required.
+`init-env.ts` writes `.env` with fresh local secrets and leaves the Anthropic, Google, and n8n API values blank. `pnpm run setup` applies the database migrations, imports the credentials whose `.env` values are set, and publishes every workflow whose trigger has its credential. Then, once:
 
-## Team email language
+1. Fill in `config/config.json` (see [Configuration](#configuration)), including `team_email`, which ships as a placeholder too. `Check config` rejects it while any `REPLACE_ME` placeholder remains, naming the key.
+2. Fill in `ANTHROPIC_API_KEY`, `GOOGLE_OAUTH_CLIENT_ID`, and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`, and run `pnpm run setup` again to import them.
+3. In n8n (`http://localhost:5678`), open the Gmail, Google Drive, and Google Sheets credentials and sign in with the demo Google account.
+4. Run `pnpm run setup` once more. It publishes `gmail-entry`, which it held back until the Gmail credential existed.
 
-The two emails the team receives — the daily summary (`daily-summary`) and the error alert (`error-handler`) — render in the language `config.json`'s `team_locale` names: `en` (the default, used when the key is missing) or `es` (neutral Latin American Spanish, Colombian business register). Set it in `config/config.json`:
+## Configuration
 
-```json
-{ "team_locale": "es", "...": "..." }
-```
+### Google Cloud project and OAuth client
 
-`checkConfig` (`src/lib/config.ts`) rejects any other value. Each email's own strings — subject, headings, labels, and the empty-day/unfinished lines — live in a `{ en, es }` table in `src/lib/strings.ts` (`SUMMARY_STRINGS`, `ERROR_ALERT_STRINGS`), never hard-coded in the Code-node source. Dates in the daily summary's "Due in the next 7 days" table are formatted with Luxon's `setLocale`; money uses `Intl`-backed `toLocaleString` with `en-US` or `es-CO` separators (`.`/`,` swapped) via `formatMoney` in `src/lib/format.ts`. HTML escaping (`escapeHtml`) is applied the same way regardless of language — only the strings going into it change.
+Create a Google Cloud project, enable the Gmail, Google Drive, and Google Sheets APIs, and create an OAuth client of type "Web application" with the redirect URI n8n shows on its Google credentials (`http://localhost:5678/rest/oauth2-credential/callback`). Its ID and secret go in `.env` as `GOOGLE_OAUTH_CLIENT_ID` and `GOOGLE_OAUTH_CLIENT_SECRET`.
 
-**Adding a language**: add its key to both tables in `src/lib/strings.ts` (every key from the other language must get a non-empty value — `tests/lib/strings.test.ts` checks this), add it to `TEAM_LOCALE_VALUES` and the `Config['team_locale']` union in `src/lib/config.ts`, add it to `NUMBER_LOCALE` in `src/lib/format.ts` for money formatting, and add a locale-specific case anywhere `formatDueDate` or a message table is read by literal key. Run `pnpm run build:workflows` afterwards to regenerate `Render summary` and `Render error alert`'s compiled `jsCode`, and `pnpm test` to confirm every key stayed in sync.
+Publish the OAuth consent screen to **Production**. In Testing, Google expires the refresh token after 7 days, and the poll and the daily summary stop until someone signs in again. The Gmail and Drive credentials keep n8n's default scopes, which are broader than this pipeline needs; [docs/architecture.md](docs/architecture.md#security-untrusted-documents-secrets-and-retention) lists them and the production step that narrows them.
 
-## Upgrade notes
+### Gmail labels and filter
 
-- **`team_locale` (new, optional)**: `config.json` is gitignored, so an existing one made before this key existed is read as if it were `"team_locale": "en"` — `checkConfig` (`src/lib/config.ts`) defaults a missing key to `'en'` rather than rejecting it, so no existing config needs editing. Set it to `"es"` to switch the daily summary and error alert to Spanish; see "Team email language" above.
+Create four labels: `Invoices`, `Processed`, `Review`, and `Duplicate`. Add a filter that matches `has:attachment filename:pdf` and applies `Invoices`. The trigger only sees mail that arrives after its last poll, so the label must be on an email when it arrives; labeling older mail by hand does nothing.
 
-- **`extraction.max_text_chars` (new, required)**: `config.json` is gitignored, so an existing one made before this key existed needs it added by hand — copy the value from `config/config.example.json` (`60000`) or pick your own. `Check config` (`src/nodes/check-config.ts`, over `checkConfig`) now rejects a config missing it, or where it isn't a positive integer, with an error naming `config.extraction.max_text_chars` exactly like every other bad key; `intake-email` fails loudly with that message instead of silently skipping the new check. `process-invoice`'s `Too many pages?` step also routes a PDF whose extracted text is longer than this limit to review as `too_much_text`, with no AI call, the same way it already does for a PDF with too many pages — see the failure table in [docs/architecture.md](docs/architecture.md#failure-modes-behavior-detection-and-recovery).
-- **Recreate the containers.** `docker compose up -d --wait` recreates `postgres` and `n8n` with `no-new-privileges` and `n8n`'s dropped capabilities, keeping the named volumes. Add the same flags you start the stack with: `docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2` recreates `redis` and the workers under the same hardening.
+### Reading the label IDs
 
-## When you'd need queue mode
+The workflows address labels by ID, not name. In n8n, create a scratch workflow with one Gmail node (resource Label, operation Get Many) on the Gmail credential, run it, copy the `id` of `Processed`, `Review`, and `Duplicate` into `gmail.label_ids`, and delete the scratch workflow.
 
-The default stack runs n8n as a single process that serves the dev harness (and, once Gmail is connected, polls it) and runs every execution, enough for this demo's traffic. Reach for `compose.queue.yaml` when:
+### Drive root folder
 
-- **Throughput grows past what one process can hold**: invoices usually arrive a few at a time, but a backlog (a vacation, a bulk resend) queues up many at once, and queue mode spreads that batch across workers instead of running it one invoice at a time.
-- **The AI calls get long**: `extract-invoice`'s PDF path can retry on a slower model with adaptive thinking; a worker tied up on one long call no longer blocks the main process from accepting the next poll or a dev-harness request.
-- **Horizontal scaling is worth it**: worker count (`--scale n8n-worker=N`) grows independently of the main instance, which keeps serving the dev harness (and, once it's live, polling Gmail) throughout.
+Create a folder, for example `Invoices`, and copy its ID from the URL (`https://drive.google.com/drive/folders/<id>`) into `google.drive_root_folder_id`. The pipeline creates `<yyyy>/<mm>` folders under it.
 
-The trade-off is cost: a Redis container plus one or more worker containers to run, monitor, and keep healthy — overhead this demo's own traffic doesn't justify today.
+### The spreadsheet
 
-```bash
-docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2
-```
+Create a spreadsheet with two tabs, named as `google.invoices_tab` and `google.items_tab` say (`Invoices` and `Items` by default), and copy its ID from the URL into `google.spreadsheet_id`. Row 1 of each tab holds these exact headers, one per column, in this order:
 
-Return to the regular stack with `docker compose -f compose.yaml -f compose.queue.yaml down && docker compose up -d --wait` — plain `down`, with no `-v`, keeps the named volumes.
+- `Invoices`: `invoice_id, received_at, supplier, supplier_tax_id, invoice_number, issue_date, due_date, currency, subtotal, tax, total, status, review_reasons, pdf_link, email_id`
+- `Items`: `item_key, invoice_id, invoice_number, line_no, description, quantity, unit_price, line_total`
+
+Both tabs are written by key (`invoice_id` and `item_key`), so a retried run updates its rows instead of adding new ones.
+
+### Anthropic
+
+Put the API key in `.env` as `ANTHROPIC_API_KEY`, then set a monthly spend limit in the Anthropic console. Nothing in this repo caps total spend.
+
+### The n8n API key
+
+`pnpm run cost` reads executions through n8n's public API. Create a key in n8n under Settings → n8n API and put it in `.env` as `N8N_API_KEY`.
+
+### `config.json` keys
+
+| Key | Meaning | Example |
+|---|---|---|
+| `team_email` | Where the daily summary and error alerts go; the example ships `REPLACE_ME`, so it must be set | `team@example.com` |
+| `team_locale` | The team emails' language, `en` or `es`; missing means `en` | `en` |
+| `gmail.label_ids.processed` | Label ID for a finished invoice | `Label_123456789` |
+| `gmail.label_ids.review` | Label ID for an invoice a person must check | `Label_234567891` |
+| `gmail.label_ids.duplicate` | Label ID for a re-sent invoice | `Label_345678912` |
+| `google.drive_root_folder_id` | The Drive folder that holds `<yyyy>/<mm>` | the folder's ID |
+| `google.spreadsheet_id` | The spreadsheet with both tabs | the spreadsheet's ID |
+| `google.invoices_tab` | The invoice tab's name | `Invoices` |
+| `google.items_tab` | The line-item tab's name | `Items` |
+| `ai.default_model` | The first extraction model | `claude-haiku-5-5` |
+| `ai.retry_model` | The model for the one retry of a `review` verdict; `''` turns the retry off | `claude-sonnet-5-5` |
+| `ai.effort` | Thinking effort, `low`, `medium`, or `high` | `low` |
+| `extraction.min_text_chars_per_page` | Non-whitespace characters per page for the text path | `100` |
+| `extraction.max_pages` | Pages above which a PDF goes to review with no AI call | `20` |
+| `extraction.max_text_chars` | Extracted characters above which a PDF goes to review with no AI call | `60000` |
+| `validation.totals_tolerance` | How far subtotal plus tax may drift from the total, in the invoice's currency | `1` |
+| `validation.min_confidence` | Model confidence below which an invoice goes to review | `0.8` |
+
+### Team email language
+
+The daily summary and the error alert render in the language `team_locale` names: `en`, the default when the key is missing, or `es` (neutral Latin American Spanish, Colombian business register). `checkConfig` (`src/lib/config.ts`) rejects any other value. Each email's strings live in a `{ en, es }` table in `src/lib/strings.ts`; dates use Luxon's `setLocale`, and money uses `en-US` or `es-CO` separators through `formatMoney` (`src/lib/format.ts`). Escaping is the same in both languages.
+
+**Adding a language:** add its key to both tables in `src/lib/strings.ts` (`tests/lib/strings.test.ts` checks that every key has a non-empty value), add it to `TEAM_LOCALE_VALUES` and the `Config['team_locale']` union in `src/lib/config.ts` and to `NUMBER_LOCALE` in `src/lib/format.ts`, then run `pnpm run build:workflows` and `pnpm test`.
+
+### Upgrading an existing config
+
+`config.json` is gitignored, so an older copy doesn't pick up new keys:
+
+- **`team_locale`** is optional; a missing key reads as `en`.
+- **`extraction.max_text_chars`** is required; copy `60000` from `config/config.example.json`. `Check config` names the key until it's there.
+- **`REPLACE_ME`**: a config that still holds the example's placeholder in any key now fails `Check config`, naming the key, instead of failing later at Gmail or Drive.
+
+After pulling a change to `compose.yaml`, run `docker compose up -d --wait` to recreate the containers under the current hardening; the named volumes stay. Add the queue-mode flags if you run that stack.
+
+### Swapping the model provider
+
+The text path's model is one Anthropic Chat Model sub-node under the Information Extractor in `extract-invoice`, so another provider means swapping that node. The PDF path is Anthropic-specific: it posts a Messages API body with a document block and structured output, which would need rewriting for another provider.
+
+## Test scenarios
+
+`samples/` holds six generated invoices and `samples/expected.json`, the result each should produce:
+
+| # | File | Path | Status | Label | Note |
+|---|---|---|---|---|---|
+| 1 | `invoice-01-two-items.pdf` | text | `ok` | `Processed` | COP, two items |
+| 2 | `invoice-02-ten-items.pdf` | text | `ok` | `Processed` | COP, ten items over three pages |
+| 3 | `invoice-03-usd.pdf` | text | `ok` | `Processed` | USD |
+| 4 | `invoice-04-scanned.pdf` | vision | `ok` | `Processed` | Image only, no text layer |
+| 5 | `invoice-05-bad-totals.pdf` | text | `review` | `Review` | `totals_mismatch`: the printed total disagrees with its lines |
+| 6 | `invoice-06-copy-of-01.pdf` | none | duplicate | `Duplicate` | A byte-for-byte copy of #1 |
+
+### Send the samples
+
+1. Run `pnpm run samples -- --base-date $(TZ=America/Bogota date +%F)`, so the due dates fall in the summary's next 7 days.
+2. From the demo Gmail account, send each PDF to the same account, one per email. The filter labels each `Invoices`.
+3. Send #6 last, once #1 shows `Processed`. Copies that land in the same poll don't race, since `intake-email` processes them one after the other, but whichever comes first in the poll becomes the original, so the scenario check would compare the wrong files.
+4. Run `pnpm run scenarios -- --since <ISO time before step 2>`. It compares what the pipeline recorded against `samples/expected.json` and prints one `PASS` or `FAIL` per sample.
+
+The adversarial fixtures in `samples/adversarial/` (`pnpm run adversarial -- --base-date …`) aren't part of `pnpm run scenarios`. Each one is compared by hand against its safe labels and outcomes in `samples/adversarial/expected.json`, through the procedure in [docs/red-team.md](docs/red-team.md).
+
+### Verified offline
+
+- **Code nodes, queries, and workflows:** every generated Code node, run as n8n's sandbox runs it; every workflow's wiring and settings, read from the committed JSON; and every query in `db/queries/` against a disposable Postgres as the runtime role, including a racing duplicate and the daily summary's window. [docs/testing.md](docs/testing.md) lists each suite.
+- **The local stack:** `pnpm run setup` and `pnpm run export` round-trip every workflow unchanged, and `node scripts/check-db.ts` proves the runtime role's grants and denials.
+- **Through the dev harness, with no Google or Anthropic account:** `process-invoice` saves an unreadable PDF once as a review row and stops at Drive; `intake-email` records each attachment once, carries the PDF binary into `process-invoice`, relabels an octet-stream PDF as `application/pdf`, and fails its batch once at `Fail the batch` when a call fails; `summary-preview` renders an escaped summary from real Postgres, including the list of unfinished events; and a half-filled `config.json` is rejected before any AI call.
+- **CI** runs the unit, workflow, and database suites, ShellCheck, gitleaks, `pnpm audit`, actionlint, zizmor, CodeQL, and a job that boots n8n and Postgres and calls `summary-preview` end to end.
+
+### Live checks
+
+These need the connected Google and Anthropic accounts. Each row is one check, in the order to run them, with its exact command, or the manual action where none exists. SQL runs as the app user through a here-string (`<<<`, in bash or zsh). The dev harness labels nothing real: a fake message ID makes the final Gmail label call fail, as row 12 expects.
+
+| # | Check | Command or action | Expected |
+|---|---|---|---|
+| 1 | Credentials import | `pnpm run setup` on a `.env` with every value filled | Anthropic, Gmail, Google Drive, and Google Sheets import, with no `skip` |
+| 2 | Publish after sign-in | `pnpm run setup` again, after signing in to Gmail, Drive, and Sheets | No `hold gmail-entry.json` line |
+| 3 | Gmail filter | Email a PDF to the demo account | It arrives labeled `Invoices` |
+| 4 | OAuth Production | The Google Cloud consent screen | "In production"; seven days later, `daily-summary` still sends |
+| 5 | Samples | `pnpm run samples -- --base-date $(TZ=America/Bogota date +%F)` and `pnpm run adversarial -- --base-date $(TZ=America/Bogota date +%F)`; send the six samples, then `pnpm run scenarios -- --since <ISO>` | Six `PASS` |
+| 6 | Paths | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -c "SELECT drive_file_name, extraction_path, model, attempts, status FROM invoices ORDER BY id"'` | #4 `vision`, the rest `text` |
+| 7 | Request shape | #4's `extract-invoice` execution in n8n, and the text path's `Claude` sub-node | The PDF request sends `thinking: {type: adaptive}` and `output_config`, with no `temperature`, `top_p`, or `top_k`; the `Claude` sub-node shows no sampling options; the schema's type arrays and `format: date` raise no 400 or parse error on either path |
+| 8 | Sonnet retry | The query from row 6, for #5 | `attempts = 2`, `model = claude-sonnet-5-5`, `status = review` |
+| 9 | Drive and Sheets | The Drive root folder and the spreadsheet | 5 files under `Invoices/<yyyy>/<mm>`, named as in `samples/expected.json`; 5 `Invoices` rows and 19 `Items` rows; each `pdf_link` opens |
+| 10 | Labels | The six sample emails | #1–#4 `Processed`, #5 `Review`, #6 `Duplicate` |
+| 11 | Two PDFs in one email | Send `adv-usd-restatement.pdf` and `adv-implausible-line.pdf` in one email | Two events (`:attachment_0` and `:attachment_1`) and two rows |
+| 12 | Octet-stream | Delete #2: `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name = 'invoice-02-ten-items.pdf'; DELETE FROM invoices WHERE invoice_number = 'SA-77812';"`, and trash its Drive file and its Sheets rows. Then `node scripts/dev-call.ts intake-email "{\"message_id\":\"live-octet\",\"file_name\":\"invoice-02-ten-items.pdf\",\"mime_type\":\"application/octet-stream\",\"pdf_base64\":\"$(base64 -i samples/invoice-02-ten-items.pdf)\"}"`. Clean up with `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE event_id = 'live-octet:attachment_0'; DELETE FROM invoices WHERE source_event_id = 'live-octet:attachment_0';"`, and trash the new Drive file and its Sheets rows | The Drive file's type is PDF; the label call then fails on the fake message ID, so `intake-email` stops at `Fail the batch`, as expected |
+| 13 | Redelivery | `MSG1=$(docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT split_part(event_id, ':', 1) FROM processed_events WHERE file_name = 'invoice-01-two-items.pdf' ORDER BY received_at LIMIT 1;")`, then `node scripts/dev-call.ts intake-email "{\"message_id\":\"$MSG1\",\"file_name\":\"invoice-01-two-items.pdf\",\"mime_type\":\"application/pdf\",\"pdf_base64\":\"$(base64 -i samples/invoice-01-two-items.pdf)\"}"`, then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT count(*) FROM processed_events WHERE file_name = 'invoice-01-two-items.pdf';"` | The count is still 1, and no new `process-invoice` execution appears |
+| 14 | ensure-folder | `node scripts/dev-call.ts ensure-folder '{"parent_id":"<drive_root_folder_id>","name":"2099"}'`, twice | The same `folder_id` both times; trash the `2099` folder afterwards |
+| 15 | Error alert | `node scripts/dev-call.ts extract-invoice '{"event_id":"live-error","path":"bogus"}'`, then again with `team_locale: "es"` | `[Magdaport demo] Workflow failed: extract-invoice`, then `[Demo Magdaport] Falló el flujo: extract-invoice` |
+| 16 | Invalid Anthropic key, then replay | In n8n, set the Anthropic credential's API key to `invalid`, and email `samples/adversarial/adv-implausible-line.pdf` to the demo account. 30 minutes later, `node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":true}"`. Restore the key, open the failed `Process invoice` execution in n8n's executions list and choose **Retry with original workflow**, then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT event_id, outcome FROM processed_events WHERE file_name = 'adv-implausible-line.pdf' ORDER BY received_at;"` | Alerts arrive and `intake-email` stops at `Fail the batch`; the preview lists `adv-implausible-line.pdf` under the unfinished line; after the retry, the newest row's outcome is `duplicate`, since row 11 saved the same invoice |
+| 17 | too_many_pages | Set `extraction.max_pages: 1` in `config/config.json`; `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name = 'invoice-02-ten-items.pdf'; DELETE FROM invoices WHERE invoice_number = 'SA-77812';"`, and trash #2's Drive file and its Sheets rows; resend #2 by email; then restore `20` and clean up the same way | `review` with `too_many_pages` |
+| 18 | Summary content | After the samples and before the drills: `node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":false}"`, then again with `team_locale: "es"` | `Arrived: 6 \| OK: 4 \| Review: 1 \| Duplicates: 1`, in both languages; the 18:00 run arrives on its own |
+| 19 | Cost | `pnpm run cost -- --since <ISO>` | The "all" total is within 5% of the Anthropic console for the same window; the table goes in [Cost per invoice](#cost-per-invoice) |
+| 20 | Queue mode | `docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2`, wait 15 s, then `docker inspect --format '{{.Name}} {{.HostConfig.SecurityOpt}} {{.HostConfig.CapDrop}}' $(docker compose -f compose.yaml -f compose.queue.yaml ps -q)` | `no-new-privileges` everywhere, and `CapDrop [ALL]` on `n8n` and the workers |
+| 21 | Overlapping executions in queue mode | With the queue stack from row 20: `MSG3=$(docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT split_part(event_id, ':', 1) FROM processed_events WHERE file_name = 'invoice-03-usd.pdf' ORDER BY received_at LIMIT 1;")`; delete #3 with `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name = 'invoice-03-usd.pdf'; DELETE FROM invoices WHERE invoice_number = 'INV-3307';"`, and trash #3's Drive file and its 1 `Invoices` and 3 `Items` rows; record two events with `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "INSERT INTO processed_events (source, event_id, file_name) VALUES ('gmail', 'race-a:attachment_0', 'invoice-03-usd.pdf'), ('gmail', 'race-b:attachment_0', 'invoice-03-usd.pdf');"`; run both calls at once with `for e in race-a race-b; do node scripts/dev-call.ts process-invoice "{\"event_id\":\"${e}:attachment_0\",\"message_id\":\"$MSG3\",\"file_name\":\"invoice-03-usd.pdf\",\"received_at\":\"$(date -u +%FT%TZ)\",\"pdf_base64\":\"$(base64 -i samples/invoice-03-usd.pdf)\"}" & done; wait`; then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT pe.event_id, pe.outcome, pe.invoice_id, (SELECT count(*) FROM invoices WHERE invoice_number = 'INV-3307') AS invoice_rows FROM processed_events pe WHERE pe.event_id LIKE 'race-%' ORDER BY 1;"` | `invoice_rows` is 1; one event is `ok` and the other `duplicate`, both with the same `invoice_id`; #3's email carries `Processed` and `Duplicate`, never `Review`; the executions show in `docker compose -f compose.yaml -f compose.queue.yaml logs n8n-worker`. The two saves overlap only when both extractions finish within milliseconds of each other; `tests/db/queries.test.ts` pins that exact interleaving |
+| 22 | Restart mid-execution | `docker compose restart n8n` while an extraction runs | The event shows as unfinished; recover it with AGENTS.md's "Recovering stuck events" |
+| 23 | Red team | Each `samples/adversarial/` PDF, one per email, the duplicate pair in order | Each label and saved row falls in its safe set in `samples/adversarial/expected.json`; the genuine re-send is labeled `Duplicate` |
+| 24 | Red team, parked | A long-text fixture under `max_text_chars`, and the off-schema phishing fixture | The Sheets write succeeds or fails loudly (the 50,000-character cell limit); the phishing fixture's error email echoes nothing harmful |
+| 25 | Spend limit | The Anthropic console | A monthly limit is set; the amount is the account owner's decision |
+| 26 | One failed attachment in a batch | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name IN ('invoice-01-two-items.pdf', 'invoice-05-bad-totals.pdf', 'invoice-06-copy-of-01.pdf'); DELETE FROM invoices WHERE invoice_number IN ('BE-2041', 'MB-5520');"`, and trash #1's and #5's Drive files and Sheets rows; set `ai.retry_model` to `claude-no-such-model` in `config/config.json`; email `invoice-01-two-items.pdf` and `invoice-05-bad-totals.pdf` together in one email; then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT file_name, outcome, invoice_id IS NOT NULL FROM processed_events WHERE file_name IN ('invoice-01-two-items.pdf', 'invoice-05-bad-totals.pdf');"`; restore `claude-sonnet-5-5` and retry #5's failed `Process invoice` execution | #1 is labeled `Processed` with outcome `ok`; #5's retry fails on the unknown model, so its outcome stays empty with no invoice; the `intake-email` alert names `Fail the batch` with "process-invoice failed for 1 attachment(s) in this batch"; after the restore and retry, #5 gets `Review` |
+| 27 | Clean clone | Clear the Sheets rows (keep the headers), trash `Invoices/<yyyy>`, run `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events; DELETE FROM invoices;"`, then `gh repo clone aabv21/n8n-ai-invoice-processing "$(mktemp -d)/magdaport-check"` and follow [Quick start](#quick-start) exactly | Six `PASS` from `pnpm run scenarios` |
+
+## Cost per invoice
+
+An estimate, measured in the live run with `pnpm run cost -- --since <ISO>` and priced from `scripts/lib/pricing.ts`:
+
+| Path | Average tokens (in / out) | Average USD | Retries |
+|---|---|---|---|
+| text | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) |
+| vision | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) |
+| all | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) |
+| Model per step | Claude Haiku 5.5 first, with a Claude Sonnet 5.5 step-up on `review`; kept or changed from the live results | | |
+
+## Design decisions and production notes
+
+[docs/architecture.md](docs/architecture.md#design-decisions-each-over-its-alternative) gives each decision with the alternative it beat. In short:
+
+- **Haiku first, Sonnet only on review:** Sonnet costs far more per token, so it runs once, only when a check fails.
+- **Routing by text density:** a PDF with a usable text layer costs only text tokens; scans take the PDF path.
+- **Postgres as the system of record:** one statement saves an invoice once per event and turns a re-sent invoice into a duplicate; Sheets and the label read the saved row back.
+- **An idempotency gate in the database:** one `INSERT … ON CONFLICT DO NOTHING` per attachment, so two runs can't both pass.
+- **Code nodes built from tested TypeScript:** every Code node, query, prompt, and schema is generated from source, and CI fails on stale JSON.
+- **The PDF request's timeout:** 120 s with 3 tries, kept. The worst case is 2 attempts × 3 tries × 120 s = 12 minutes for one invoice, and a timed-out call may still be billed.
+- **Production steps left out of the demo:** narrower OAuth scopes, a Redis password for queue mode, and unpublishing the dev harness; see [docs/architecture.md](docs/architecture.md#security-untrusted-documents-secrets-and-retention).
+
+### When you'd need queue mode
+
+The default stack runs n8n as one process, which is enough for this demo's traffic. `compose.queue.yaml` adds Redis and `n8n-worker` containers when:
+
+- **A backlog arrives at once**, such as after a vacation or a bulk resend, and workers should split it.
+- **The AI calls get long**, so a worker busy on one extraction shouldn't block the next poll.
+- **Workers should scale on their own**, with `--scale n8n-worker=N`, while the main process keeps polling.
+
+The cost is a Redis container and the workers to run and monitor. Start it with `docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2`, wait 15 s, and return with `docker compose -f compose.yaml -f compose.queue.yaml down && docker compose up -d --wait`. [docs/architecture.md](docs/architecture.md#where-the-default-stack-stops-scaling) records the verified queue-mode run.
+
+## Limitations
+
+Each item links to its row in the [failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery) where it has one, with the behavior, detection, and recovery. [AGENTS.md](AGENTS.md#recovering-stuck-events) has the commands for a stuck event.
+
+- **New mail only:** the Gmail trigger sees mail that arrives after its last poll; a label added by hand to older mail is never picked up.
+- **No DIAN electronic invoice:** the ZIP and XML a Colombian e-invoice carries aren't read; only the PDF is.
+- **Duplicate detection depends on the model's reading** of the supplier tax ID and invoice number; a misread number makes a re-sent invoice look new.
+- **A poor text layer takes the text path**, even when its text is wrong, and consistently wrong values can pass the checks.
+- **Two first uploads in a month can race** and create two month folders with the same name.
+- **The PDF path is Anthropic-specific**; only the text path swaps providers by changing one node.
+- **A broken `config.json` silences error emails**, since `error-handler` loads the same file to find the team address.
+- **Redis has no password in queue mode**, and is reachable only on the Compose network; set one before production use.
+- **A Drive upload retry can leave a duplicate file**, and the saved link then points at the newer copy.
+- **An Information Extractor parse failure fails the run** instead of becoming a review row, and a retry alone repeats it.
+- **An extraction failure leaves the event unfinished**, with no invoice row, until someone retries the failed execution.
+- **A lost `Record event` response strands its attachment**, which shows only as unfinished, with no error email.
+- **One failure sends one alert per failed execution in the chain:** an extraction failure from a live poll alerts from `extract-invoice`, `process-invoice`, `intake-email` (at `Fail the batch`, once every attachment had its call), and `gmail-entry`. Count incidents by execution.
+- **The 18:00 cron fails every day until a Gmail credential exists**, since `Email summary` and the error alert both need Gmail.
+- **A missed 18:00 run is skipped**, not caught up, so its 24 hours never appear in a report.
+- **A call right after n8n restarts can run the previous published version**; wait 15 s past `/healthz`.
+- **The Code-node build patches esbuild's `__defProp` helper**, because n8n's Task Runner replaces `Object.defineProperty`; an esbuild update that changes that helper fails the build until the patch is updated.
+- **Migration `002` builds its index with a plain `CREATE INDEX`**, which blocks writes while it runs; brief at this volume, but a large table needs `CONCURRENTLY`.
+- **`testdb` uses trust auth**: it's opt-in, bound to `127.0.0.1`, tmpfs-backed, and never holds real data.
+- **`load-config` returns only `{ config }`**, so each caller merges it back onto its own item.
+- **Sample PDFs use Helvetica**, a WinAnsi standard font, so sample text is limited to WinAnsi characters.
+- **Some dependency updates need a hand review:** Dependabot skips `@types/node` past Node's LTS major, TypeScript 7, n8n minor and major releases, and Postgres majors (see `.github/dependabot.yml`).
 
 ## License
 

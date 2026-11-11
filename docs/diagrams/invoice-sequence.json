@@ -8,7 +8,7 @@
     "column_fit": "spread",
     "viewBox": [
       1700,
-      960
+      1016
     ],
     "legend": {
       "entries": {
@@ -99,12 +99,12 @@
     },
     {
       "from": 618,
-      "to": 676,
-      "label": "6 Duplicate: label and outcome only"
+      "to": 732,
+      "label": "6 Duplicate: read back, compare, label"
     },
     {
-      "from": 700,
-      "to": 842,
+      "from": 756,
+      "to": 898,
       "label": "7 Drive, Sheets, label, outcome"
     }
   ],
@@ -187,52 +187,66 @@
       "from": "db",
       "to": "process",
       "y": 582,
-      "label": "invoice_id or duplicate_of",
+      "label": "invoice_id, or saved: false",
+      "variant": "return"
+    },
+    {
+      "from": "process",
+      "to": "db",
+      "y": 636,
+      "label": "read back the original",
+      "variant": "dashed"
+    },
+    {
+      "from": "db",
+      "to": "process",
+      "y": 664,
+      "label": "id, total, issue date",
       "variant": "return"
     },
     {
       "from": "process",
       "to": "gmail",
-      "y": 636,
-      "label": "Duplicate label",
+      "y": 692,
+      "label": "Duplicate or Review label",
       "variant": "dashed"
     },
     {
       "from": "process",
       "to": "db",
-      "y": 664,
+      "y": 720,
       "label": "outcome: duplicate",
       "variant": "dashed"
     },
     {
       "from": "process",
       "to": "google",
-      "y": 718,
+      "y": 774,
       "label": "upload PDF to yyyy/mm"
     },
     {
       "from": "process",
       "to": "db",
-      "y": 746,
+      "y": 802,
       "label": "save Drive link, read row"
     },
     {
       "from": "process",
       "to": "google",
-      "y": 774,
+      "y": 830,
       "label": "Sheets rows by key"
     },
     {
       "from": "process",
       "to": "gmail",
-      "y": 802,
+      "y": 858,
       "label": "Processed or Review label",
       "variant": "emphasis"
     },
     {
       "from": "process",
       "to": "db",
-      "y": 830,
+      "y": 886,
       "label": "record outcome"
     }
   ]
