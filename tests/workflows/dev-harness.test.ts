@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { nodeOf, workflowFile } from '../helpers/workflow-file.ts';
+import { nodeOf, sourcesOf, workflowFile } from '../helpers/workflow-file.ts';
 
 interface MainConnections {
   main: { node: string }[][];
@@ -90,4 +90,33 @@ test('summary-preview target passes { run_at, dry_run } to daily-summary and res
   const summaryPreviewBranch = connections['Route by target']!.main[targetIndex]!;
   expect(summaryPreviewBranch.map((c) => c.node)).toEqual(['Call daily-summary']);
   expect(connections['Call daily-summary']!.main[0]!.map((c) => c.node)).toEqual(['Respond with result']);
+});
+
+// intake-email checks the config it loads; the process-invoice target loads its own copy, so it
+// checks it the same way before any AI call can run on a half-filled config.
+test('the process-invoice target checks the config before calling it', () => {
+  const wf = workflowFile('dev-harness.json');
+  expect(sourcesOf(wf, 'Check config for process-invoice', 0)).toEqual(['Load config for process-invoice']);
+  expect(sourcesOf(wf, 'Attach config to PDF', 1)).toEqual(['Check config for process-invoice']);
+  expect(nodeOf(wf, 'Check config for process-invoice').type).toBe('n8n-nodes-base.code');
+});
+
+test('the ensure-folder target passes parent_id and name and responds with the folder id', () => {
+  const wf = workflowFile('dev-harness.json');
+
+  const rules = (nodeOf(wf, 'Route by target').parameters.rules as { values: { outputKey: string }[] }).values;
+  // Appended after summary-preview, so every earlier target keeps its output index.
+  expect(rules.map((r) => r.outputKey)).toEqual(['load-config', 'extract-invoice', 'process-invoice', 'intake-email', 'summary-preview', 'ensure-folder']);
+
+  const call = nodeOf(wf, 'Call ensure-folder');
+  expect(call.parameters).toMatchObject({
+    workflowId: { value: 'mgpEnsureFolder1' }, mode: 'once', options: { waitForSubWorkflow: true } });
+  expect((call.parameters.workflowInputs as { value: Record<string, string> }).value).toEqual({
+    parent_id: '={{ $json.body.input.parent_id }}',
+    name: '={{ $json.body.input.name }}',
+  });
+
+  const connections = wf.connections as Record<string, MainConnections>;
+  expect(connections['Route by target']!.main[5]!.map((c) => c.node)).toEqual(['Call ensure-folder']);
+  expect(connections['Call ensure-folder']!.main[0]!.map((c) => c.node)).toEqual(['Respond with result']);
 });

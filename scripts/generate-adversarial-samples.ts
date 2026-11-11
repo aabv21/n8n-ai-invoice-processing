@@ -2,7 +2,8 @@
 // deterministic guard rather than a prompt-only defense. Reuses scripts/lib/invoice-pdf.ts, so each
 // fixture has the samples' layout with fields tampered visibly (a wrong printed number) or
 // invisibly (zero-opacity text pdf.js still extracts, the technique OCR-overlay PDFs use).
-// Every fixture has a committed PDF except too-much-text, ~600 KB of filler generated at run time.
+// Every fixture has a committed PDF, too-much-text included (~600 KB of repeated filler, which this
+// script can also regenerate at run time).
 import { mkdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';

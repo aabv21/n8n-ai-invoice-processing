@@ -1,11 +1,43 @@
 import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { checkConfig, type Config } from '../../src/lib/config.ts';
+import { filledConfig } from '../fixtures/config.ts';
 
-const VALID = JSON.parse(readFileSync('config/config.example.json', 'utf8')) as Config;
-const clone = (): Config => structuredClone(VALID);
+const clone = (): Config => filledConfig();
 
-test('the committed example config passes unchanged', () => expect(checkConfig(VALID)).toEqual(VALID));
+test('the example with its placeholders filled passes', () => expect(checkConfig(filledConfig())).toEqual(filledConfig()));
+test('the committed example is rejected until its placeholders are filled', () => {
+  const example: unknown = JSON.parse(readFileSync('config/config.example.json', 'utf8'));
+  expect(() => checkConfig(example))
+    .toThrow('config.team_email is still the REPLACE_ME placeholder; fill it in config/config.json');
+});
+
+const PLACEHOLDER_PATHS = [
+  ['team_email'],
+  ['gmail', 'label_ids', 'processed'],
+  ['gmail', 'label_ids', 'review'],
+  ['gmail', 'label_ids', 'duplicate'],
+  ['google', 'drive_root_folder_id'],
+  ['google', 'spreadsheet_id'],
+] as const;
+const setAt = (config: Config, path: readonly string[], value: string): void => {
+  let node = config as unknown as Record<string, unknown>;
+  for (const key of path.slice(0, -1)) node = node[key] as Record<string, unknown>;
+  node[path.at(-1)!] = value;
+};
+test.each(PLACEHOLDER_PATHS.map((path) => [`config.${path.join('.')}`, path] as const))(
+  'rejects a REPLACE_ME placeholder at %s',
+  (dotted, path) => {
+    const config = clone();
+    setAt(config, path, 'REPLACE_ME');
+    expect(() => checkConfig(config)).toThrow(`${dotted} is still the REPLACE_ME placeholder; fill it in config/config.json`);
+  },
+);
+test('a padded placeholder is still rejected', () => {
+  const config = clone();
+  config.google.spreadsheet_id = ' REPLACE_ME ';
+  expect(() => checkConfig(config)).toThrow('config.google.spreadsheet_id is still the REPLACE_ME placeholder');
+});
 test('a non-object config is rejected', () => expect(() => checkConfig(null)).toThrow('config must be an object'));
 
 test.each([

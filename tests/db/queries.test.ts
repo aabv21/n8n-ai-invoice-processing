@@ -23,6 +23,7 @@ interface Summary {
   review: number;
   duplicates: number;
   unfinished: number;
+  unfinished_events: { event_id: string; file_name: string | null; received_at: string }[];
   totals_by_supplier: { supplier: string; currency: string; invoices: number; total: number }[];
   review_items: {
     supplier: string | null;
@@ -60,8 +61,6 @@ const save = (event: string, invoice: NormalizedInvoice = VALID_INVOICE, status 
 // Backdates a processed_events row after record-event.sql has stamped it with now().
 const setReceivedAt = (eventId: string, at: string) =>
   db.sql('UPDATE processed_events SET received_at = $1::timestamptz WHERE event_id = $2', [at, eventId]);
-const setReceivedAtAgo = (eventId: string, agoInterval: string) =>
-  db.sql('UPDATE processed_events SET received_at = now() - $1::interval WHERE event_id = $2', [agoInterval, eventId]);
 
 test('records a new event once', async () => {
   expect((await db.run('record-event.sql', ['m1:attachment_0', 'a.pdf']))[0]).toMatchObject({ event_id: 'm1:attachment_0' });
@@ -105,6 +104,45 @@ test('a genuine re-send (same key, same total and issue date) returns values tha
   expect(row.duplicate_of).toBe(first.invoice_id);
   expect(Number(row.duplicate_of_total)).toBe(genuine.total);
   expect(row.duplicate_of_issue_date).toBe(genuine.issue_date);
+});
+// Two emails carrying the same new invoice in one poll: the second save blocks on the first's
+// uncommitted row, then finds the conflict, but its statement snapshot predates the first's
+// commit, so it can't name the original. The workflow labels this Duplicate, not Review.
+test('a save racing an uncommitted save of the same key returns no duplicate_of', async () => {
+  const text = readFileSync('db/queries/save-invoice.sql', 'utf8');
+  const params = (event: string) => [
+    event, event.split(':')[0], '2026-10-30T15:00:00Z', 'ok', '[]', 'text', 'claude-haiku-5-5', '1',
+    JSON.stringify(VALID_INVOICE), null, 'race.pdf', '2026/10'];
+  const clientA = await db.connect();
+  try {
+    await clientA.query('BEGIN');
+    await clientA.query(text, params('race-a:attachment_0'));
+    const raceB = db.sql<SaveRow>(text, params('race-b:attachment_0'));
+    // Wait until B is blocked on A's uncommitted row (a lock it hasn't been granted).
+    for (let tries = 0; ; tries++) {
+      const [waiting] = await db.sql<{ n: number }>('SELECT count(*)::int AS n FROM pg_locks WHERE NOT granted');
+      if (waiting!.n > 0) break;
+      if (tries === 100) throw new Error('the racing save never blocked on the first save');
+      await new Promise((resolve) => setTimeout(resolve, 50));
+    }
+    await clientA.query('COMMIT');
+    expect((await raceB)[0]).toEqual({
+      saved: false, invoice_id: null, duplicate_of: null, duplicate_of_total: null, duplicate_of_issue_date: null, item_count: 0,
+    });
+    // The workflow's next statement takes a new snapshot, which does see the committed original.
+    const [original] = await db.sql<{ id: string }>("SELECT id FROM invoices WHERE source_event_id = 'race-a:attachment_0'");
+    expect(await db.run('find-original.sql', [VALID_INVOICE.supplier_tax_id, VALID_INVOICE.invoice_number])).toEqual([
+      { id: original!.id, total: '2082500.00', issue_date: VALID_INVOICE.issue_date }]);
+  } finally {
+    clientA.release();
+  }
+});
+test('find-original returns one row of NULLs when no invoice holds the key', async () =>
+  expect(await db.run('find-original.sql', ['9013845522', 'NO-SUCH-NUMBER'])).toEqual([{ id: null, total: null, issue_date: null }]));
+test('record-outcome stores an empty invoice id as NULL', async () => {
+  await db.run('record-event.sql', ['ev', 'ev.pdf']);
+  expect(await db.run('record-outcome.sql', ['ev', 'duplicate', ''])).toEqual([{ event_id: 'ev', outcome: 'duplicate' }]);
+  expect(await db.sql("SELECT invoice_id FROM processed_events WHERE event_id = 'ev'")).toEqual([{ invoice_id: null }]);
 });
 test('saving the same event twice returns the first invoice', async () => {
   const first = await save('m1:attachment_0');
@@ -207,7 +245,7 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
       event, event.split(':')[0], receivedAt, status, reviewReasons,
       'text', 'claude-haiku-5-5', 1, invoice, null, `${event}.pdf`, '2026/06',
     ]))[0]!;
-    await db.run('record-outcome.sql', [event, status, row.invoice_id]);
+    expect(await db.run('record-outcome.sql', [event, status, row.invoice_id])).toEqual([{ event_id: event, outcome: status }]);
     return row;
   };
 
@@ -243,18 +281,26 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
       'dup:attachment_0', 'dup', '2026-06-15T09:00:00Z', 'ok', '[]', 'text', 'claude-haiku-5-5', 1,
       { ...VALID_INVOICE, invoice_number: 'BE-1002' }, null, 'dup.pdf', '2026/06',
     ]))[0]!;
-    await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]);
+    expect(await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]))
+      .toEqual([{ event_id: 'dup:attachment_0', outcome: 'duplicate' }]);
 
-    // Stuck for two hours: counts as unfinished. Stuck for five minutes: still within the grace period.
+    // Unfinished at the run's own time, not now(): stuck two hours before the run counts; 15 minutes
+    // before the run is still within the 30-minute grace period; after the run doesn't exist yet.
     await db.run('record-event.sql', ['stuck:attachment_0', 'stuck.pdf']);
-    await setReceivedAtAgo('stuck:attachment_0', '2 hours');
+    await setReceivedAt('stuck:attachment_0', '2026-06-15T21:00:00Z');
     await db.run('record-event.sql', ['fresh:attachment_0', 'fresh.pdf']);
-    await setReceivedAtAgo('fresh:attachment_0', '5 minutes');
+    await setReceivedAt('fresh:attachment_0', '2026-06-15T22:45:00Z');
+    await db.run('record-event.sql', ['later:attachment_0', 'later.pdf']);
+    await setReceivedAt('later:attachment_0', '2026-06-16T10:00:00Z');
   });
 
+  // stuck and fresh arrived inside the window too, so they count as arrived, with no outcome yet.
   test('the window counts match', async () =>
-    expect(await summary()).toMatchObject({ report_date: '2026-06-15', arrived: 4, ok: 2, review: 1, duplicates: 1 }));
-  test('unfinished counts events stuck for 30 minutes, on any day', async () => expect((await summary()).unfinished).toBe(1));
+    expect(await summary()).toMatchObject({ report_date: '2026-06-15', arrived: 6, ok: 2, review: 1, duplicates: 1 }));
+  test('unfinished is measured at run_at, not now()', async () => expect((await summary()).unfinished).toBe(1));
+  test('the unfinished list names each stuck event, oldest first', async () =>
+    expect((await summary()).unfinished_events).toEqual([
+      { event_id: 'stuck:attachment_0', file_name: 'stuck.pdf', received_at: '2026-06-15 16:00' }]));
   test('totals by supplier keep currencies apart', async () => expect((await summary()).totals_by_supplier).toEqual([
     { supplier: 'Bolsamar Empaques S.A.S.', currency: 'COP', invoices: 1, total: 1_000_000 },
     { supplier: 'Bolsamar Empaques S.A.S.', currency: 'USD', invoices: 1, total: 500.5 }]));
@@ -264,18 +310,39 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
     expect((await summary()).due_soon.map((d) => d.due_date)).toEqual(['2026-06-15', '2026-06-22']));
 });
 
+test('the unfinished list stops at 20', async () => {
+  const run = '2026-06-15T23:00:00Z';
+  for (let i = 0; i < 25; i++) {
+    const event = `stuck-${String(i).padStart(2, '0')}:attachment_0`;
+    await db.run('record-event.sql', [event, `${event}.pdf`]);
+    // stuck-00 is the oldest, one hour before the run.
+    await setReceivedAt(event, new Date(Date.parse(run) - (60 + 25 - i) * 60_000).toISOString());
+  }
+  const row = (await db.run<Summary>('daily-summary.sql', [run]))[0]!;
+  expect(row.unfinished).toBe(25);
+  expect(row.unfinished_events).toHaveLength(20);
+  expect(row.unfinished_events[0]?.event_id).toBe('stuck-00:attachment_0');
+  expect(row.unfinished_events[19]?.event_id).toBe('stuck-19:attachment_0');
+});
+test('the unfinished list is an empty array when nothing is stuck', async () => {
+  const row = (await db.run<Summary>('daily-summary.sql', ['2026-06-15T23:00:00Z']))[0]!;
+  expect(row).toMatchObject({ unfinished: 0, unfinished_events: [] });
+});
+
 test('the scenario report joins events, invoices, items, and duplicates', async () => {
   const since = '2026-10-30T00:00:00Z';
 
   await db.run('record-event.sql', ['orig:attachment_0', 'invoice-01-two-items.pdf']);
   await setReceivedAt('orig:attachment_0', '2026-10-30T15:00:00Z');
   const original = await save('orig:attachment_0', VALID_INVOICE, 'ok');
-  await db.run('record-outcome.sql', ['orig:attachment_0', 'ok', original.invoice_id]);
+  expect(await db.run('record-outcome.sql', ['orig:attachment_0', 'ok', original.invoice_id]))
+    .toEqual([{ event_id: 'orig:attachment_0', outcome: 'ok' }]);
 
   await db.run('record-event.sql', ['dup:attachment_0', 'invoice-06-copy-of-01.pdf']);
   await setReceivedAt('dup:attachment_0', '2026-10-30T16:00:00Z');
   const dup = await save('dup:attachment_0', VALID_INVOICE, 'ok');
-  await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]);
+  expect(await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]))
+    .toEqual([{ event_id: 'dup:attachment_0', outcome: 'duplicate' }]);
 
   const sql = readFileSync('scripts/sql/scenario-report.sql', 'utf8');
   const [row] = await db.sql<{ report: unknown[] }>(sql, [since]);

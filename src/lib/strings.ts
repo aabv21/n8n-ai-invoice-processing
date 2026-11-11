@@ -14,6 +14,9 @@ export interface SummaryStrings {
   duplicates: string;
   unfinishedOne: string;
   unfinishedMany: string;
+  /** Under the unfinished list when it's capped: "{count}" is how many stuck events it leaves out. */
+  unfinishedMore: string;
+  unfinishedColumns: { file: string; received: string; eventId: string };
   emptyDay: string;
   totalsHeading: string;
   reviewHeading: string;
@@ -34,8 +37,10 @@ export const SUMMARY_STRINGS: Record<'en' | 'es', SummaryStrings> = {
     ok: 'OK',
     review: 'Review',
     duplicates: 'Duplicates',
-    unfinishedOne: "1 invoice did not finish processing. See n8n's failed executions, or the README's recovery steps for stuck events.",
-    unfinishedMany: "{count} invoices did not finish processing. See n8n's failed executions, or the README's recovery steps for stuck events.",
+    unfinishedOne: '1 invoice did not finish processing. See n8n\'s failed executions, or the steps under "Recovering stuck events" in AGENTS.md.',
+    unfinishedMany: '{count} invoices did not finish processing. See n8n\'s failed executions, or the steps under "Recovering stuck events" in AGENTS.md.',
+    unfinishedMore: '{count} more not shown.',
+    unfinishedColumns: { file: 'File', received: 'Received (Bogota)', eventId: 'Event ID' },
     emptyDay: 'No invoices arrived in the last 24 hours.',
     totalsHeading: 'Totals by supplier',
     reviewHeading: 'Review items',
@@ -54,8 +59,10 @@ export const SUMMARY_STRINGS: Record<'en' | 'es', SummaryStrings> = {
     ok: 'OK',
     review: 'Por revisar',
     duplicates: 'Duplicadas',
-    unfinishedOne: 'Una factura no terminó de procesarse. Consulte las ejecuciones fallidas de n8n o los pasos de recuperación del README para eventos pendientes.',
-    unfinishedMany: '{count} facturas no terminaron de procesarse. Consulte las ejecuciones fallidas de n8n o los pasos de recuperación del README para eventos pendientes.',
+    unfinishedOne: 'Una factura no terminó de procesarse. Consulte las ejecuciones fallidas de n8n o los pasos de "Recovering stuck events" en AGENTS.md.',
+    unfinishedMany: '{count} facturas no terminaron de procesarse. Consulte las ejecuciones fallidas de n8n o los pasos de "Recovering stuck events" en AGENTS.md.',
+    unfinishedMore: '{count} más sin mostrar.',
+    unfinishedColumns: { file: 'Archivo', received: 'Recibido (Bogotá)', eventId: 'ID del evento' },
     emptyDay: 'No llegaron facturas en las últimas 24 horas.',
     totalsHeading: 'Totales por proveedor',
     reviewHeading: 'Elementos por revisar',

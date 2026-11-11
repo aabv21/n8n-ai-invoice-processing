@@ -570,12 +570,39 @@
       }
     },
     {
+      "id": "60000000-0000-4000-8000-000000000035",
+      "name": "Look up the original",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        2340,
+        280
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Reads back the invoice that already holds a duplicate's supplier tax ID and invoice number, in a\n-- statement of its own. save-invoice.sql reports the original too, but when two copies of one\n-- invoice save at the same moment, the losing statement's snapshot can't see the winner's row and\n-- reports none. This statement starts after that save returned, so its snapshot sees every row\n-- committed by then. Always one row: NULLs when no invoice holds the key, which the caller treats\n-- as a conflict (fail closed). issue_date goes out as YYYY-MM-DD text, never a JS Date.\n-- Parameters, in order:\n-- first: supplier_tax_id (text, normalized)\n-- second: invoice_number (text, normalized)\nSELECT o.id, o.total, to_char(o.issue_date, 'YYYY-MM-DD') AS issue_date\nFROM (SELECT 1) AS one\nLEFT JOIN invoices o ON o.supplier_tax_id = $1 AND o.invoice_number = $2;\n",
+        "options": {
+          "queryReplacement": "={{ $('Prepare record').first().json.invoice.supplier_tax_id }},{{ $('Prepare record').first().json.invoice.invoice_number }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
+      }
+    },
+    {
       "id": "60000000-0000-4000-8000-000000000033",
       "name": "Is duplicate conflicting?",
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        2340,
+        2480,
         280
       ],
       "parameters": {
@@ -589,13 +616,23 @@
           "combinator": "or",
           "conditions": [
             {
+              "id": "60000000-0033-4000-8000-0000000a0003",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $('Look up the original').first().json.id == null }}",
+              "rightValue": ""
+            },
+            {
               "id": "60000000-0033-4000-8000-0000000a0001",
               "operator": {
                 "type": "boolean",
                 "operation": "true",
                 "singleValue": true
               },
-              "leftValue": "={{ Number($('Save invoice').first().json.duplicate_of_total) !== Number($('Prepare record').first().json.invoice.total) }}",
+              "leftValue": "={{ Number($('Look up the original').first().json.total) !== Number($('Prepare record').first().json.invoice.total) }}",
               "rightValue": ""
             },
             {
@@ -605,7 +642,7 @@
                 "operation": "true",
                 "singleValue": true
               },
-              "leftValue": "={{ $('Save invoice').first().json.duplicate_of_issue_date !== $('Prepare record').first().json.invoice.issue_date }}",
+              "leftValue": "={{ $('Look up the original').first().json.issue_date !== $('Prepare record').first().json.invoice.issue_date }}",
               "rightValue": ""
             }
           ]
@@ -619,7 +656,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2480,
+        2620,
         160
       ],
       "retryOnFail": true,
@@ -644,7 +681,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2480,
+        2620,
         280
       ],
       "retryOnFail": true,
@@ -669,7 +706,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        2760,
+        2900,
         280
       ],
       "retryOnFail": true,
@@ -678,9 +715,9 @@
       "parameters": {
         "resource": "database",
         "operation": "executeQuery",
-        "query": "-- Marks a processed Gmail event's final outcome once every downstream step for it has run\n-- (saved, filed in Drive and Sheets, labeled). The event's outcome stays NULL until this runs, so\n-- an execution that dies partway through still shows up as unfinished rather than as a success.\n-- Parameters, in order:\n-- first: event_id (text)\n-- second: outcome (text: 'ok' | 'review' | 'duplicate')\n-- third: invoice_id (bigint, or NULL for a duplicate recorded against no new row)\nUPDATE processed_events\nSET outcome = $2, invoice_id = $3::bigint\nWHERE source = 'gmail' AND event_id = $1\nRETURNING event_id, outcome;\n",
+        "query": "-- Marks a processed Gmail event's final outcome once every downstream step for it has run\n-- (saved, filed in Drive and Sheets, labeled). The event's outcome stays NULL until this runs, so\n-- an execution that dies partway through still shows up as unfinished rather than as a success.\n-- Parameters, in order:\n-- first: event_id (text)\n-- second: outcome (text: 'ok' | 'review' | 'duplicate')\n-- third: invoice_id (a bigint as text, or '' for a duplicate when Look up the original found no\n--   original, which fails closed to Review; NULLIF stores that as NULL)\nUPDATE processed_events\nSET outcome = $2, invoice_id = NULLIF($3::text, '')::bigint\nWHERE source = 'gmail' AND event_id = $1\nRETURNING event_id, outcome;\n",
         "options": {
-          "queryReplacement": "={{ $('When called').first().json.event_id }},{{ 'duplicate' }},{{ $('Save invoice').first().json.duplicate_of }}"
+          "queryReplacement": "={{ $('When called').first().json.event_id }},{{ 'duplicate' }},{{ $('Look up the original').first().json.id ?? '' }}"
         }
       },
       "credentials": {
@@ -1261,7 +1298,7 @@
       "parameters": {
         "resource": "database",
         "operation": "executeQuery",
-        "query": "-- Marks a processed Gmail event's final outcome once every downstream step for it has run\n-- (saved, filed in Drive and Sheets, labeled). The event's outcome stays NULL until this runs, so\n-- an execution that dies partway through still shows up as unfinished rather than as a success.\n-- Parameters, in order:\n-- first: event_id (text)\n-- second: outcome (text: 'ok' | 'review' | 'duplicate')\n-- third: invoice_id (bigint, or NULL for a duplicate recorded against no new row)\nUPDATE processed_events\nSET outcome = $2, invoice_id = $3::bigint\nWHERE source = 'gmail' AND event_id = $1\nRETURNING event_id, outcome;\n",
+        "query": "-- Marks a processed Gmail event's final outcome once every downstream step for it has run\n-- (saved, filed in Drive and Sheets, labeled). The event's outcome stays NULL until this runs, so\n-- an execution that dies partway through still shows up as unfinished rather than as a success.\n-- Parameters, in order:\n-- first: event_id (text)\n-- second: outcome (text: 'ok' | 'review' | 'duplicate')\n-- third: invoice_id (a bigint as text, or '' for a duplicate when Look up the original found no\n--   original, which fails closed to Review; NULLIF stores that as NULL)\nUPDATE processed_events\nSET outcome = $2, invoice_id = NULLIF($3::text, '')::bigint\nWHERE source = 'gmail' AND event_id = $1\nRETURNING event_id, outcome;\n",
         "options": {
           "queryReplacement": "={{ $('When called').first().json.event_id }},{{ $('Save Drive link').first().json.invoice.status }},{{ $('Save Drive link').first().json.invoice.id }}"
         }
@@ -1314,8 +1351,8 @@
       ],
       "parameters": {
         "width": 1180,
-        "height": 160,
-        "content": "## Save (Postgres is the system of record)\nSaves the checked record once per event. A second save for the same supplier and invoice number comes back as a duplicate instead of a new row, and gets the Duplicate label when its total and issue date agree with the original - or Review when either doesn't."
+        "height": 180,
+        "content": "## Save (Postgres is the system of record)\nSaves the checked record once per event. A second save for the same supplier and invoice number comes back as a duplicate instead of a new row. Look up the original then reads that original back in a new statement (the save's own snapshot can miss a copy committed at the same moment), and the duplicate gets the Duplicate label when its total and issue date agree - or Review when either doesn't, or when no original is found."
       }
     },
     {
@@ -1551,7 +1588,7 @@
       "main": [
         [
           {
-            "node": "Is duplicate conflicting?",
+            "node": "Look up the original",
             "type": "main",
             "index": 0
           }
@@ -1692,6 +1729,17 @@
         [
           {
             "node": "Record outcome",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Look up the original": {
+      "main": [
+        [
+          {
+            "node": "Is duplicate conflicting?",
             "type": "main",
             "index": 0
           }

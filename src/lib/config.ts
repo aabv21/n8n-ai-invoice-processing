@@ -35,6 +35,24 @@ export interface Config {
   };
 }
 
+/** The value `config/config.example.json` ships in every key an operator must fill in. */
+export const CONFIG_PLACEHOLDER = 'REPLACE_ME';
+
+/** Throws on the first string, depth-first in key order, that is still the example's placeholder. */
+function rejectPlaceholders(value: unknown, path: string): void {
+  if (typeof value === 'string') {
+    if (value.trim() === CONFIG_PLACEHOLDER) {
+      throw new Error(`${path} is still the ${CONFIG_PLACEHOLDER} placeholder; fill it in config/config.json`);
+    }
+  } else if (Array.isArray(value)) {
+    value.forEach((entry, index) => {
+      rejectPlaceholders(entry, `${path}[${String(index)}]`);
+    });
+  } else if (isPlainObject(value)) {
+    for (const [key, entry] of Object.entries(value)) rejectPlaceholders(entry, `${path}.${key}`);
+  }
+}
+
 const LABEL_ID_KEYS = ['processed', 'review', 'duplicate'] as const;
 const GOOGLE_KEYS = ['drive_root_folder_id', 'spreadsheet_id', 'invoices_tab', 'items_tab'] as const;
 const EXTRACTION_KEYS = ['min_text_chars_per_page', 'max_pages', 'max_text_chars'] as const;
@@ -70,9 +88,14 @@ function requireNonEmptyString(path: string, value: unknown): void {
   }
 }
 
-/** Validates every config value a downstream node or AI call depends on, and throws a clear `Error` naming the first bad key it finds. */
+/**
+ * Validates every config value a downstream node or AI call depends on, and throws a clear `Error`
+ * naming the first bad key it finds. A value still set to the example's `REPLACE_ME` placeholder
+ * fails first, wherever it sits, so a half-filled config never reaches Gmail, Drive, or an AI call.
+ */
 export function checkConfig(config: unknown): Config {
   const root = asObject(config, 'config');
+  rejectPlaceholders(root, 'config');
 
   const validation = asObject(root.validation, 'config.validation');
   requireFiniteAtLeast('config.validation.totals_tolerance', validation.totals_tolerance, 0);

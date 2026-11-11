@@ -16,6 +16,13 @@ test.each(workflowFiles)('%s never saves a manual execution', (file) => {
   expect(readWorkflow(file).settings.saveManualExecutions).toBe(false);
 });
 
+// n8n refuses to import a workflow whose nodes share an id, so a hand-added node that copies a
+// neighbor's id would fail pnpm run setup only on a live stack.
+test.each(workflowFiles)('%s gives every node its own id', (file) => {
+  const ids = readWorkflow(file).nodes.map((n) => n.id);
+  expect(new Set(ids).size).toBe(ids.length);
+});
+
 test('load-config reads the mounted config once', () => {
   const wf = workflowFile('load-config.json');
   // alwaysOutputData is pinned here too: a missing config file must still reach "Parse config" as
