@@ -64,6 +64,14 @@ test.each([
   config.validation.min_confidence = bad as unknown as number;
   expect(() => checkConfig(config)).toThrow('config.validation.min_confidence');
 });
+test("rejects a missing or digit-free validation.buyer_tax_id", () => {
+  const missing = clone();
+  delete (missing.validation as Partial<Config['validation']>).buyer_tax_id;
+  expect(() => checkConfig(missing)).toThrow("config.validation.buyer_tax_id must be the buyer's tax ID");
+  const bad = clone();
+  bad.validation.buyer_tax_id = 'n/a';
+  expect(() => checkConfig(bad)).toThrow("config.validation.buyer_tax_id must be the buyer's tax ID");
+});
 test.each([0, 1])('accepts validation.min_confidence at the boundary %d', (value) => {
   const config = clone();
   config.validation.min_confidence = value;
@@ -126,6 +134,15 @@ test('an empty ai.retry_model means no retry, and passes', () => {
   const config = clone();
   config.ai.retry_model = '';
   expect(() => checkConfig(config)).not.toThrow();
+});
+test('defaults ai.retry_effort to medium', () => {
+  const config = clone();
+  delete (config.ai as Partial<Config['ai']>).retry_effort;
+  expect(checkConfig(config).ai.retry_effort).toBe('medium');
+});
+test('rejects an unknown ai.retry_effort', () => {
+  const bad: unknown = { ...clone(), ai: { ...clone().ai, retry_effort: 'max' } };
+  expect(() => checkConfig(bad)).toThrow('config.ai.retry_effort must be one of low, medium, high');
 });
 test('a missing ai.retry_model passes too', () => {
   const config = clone();

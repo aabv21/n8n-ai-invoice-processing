@@ -25,6 +25,9 @@ test('prompt states the rules the checks rely on', () => {
 });
 // The Information Extractor appends its own format instructions to this text as a LangChain
 // template, which treats `{`/`}` as template syntax - a brace here would break the text path.
+// \b keeps the printed amount 1.190.000 from reading as a decimal.
+test('the prompt states no confidence threshold, which lives only in config', () => expect(prompt).not.toMatch(/\b0\.\d/));
+test('the prompt says total is before withholdings', () => expect(prompt).toContain('before any withholding'));
 test('prompt contains no braces', () => expect(prompt).not.toMatch(/[{}]/));
 // The inputSchema is this file's text, so it must pass the prompt's hygiene scan too (no run of
 // 10+ digits, no '@') before it's generated into workflow JSON.

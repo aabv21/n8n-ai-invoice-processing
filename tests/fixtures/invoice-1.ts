@@ -38,5 +38,5 @@ export const INVOICE_1_RAW = {
   confidence: 0.95,
 };
 
-export const RULES: ValidationRules = { totals_tolerance: 1, min_confidence: 0.8 };
+export const RULES: ValidationRules = { totals_tolerance: 1, min_confidence: 0.8, buyer_tax_id: '901.555.210-1' };
 export const TODAY = '2026-10-30';

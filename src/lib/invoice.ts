@@ -23,6 +23,7 @@ export type ReviewReason =
   | 'line_items_incomplete'
   | 'non_positive_total'
   | 'amount_out_of_range'
+  | 'supplier_is_buyer'
   | 'low_confidence'
   | 'too_many_pages'
   | 'too_much_text'
@@ -82,11 +83,14 @@ export const EMPTY_INVOICE: NormalizedInvoice = {
 export interface ValidationRules {
   totals_tolerance: number;
   min_confidence: number;
+  buyer_tax_id: string;
 }
 
 export interface CheckOutput {
   status: 'ok' | 'review';
   reasons: ReviewReason[];
+  /** True when a second read by the stronger model can change the verdict. */
+  retry: boolean;
   invoice: NormalizedInvoice;
   raw: unknown;
   event_id: string;

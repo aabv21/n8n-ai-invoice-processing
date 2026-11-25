@@ -15,6 +15,7 @@ export function run(input: PrepareInput): InvoiceRecord {
     ? {
         status: 'review',
         reasons: [input.skip_reason],
+        retry: false,
         invoice: emptyInvoice(),
         raw: null,
         event_id: input.event_id,

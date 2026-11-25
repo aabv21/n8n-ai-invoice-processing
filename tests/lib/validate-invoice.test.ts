@@ -12,7 +12,7 @@ const valid: NormalizedInvoice = {
   ],
   confidence: 0.95,
 };
-const rules = { totals_tolerance: 1, min_confidence: 0.8 };
+const rules = { totals_tolerance: 1, min_confidence: 0.8, buyer_tax_id: '901.555.210-1' };
 const today = '2026-10-30';
 
 test('accepts a consistent invoice', () => expect(validateInvoice(valid, rules, today)).toEqual([]));
@@ -54,6 +54,15 @@ test('reports every missing required field in field order', () =>
 // near-zero confidence would otherwise both pass as `ok` with no reason given.
 test('throws when rules are missing required fields, instead of silently passing everything', () =>
   expect(() => validateInvoice({ ...valid, total: 999, confidence: 0.1 }, {} as unknown as ValidationRules, today)).toThrow());
+
+test("the buyer's own NIT as supplier is supplier_is_buyer, with or without the check digit", () => {
+  expect(validateInvoice({ ...valid, supplier_tax_id: '9015552101' }, rules, today)).toEqual(['supplier_is_buyer']);
+  expect(validateInvoice({ ...valid, supplier_tax_id: '901555210' }, rules, today)).toEqual(['supplier_is_buyer']);
+});
+test('a supplier NIT that differs only in its check digit is not the buyer', () =>
+  expect(validateInvoice({ ...valid, supplier_tax_id: '9015552109' }, rules, today)).toEqual([]));
+test('throws when buyer_tax_id has no digit', () =>
+  expect(() => validateInvoice(valid, { ...rules, buyer_tax_id: 'NIT' }, today)).toThrow('rules.buyer_tax_id must be a tax ID'));
 
 test('header totals ten times the real lines are a line items mismatch', () =>
   expect(validateInvoice({ ...valid, subtotal: 17_500_000, tax: 3_325_000, total: 20_825_000 }, rules, today))

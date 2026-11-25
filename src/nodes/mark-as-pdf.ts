@@ -1,10 +1,13 @@
 // Relabels one attachment as application/pdf before process-invoice files it. Gmail can deliver a
 // PDF as application/octet-stream, which Keep PDFs lets through by its .pdf name, and Drive would
-// then store it with that generic type. Only the MIME type changes: the binary's data reference,
-// name, and size, and every other binary on the item, pass through as they are. Pure: no I/O, no
-// clock. Runs once for each item.
+// then store it with that generic type. Only an attachment Gmail typed application/octet-stream is
+// relabeled; any other type passes through, so a non-PDF named .pdf keeps its type and fails
+// Extract text as unreadable_pdf. Only the MIME type changes: the binary's data reference, name,
+// and size, and every other binary on the item, pass through as they are. Pure: no I/O, no clock.
+// Runs once for each item.
 
 const PDF = 'application/pdf';
+const GENERIC = 'application/octet-stream';
 
 export interface BinaryEntry {
   mimeType: string;
@@ -24,6 +27,7 @@ export function run(item: AttachmentItem): AttachmentItem {
     ? item.binary[key]
     : undefined;
   if (!entry) throw new Error(`Mark as PDF: binary ${key} is missing`);
+  if (entry.mimeType !== GENERIC) return item;
   return {
     json: { ...item.json, mime_type: PDF },
     binary: { ...item.binary, [key]: { ...entry, mimeType: PDF } },

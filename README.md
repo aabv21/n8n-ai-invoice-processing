@@ -16,7 +16,7 @@ Added after recording.
 
 - Polls Gmail every minute for mail labeled `Invoices` with a PDF attachment, and records each attachment once, so a re-delivered email is never processed twice.
 - Reads each PDF's text layer locally and sends it to Claude Haiku 5.5 as text, or sends the PDF itself when it has no usable text, such as a scan.
-- Checks totals, line items, dates, and the model's confidence, and retries a doubtful invoice once on Claude Sonnet 5.5.
+- Checks totals, line items, dates, and the model's confidence, and retries once on Claude Sonnet 5.5, at effort `medium`, when a second read can change the verdict: low confidence, an unreadable or cut-off reply, or line items that don't add up on a scan.
 - Saves the invoice and its line items in Postgres, once per email and once per supplier invoice number, so a re-sent invoice becomes a `Duplicate`.
 - Files the PDF in Google Drive under `Invoices/<yyyy>/<mm>`, lists the invoice and its items in Google Sheets, and labels the email `Processed`, `Review`, or `Duplicate`.
 - Emails the team a summary at 18:00 Bogota time: counts, totals by supplier, the invoices to review, what falls due in the next 7 days, and any event that didn't finish.
@@ -91,13 +91,15 @@ Put the API key in `.env` as `ANTHROPIC_API_KEY`, then set a monthly spend limit
 | `google.invoices_tab` | The invoice tab's name | `Invoices` |
 | `google.items_tab` | The line-item tab's name | `Items` |
 | `ai.default_model` | The first extraction model | `claude-haiku-5-5` |
-| `ai.retry_model` | The model for the one retry of a `review` verdict; `''` turns the retry off | `claude-sonnet-5-5` |
+| `ai.retry_model` | The model for the one retry of a model-dependent review; `''` turns the retry off | `claude-sonnet-5-5` |
+| `ai.retry_effort` | Thinking effort for the retry; missing means `medium` | `medium` |
 | `ai.effort` | Thinking effort, `low`, `medium`, or `high` | `low` |
 | `extraction.min_text_chars_per_page` | Non-whitespace characters per page for the text path | `100` |
 | `extraction.max_pages` | Pages above which a PDF goes to review with no AI call | `20` |
 | `extraction.max_text_chars` | Extracted characters above which a PDF goes to review with no AI call | `60000` |
 | `validation.totals_tolerance` | How far subtotal plus tax may drift from the total, in the invoice's currency | `1` |
 | `validation.min_confidence` | Model confidence below which an invoice goes to review | `0.8` |
+| `validation.buyer_tax_id` | Your company's own NIT; an invoice whose supplier NIT matches it goes to review as `supplier_is_buyer` | `901.555.210-1` |
 
 ### Team email language
 
@@ -111,6 +113,7 @@ The daily summary and the error alert render in the language `team_locale` names
 
 - **`team_locale`** is optional; a missing key reads as `en`.
 - **`extraction.max_text_chars`** is required; copy `60000` from `config/config.example.json`. `Check config` names the key until it's there.
+- **`validation.buyer_tax_id`** is required; set your company's NIT (the example ships Magdaport's fictional one). `Check config` names the key until it's there.
 - **`REPLACE_ME`**: a config that still holds the example's placeholder in any key now fails `Check config`, naming the key, instead of failing later at Gmail or Drive.
 
 After pulling a change to `compose.yaml`, run `docker compose up -d --wait` to recreate the containers under the current hardening; the named volumes stay. Add the queue-mode flags if you run that stack.
@@ -159,9 +162,9 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 3 | Gmail filter | Email a PDF to the demo account | It arrives labeled `Invoices` |
 | 4 | OAuth Production | The Google Cloud consent screen | "In production"; seven days later, `daily-summary` still sends |
 | 5 | Samples | `pnpm run samples -- --base-date $(TZ=America/Bogota date +%F)` and `pnpm run adversarial -- --base-date $(TZ=America/Bogota date +%F)`; send the six samples, then `pnpm run scenarios -- --since <ISO>` | Six `PASS` |
-| 6 | Paths | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -c "SELECT drive_file_name, extraction_path, model, attempts, status FROM invoices ORDER BY id"'` | #4 `vision`, the rest `text` |
+| 6 | Paths | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -c "SELECT drive_file_name, extraction_path, model, attempts, status, review_reasons FROM invoices ORDER BY id"'` | #4 `vision`, the rest `text` |
 | 7 | Request shape | #4's `extract-invoice` execution in n8n, and the text path's `Claude` sub-node | The PDF request sends `thinking: {type: adaptive}` and `output_config`, with no `temperature`, `top_p`, or `top_k`; the `Claude` sub-node shows no sampling options; the schema's type arrays and `format: date` raise no 400 or parse error on either path |
-| 8 | Sonnet retry | The query from row 6, for #5 | `attempts = 2`, `model = claude-sonnet-5-5`, `status = review` |
+| 8 | No retry on a printed mismatch | The query from row 6, for #5 | `attempts = 1`, `model = claude-haiku-5-5`, `status = review`; a printed totals mismatch isn't retried. If `review_reasons` also holds `low_confidence`, Haiku found #5 ambiguous and the retry is legitimate (`attempts = 2`, Sonnet); that isn't a regression, but `totals_mismatch` alone must never retry |
 | 9 | Drive and Sheets | The Drive root folder and the spreadsheet | 5 files under `Invoices/<yyyy>/<mm>`, named as in `samples/expected.json`; 5 `Invoices` rows and 19 `Items` rows; each `pdf_link` opens |
 | 10 | Labels | The six sample emails | #1–#4 `Processed`, #5 `Review`, #6 `Duplicate` |
 | 11 | Two PDFs in one email | Send `adv-usd-restatement.pdf` and `adv-implausible-line.pdf` in one email | Two events (`:attachment_0` and `:attachment_1`) and two rows |
@@ -170,7 +173,7 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 14 | ensure-folder | `node scripts/dev-call.ts ensure-folder '{"parent_id":"<drive_root_folder_id>","name":"2099"}'`, twice | The same `folder_id` both times; trash the `2099` folder afterwards |
 | 15 | Error alert | `node scripts/dev-call.ts extract-invoice '{"event_id":"live-error","path":"bogus"}'`, then again with `team_locale: "es"` | `[Magdaport demo] Workflow failed: extract-invoice`, then `[Demo Magdaport] Falló el flujo: extract-invoice` |
 | 16 | Invalid Anthropic key, then replay | In n8n, set the Anthropic credential's API key to `invalid`, and email `samples/adversarial/adv-implausible-line.pdf` to the demo account. 30 minutes later, `node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":true}"`. Restore the key, open the failed `Process invoice` execution in n8n's executions list and choose **Retry with original workflow**, then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT event_id, outcome FROM processed_events WHERE file_name = 'adv-implausible-line.pdf' ORDER BY received_at;"` | Alerts arrive and `intake-email` stops at `Fail the batch`; the preview lists `adv-implausible-line.pdf` under the unfinished line; after the retry, the newest row's outcome is `duplicate`, since row 11 saved the same invoice |
-| 17 | too_many_pages | Set `extraction.max_pages: 1` in `config/config.json`; `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name = 'invoice-02-ten-items.pdf'; DELETE FROM invoices WHERE invoice_number = 'SA-77812';"`, and trash #2's Drive file and its Sheets rows; resend #2 by email; then restore `20` and clean up the same way | `review` with `too_many_pages` |
+| 17 | too_many_pages | Set `extraction.max_pages: 1` in `config/config.json`; `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812');"`, and trash #2's Drive file and its Sheets rows; resend #2 by email; then restore `20` and clean up the same way | `review` with `too_many_pages` |
 | 18 | Summary content | After the samples and before the drills: `node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":false}"`, then again with `team_locale: "es"` | `Arrived: 6 \| OK: 4 \| Review: 1 \| Duplicates: 1`, in both languages; the 18:00 run arrives on its own |
 | 19 | Cost | `pnpm run cost -- --since <ISO>` | The "all" total is within 5% of the Anthropic console for the same window; the table goes in [Cost per invoice](#cost-per-invoice) |
 | 20 | Queue mode | `docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2`, wait 15 s, then `docker inspect --format '{{.Name}} {{.HostConfig.SecurityOpt}} {{.HostConfig.CapDrop}}' $(docker compose -f compose.yaml -f compose.queue.yaml ps -q)` | `no-new-privileges` everywhere, and `CapDrop [ALL]` on `n8n` and the workers |
@@ -179,8 +182,9 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 23 | Red team | Each `samples/adversarial/` PDF, one per email, the duplicate pair in order | Each label and saved row falls in its safe set in `samples/adversarial/expected.json`; the genuine re-send is labeled `Duplicate` |
 | 24 | Red team, parked | A long-text fixture under `max_text_chars`, and the off-schema phishing fixture | The Sheets write succeeds or fails loudly (the 50,000-character cell limit); the phishing fixture's error email echoes nothing harmful |
 | 25 | Spend limit | The Anthropic console | A monthly limit is set; the amount is the account owner's decision |
-| 26 | One failed attachment in a batch | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name IN ('invoice-01-two-items.pdf', 'invoice-05-bad-totals.pdf', 'invoice-06-copy-of-01.pdf'); DELETE FROM invoices WHERE invoice_number IN ('BE-2041', 'MB-5520');"`, and trash #1's and #5's Drive files and Sheets rows; set `ai.retry_model` to `claude-no-such-model` in `config/config.json`; email `invoice-01-two-items.pdf` and `invoice-05-bad-totals.pdf` together in one email; then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT file_name, outcome, invoice_id IS NOT NULL FROM processed_events WHERE file_name IN ('invoice-01-two-items.pdf', 'invoice-05-bad-totals.pdf');"`; restore `claude-sonnet-5-5` and retry #5's failed `Process invoice` execution | #1 is labeled `Processed` with outcome `ok`; #5's retry fails on the unknown model, so its outcome stays empty with no invoice; the `intake-email` alert names `Fail the batch` with "process-invoice failed for 1 attachment(s) in this batch"; after the restore and retry, #5 gets `Review` |
-| 27 | Clean clone | Clear the Sheets rows (keep the headers), trash `Invoices/<yyyy>`, run `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events; DELETE FROM invoices;"`, then `gh repo clone aabv21/n8n-ai-invoice-processing "$(mktemp -d)/magdaport-check"` and follow [Quick start](#quick-start) exactly | Six `PASS` from `pnpm run scenarios` |
+| 26 | One failed attachment in a batch | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812', 'NL-0938');"`, and trash #2's and #4's Drive files and Sheets rows; in `config/config.json` set `extraction.max_pages: 1` (so #2 is skipped with no AI call) and `ai.default_model: claude-no-such-model` (so #4's first extraction fails); email `invoice-02-ten-items.pdf` and `invoice-04-scanned.pdf` together in one email; then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT file_name, outcome, invoice_id IS NOT NULL FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf');"`; restore `20` and `claude-haiku-5-5`, then clean up with `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812', 'NL-0938');"`, trash both files' Drive files and Sheets rows, and resend #4 | #2 is labeled `Review` with outcome `review` and an invoice (`too_many_pages`); #4's extraction fails on the unknown model, so its outcome stays empty with no invoice; the `intake-email` alert names `Fail the batch` with "process-invoice failed for 1 attachment(s) in this batch"; after the restore, the resent #4 is labeled `Processed` |
+| 27 | Sonnet retry on a scan | Set `validation.min_confidence: 1` in `config/config.json`, and delete #4 as row 17 does (file `invoice-04-scanned.pdf`, number `NL-0938`), trashing its Drive file and Sheets rows. Resend #4, run row 6's query, then restore `0.8` | #4 `attempts = 2`, `model = claude-sonnet-5-5` |
+| 28 | Clean clone | Clear the Sheets rows (keep the headers), trash `Invoices/<yyyy>`, run `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events; DELETE FROM invoices;"`, then `gh repo clone aabv21/n8n-ai-invoice-processing "$(mktemp -d)/magdaport-check"` and follow [Quick start](#quick-start) exactly | Six `PASS` from `pnpm run scenarios` |
 
 ## Cost per invoice
 
@@ -191,13 +195,13 @@ An estimate, measured in the live run with `pnpm run cost -- --since <ISO>` and 
 | text | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) |
 | vision | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) |
 | all | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) | Pending: measured in the live run (`pnpm run cost`) |
-| Model per step | Claude Haiku 5.5 first, with a Claude Sonnet 5.5 step-up on `review`; kept or changed from the live results | | |
+| Model per step | Claude Haiku 5.5 first, with a Claude Sonnet 5.5 step-up on a model-dependent `review`; kept or changed from the live results | | |
 
 ## Design decisions and production notes
 
 [docs/architecture.md](docs/architecture.md#design-decisions-each-over-its-alternative) gives each decision with the alternative it beat. In short:
 
-- **Haiku first, Sonnet only on review:** Sonnet costs far more per token, so it runs once, only when a check fails.
+- **Haiku first, Sonnet only when it can help:** Sonnet 5.5 costs 20 times more per token, so it reruns only a review that a second read can change.
 - **Routing by text density:** a PDF with a usable text layer costs only text tokens; scans take the PDF path.
 - **Postgres as the system of record:** one statement saves an invoice once per event and turns a re-sent invoice into a duplicate; Sheets and the label read the saved row back.
 - **An idempotency gate in the database:** one `INSERT … ON CONFLICT DO NOTHING` per attachment, so two runs can't both pass.
@@ -221,6 +225,8 @@ Each item links to its row in the [failure table](docs/architecture.md#failure-m
 
 - **New mail only:** the Gmail trigger sees mail that arrives after its last poll; a label added by hand to older mail is never picked up.
 - **No DIAN electronic invoice:** the ZIP and XML a Colombian e-invoice carries aren't read; only the PDF is.
+- **Credit notes go to review:** a credit note's negative total is `non_positive_total`; there's no credit-note outcome yet.
+- **Global discounts and withholdings depend on the reading:** the prompt asks for the total before withholdings and the subtotal after discounts; an invoice printed another way goes to review as `totals_mismatch`.
 - **Duplicate detection depends on the model's reading** of the supplier tax ID and invoice number; a misread number makes a re-sent invoice look new.
 - **A poor text layer takes the text path**, even when its text is wrong, and consistently wrong values can pass the checks.
 - **Two first uploads in a month can race** and create two month folders with the same name.

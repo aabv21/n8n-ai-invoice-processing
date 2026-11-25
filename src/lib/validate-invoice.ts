@@ -3,6 +3,7 @@
 // total - the model copies amounts as printed, so a printed arithmetic error surfaces here as
 // totals_mismatch instead of being silently corrected away.
 import type { NormalizedInvoice, ReviewReason, ValidationRules } from './invoice.ts';
+import { normalizeTaxId } from './normalize-invoice.ts';
 
 const REQUIRED_FIELDS: ReadonlyArray<readonly [keyof NormalizedInvoice, ReviewReason]> = [
   ['supplier', 'missing_supplier'],
@@ -15,6 +16,17 @@ const REQUIRED_FIELDS: ReadonlyArray<readonly [keyof NormalizedInvoice, ReviewRe
   ['total', 'missing_total'],
 ];
 
+/**
+ * True when a supplier's tax ID is the buyer's own. A NIT is printed with or without its check
+ * digit, so a match is equality, or one value being the other minus its last character.
+ */
+export function isBuyerTaxId(supplierTaxId: string, buyerTaxId: string): boolean {
+  const supplier = normalizeTaxId(supplierTaxId);
+  const buyer = normalizeTaxId(buyerTaxId);
+  if (supplier === null || buyer === null) return false;
+  return supplier === buyer || supplier === buyer.slice(0, -1) || buyer === supplier.slice(0, -1);
+}
+
 export function validateInvoice(invoice: NormalizedInvoice, rules: ValidationRules, today: string): ReviewReason[] {
   // A missing or malformed rule would otherwise make every comparison against it silently false
   // (`n > undefined` and `n < undefined` are both false), passing every invoice as ok.
@@ -22,11 +34,19 @@ export function validateInvoice(invoice: NormalizedInvoice, rules: ValidationRul
     throw new Error('validateInvoice: rules.totals_tolerance and rules.min_confidence must be finite numbers');
   }
 
+  if (typeof rules.buyer_tax_id !== 'string' || normalizeTaxId(rules.buyer_tax_id) === null) {
+    throw new Error('validateInvoice: rules.buyer_tax_id must be a tax ID with at least one digit');
+  }
+
   const reasons: ReviewReason[] = [];
 
   for (const [field, reason] of REQUIRED_FIELDS) {
     // eslint-disable-next-line security/detect-object-injection -- field is one of this module's own fixed keys, not user input
     if (invoice[field] === null) reasons.push(reason);
+  }
+
+  if (invoice.supplier_tax_id !== null && isBuyerTaxId(invoice.supplier_tax_id, rules.buyer_tax_id)) {
+    reasons.push('supplier_is_buyer');
   }
 
   if (invoice.due_date !== null && invoice.issue_date !== null && invoice.due_date < invoice.issue_date) {

@@ -2,6 +2,8 @@ import { expect, test } from 'vitest';
 import { EMPTY_INVOICE } from '../../src/lib/invoice.ts';
 import { normalizeInvoice } from '../../src/lib/normalize-invoice.ts';
 import { run, type CheckInput } from '../../src/nodes/check-invoice.ts';
+import { nodeOf, workflowFile } from '../helpers/workflow-file.ts';
+import { runGenerated } from '../helpers/run-generated.ts';
 import { INVOICE_1_RAW, RULES, TODAY } from '../fixtures/invoice-1.ts';
 
 const echo = { event_id: 'm1:attachment_0', received_at: '2026-10-30T15:00:00.000Z', path: 'vision', model: 'claude-haiku-5-5', attempt: 1 } as const;
@@ -9,8 +11,16 @@ const input = (patch: Partial<CheckInput>): CheckInput => ({ rules: RULES, today
 const reply = (raw: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(raw) }], stop_reason: 'end_turn' });
 
 test('passes a valid PDF reply', () => expect(run(input(reply(INVOICE_1_RAW)))).toEqual({
-  status: 'ok', reasons: [], invoice: normalizeInvoice(INVOICE_1_RAW).invoice, raw: INVOICE_1_RAW, ...echo }));
-// Invoice 5's real lines (thermal labels 40x18,000 + ink ribbon 12x35,000 = 1,140,000) agree with
+  status: 'ok', reasons: [], retry: false, invoice: normalizeInvoice(INVOICE_1_RAW).invoice, raw: INVOICE_1_RAW, ...echo }));
+const generated = String(nodeOf(workflowFile('extract-invoice.json'), 'Check invoice').parameters.jsCode);
+test.each([
+  ['source', run],
+  ['generated', (i: CheckInput) => (runGenerated(generated, i) as { json: ReturnType<typeof run> }[])[0]!.json],
+])('sets retry from the reasons and the path (%s)', (_label, check) => {
+  expect(check(input({ reply: { ...INVOICE_1_RAW, confidence: 0.1 } }))).toMatchObject({ reasons: ['low_confidence'], retry: true });
+  expect(check(input({ reply: { ...INVOICE_1_RAW, total: 2_082_600 } }))).toMatchObject({ reasons: ['totals_mismatch'], retry: false });
+});
+  expect(run(input({ reply: { ...INVOICE_1_RAW, total: 2_082_600 } }))).toMatchObject({ reasons: ['totals_mismatch'], retry: false });
 // the patched subtotal, so only the printed (wrong) total trips totals_mismatch.
 const INVOICE_5_LINES = [
   { description: 'Thermal labels 100x150 mm (roll)', quantity: 40, unit_price: 18_000, line_total: 720_000 },
@@ -26,4 +36,4 @@ test('an out-of-range total is reported once, not also as missing', () =>
   expect(run(input({ reply: { ...INVOICE_1_RAW, total: 1e16 } })).reasons).toEqual(['amount_out_of_range']));
 test('an unparseable reply is a review with an empty invoice', () =>
   expect(run(input({ content: [{ type: 'text', text: 'sorry' }], stop_reason: 'end_turn' })))
-    .toEqual({ status: 'review', reasons: ['unparseable_reply'], invoice: EMPTY_INVOICE, raw: null, ...echo }));
+    .toEqual({ status: 'review', reasons: ['unparseable_reply'], retry: true, invoice: EMPTY_INVOICE, raw: null, ...echo }));

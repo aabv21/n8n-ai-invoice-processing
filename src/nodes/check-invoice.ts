@@ -4,6 +4,7 @@ import type { CheckOutput, ReviewReason, ValidationRules } from '../lib/invoice.
 import { normalizeInvoice } from '../lib/normalize-invoice.ts';
 import { parseReply } from '../lib/parse-reply.ts';
 import { emptyInvoice } from '../lib/util.ts';
+import { shouldRetry } from '../lib/retry-policy.ts';
 import { validateInvoice } from '../lib/validate-invoice.ts';
 
 export interface CheckInput {
@@ -26,7 +27,7 @@ function echoOf(input: CheckInput): Pick<CheckInput, 'event_id' | 'received_at' 
 export function run(input: CheckInput): CheckOutput {
   const parsed = parseReply(input);
   if (!parsed.ok) {
-    return { status: 'review', reasons: [parsed.reason], invoice: emptyInvoice(), raw: null, ...echoOf(input) };
+    return { status: 'review', reasons: [parsed.reason], retry: shouldRetry([parsed.reason], input.path), invoice: emptyInvoice(), raw: null, ...echoOf(input) };
   }
 
   const { invoice, reasons: normalizeReasons } = normalizeInvoice(parsed.value);
@@ -44,5 +45,5 @@ export function run(input: CheckInput): CheckOutput {
   }
   const reasons = [...normalizeReasons, ...validateReasons.filter((r) => !suppressed.includes(r))];
 
-  return { status: reasons.length === 0 ? 'ok' : 'review', reasons, invoice, raw: parsed.value, ...echoOf(input) };
+  return { status: reasons.length === 0 ? 'ok' : 'review', reasons, retry: shouldRetry(reasons, input.path), invoice, raw: parsed.value, ...echoOf(input) };
 }
