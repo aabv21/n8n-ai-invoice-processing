@@ -183,7 +183,7 @@
       "from": "process",
       "to": "db",
       "y": 474,
-      "label": "unreadable or too many pages: skip extraction",
+      "label": "screen fails or over the daily AI budget: skip extraction",
       "variant": "dashed"
     },
     {

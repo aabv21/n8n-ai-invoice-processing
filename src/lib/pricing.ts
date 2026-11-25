@@ -6,6 +6,11 @@ const PRICES: Readonly<Record<string, { inputPerMTok: number; outputPerMTok: num
   'claude-sonnet-5-5': { inputPerMTok: 2, outputPerMTok: 10 },
 };
 
+/** True when the table prices the model. */
+export function hasPrice(model: string): boolean {
+  return Object.hasOwn(PRICES, model);
+}
+
 /** The cost of one model call, in USD. Throws for a model this table doesn't price. */
 export function costUsd(model: string, inputTokens: number, outputTokens: number): number {
   // eslint-disable-next-line security/detect-object-injection -- model is a caller-supplied id looked up in a fixed price table, not used to access a dynamic resource

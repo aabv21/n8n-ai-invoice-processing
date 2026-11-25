@@ -15,6 +15,8 @@
 -- tenth: raw_extraction (text, a JSON value, or NULL)
 -- eleventh: drive_file_name (text)
 -- twelfth: drive_folder (text)
+-- thirteenth: ai_cost_usd (numeric, the extraction's AI cost in USD; kept on the event even when the
+--   invoice is a duplicate and no row is inserted)
 WITH replay AS (
   SELECT id FROM invoices WHERE source_event_id = $1
 ),
@@ -43,6 +45,13 @@ inserted AS (
   WHERE NOT EXISTS (SELECT 1 FROM replay)
   ON CONFLICT DO NOTHING
   RETURNING id
+),
+-- A data-modifying CTE runs whether or not the final SELECT reads it, so the cost is kept on a
+-- replay and on a duplicate too. GREATEST: a lower figure never replaces a higher one already saved.
+cost AS (
+  UPDATE processed_events SET ai_cost_usd = GREATEST(ai_cost_usd, $13::numeric)
+  WHERE source = 'gmail' AND event_id = $1
+  RETURNING event_id
 ),
 items AS (
   INSERT INTO invoice_items (invoice_id, line_no, description, quantity, unit_price, line_total)

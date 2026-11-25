@@ -41,6 +41,7 @@ interface Summary {
     total: number | null;
     status: string;
   }[];
+  ai_cost_usd: number;
 }
 
 let db: TestDb;
@@ -55,9 +56,14 @@ afterAll(async () => {
   await db.close();
 });
 
-const save = (event: string, invoice: NormalizedInvoice = VALID_INVOICE, status = 'ok') => db.run<SaveRow>('save-invoice.sql', [
+const save = async (event: string, invoice: NormalizedInvoice = VALID_INVOICE, status = 'ok', cost = 0) => {
+  // The cost lands on the event's own row, so a test that prices a save records the event first.
+  if (cost > 0) await db.run('record-event.sql', [event, `${event}.pdf`]);
+  return saveRow(event, invoice, status, cost);
+};
+const saveRow = (event: string, invoice: NormalizedInvoice, status: string, cost: number) => db.run<SaveRow>('save-invoice.sql', [
   event, event.split(':')[0], '2026-10-30T15:00:00Z', status, '[]', 'text', 'claude-haiku-5-5', 1,
-  invoice, { model_reply: true }, '2026-10-02_bolsamar-empaques-sas_be-2041.pdf', '2026/10']).then((r) => r[0]!);
+  invoice, { model_reply: true }, '2026-10-02_bolsamar-empaques-sas_be-2041.pdf', '2026/10', cost]).then((r) => r[0]!);
 // Backdates a processed_events row after record-event.sql has stamped it with now().
 const setReceivedAt = (eventId: string, at: string) =>
   db.sql('UPDATE processed_events SET received_at = $1::timestamptz WHERE event_id = $2', [at, eventId]);
@@ -70,6 +76,31 @@ test('saves an invoice and its items', async () => {
   expect(await save('m1:attachment_0')).toMatchObject({ saved: true, duplicate_of: null, item_count: 2 });
   expect(await db.sql('SELECT supplier_tax_id, total::text, review_reasons FROM invoices'))
     .toEqual([{ supplier_tax_id: '9013845522', total: '2082500.00', review_reasons: [] }]);
+});
+test("save-invoice stores the extraction's cost on the event", async () => {
+  await save('m1:attachment_0', VALID_INVOICE, 'ok', 0.012345);
+  expect(await db.sql('SELECT ai_cost_usd::text FROM processed_events')).toEqual([{ ai_cost_usd: '0.012345' }]);
+});
+test("a duplicate's extraction cost counts toward today's spend", async () => {
+  await save('m1:attachment_0', VALID_INVOICE, 'ok', 0.2);
+  const dup = await save('m2:attachment_0', VALID_INVOICE, 'ok', 0.3);
+  expect(dup.saved).toBe(false);
+  const [row] = await db.run<{ ai_spent_usd: number }>('record-event.sql', ['m3:attachment_0', 'c.pdf']);
+  expect(row?.ai_spent_usd).toBe(0.5);
+});
+test('a record-cost with no saved invoice still counts toward today\'s spend, and never lowers a higher figure', async () => {
+  await db.run('record-event.sql', ['m1:attachment_0', 'a.pdf']);
+  await db.run('record-cost.sql', ['m1:attachment_0', 0.004]);
+  await db.run('record-cost.sql', ['m1:attachment_0', 0.001]);
+  const [row] = await db.run<{ ai_spent_usd: number }>('record-event.sql', ['m2:attachment_0', 'b.pdf']);
+  expect(row?.ai_spent_usd).toBe(0.004);
+});
+test("record-event returns today's Bogota-day AI spend as a number", async () => {
+  await save('m1:attachment_0', VALID_INVOICE, 'ok', 0.5);
+  await save('m2:attachment_0', { ...VALID_INVOICE, invoice_number: 'BE-9' }, 'ok', 1);
+  await db.sql("UPDATE processed_events SET received_at = now() - interval '2 days' WHERE event_id = 'm2:attachment_0'");
+  const [row] = await db.run<{ ai_spent_usd: unknown }>('record-event.sql', ['m3:attachment_0', 'c.pdf']);
+  expect(row?.ai_spent_usd).toBe(0.5);
 });
 test('a second event with the same supplier tax ID and number is a duplicate', async () => {
   const first = await save('m1:attachment_0');
@@ -112,7 +143,7 @@ test('a save racing an uncommitted save of the same key returns no duplicate_of'
   const text = readFileSync('db/queries/save-invoice.sql', 'utf8');
   const params = (event: string) => [
     event, event.split(':')[0], '2026-10-30T15:00:00Z', 'ok', '[]', 'text', 'claude-haiku-5-5', '1',
-    JSON.stringify(VALID_INVOICE), null, 'race.pdf', '2026/10'];
+    JSON.stringify(VALID_INVOICE), null, 'race.pdf', '2026/10', '0'];
   const clientA = await db.connect();
   try {
     await clientA.query('BEGIN');
@@ -237,13 +268,13 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
   const summary = async () => (await db.run<Summary>('daily-summary.sql', [RUN]))[0]!;
 
   const arrive = async (
-    event: string, invoice: NormalizedInvoice, status: 'ok' | 'review', receivedAt: string, reviewReasons = '[]',
+    event: string, invoice: NormalizedInvoice, status: 'ok' | 'review', receivedAt: string, reviewReasons = '[]', cost = 0,
   ): Promise<SaveRow> => {
     await db.run('record-event.sql', [event, `${event}.pdf`]);
     await setReceivedAt(event, receivedAt);
     const row = (await db.run<SaveRow>('save-invoice.sql', [
       event, event.split(':')[0], receivedAt, status, reviewReasons,
-      'text', 'claude-haiku-5-5', 1, invoice, null, `${event}.pdf`, '2026/06',
+      'text', 'claude-haiku-5-5', 1, invoice, null, `${event}.pdf`, '2026/06', cost,
     ]))[0]!;
     expect(await db.run('record-outcome.sql', [event, status, row.invoice_id])).toEqual([{ event_id: event, outcome: status }]);
     return row;
@@ -279,7 +310,7 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
     await setReceivedAt('dup:attachment_0', '2026-06-15T09:00:00Z');
     const dup = (await db.run<SaveRow>('save-invoice.sql', [
       'dup:attachment_0', 'dup', '2026-06-15T09:00:00Z', 'ok', '[]', 'text', 'claude-haiku-5-5', 1,
-      { ...VALID_INVOICE, invoice_number: 'BE-1002' }, null, 'dup.pdf', '2026/06',
+      { ...VALID_INVOICE, invoice_number: 'BE-1002' }, null, 'dup.pdf', '2026/06', 0,
     ]))[0]!;
     expect(await db.run('record-outcome.sql', ['dup:attachment_0', 'duplicate', dup.duplicate_of]))
       .toEqual([{ event_id: 'dup:attachment_0', outcome: 'duplicate' }]);
@@ -295,6 +326,10 @@ describe('daily summary for the run at 2026-06-15T23:00:00Z (18:00 Bogota)', () 
   });
 
   // stuck and fresh arrived inside the window too, so they count as arrived, with no outcome yet.
+  test("the window's ai_cost_usd sums only the events received inside it, duplicates included", async () => {
+    await db.sql("UPDATE processed_events SET ai_cost_usd = 0.25 WHERE event_id IN ('a:attachment_0', 'b:attachment_0', 'c:attachment_0', 'dup:attachment_0')");
+    expect((await summary()).ai_cost_usd).toBe(0.75);
+  });
   test('the window counts match', async () =>
     expect(await summary()).toMatchObject({ report_date: '2026-06-15', arrived: 6, ok: 2, review: 1, duplicates: 1 }));
   test('unfinished is measured at run_at, not now()', async () => expect((await summary()).unfinished).toBe(1));

@@ -27,9 +27,10 @@ export type ReviewReason =
   | 'low_confidence'
   | 'too_many_pages'
   | 'too_much_text'
-  | 'unreadable_pdf';
+  | 'unreadable_pdf'
+  | 'ai_budget_exceeded';
 
-export type SkipReason = Extract<ReviewReason, 'too_many_pages' | 'too_much_text' | 'unreadable_pdf'>;
+export type SkipReason = Extract<ReviewReason, 'too_many_pages' | 'too_much_text' | 'unreadable_pdf' | 'ai_budget_exceeded'>;
 
 export interface LineItem {
   line_no: number;
@@ -100,6 +101,8 @@ export interface CheckOutput {
   path: 'text' | 'vision';
   model: string;
   attempt: 1 | 2;
+  /** The estimated AI cost of this extraction in USD: every call so far, this one included. */
+  cost_usd: number;
 }
 
 export interface InvoiceRecord extends Omit<CheckOutput, 'path' | 'model' | 'attempt'> {

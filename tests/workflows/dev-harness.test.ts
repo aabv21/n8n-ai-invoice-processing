@@ -1,4 +1,5 @@
 import { expect, test } from 'vitest';
+import { evaluateExpression } from '../helpers/expression.ts';
 import { nodeOf, sourcesOf, workflowFile } from '../helpers/workflow-file.ts';
 
 interface MainConnections {
@@ -99,6 +100,16 @@ test('the process-invoice target checks the config before calling it', () => {
   expect(sourcesOf(wf, 'Check config for process-invoice', 0)).toEqual(['Load config for process-invoice']);
   expect(sourcesOf(wf, 'Attach config to PDF', 1)).toEqual(['Check config for process-invoice']);
   expect(nodeOf(wf, 'Check config for process-invoice').type).toBe('n8n-nodes-base.code');
+});
+
+test('the process-invoice target defaults ai_spent_usd to 0, and extract-invoice prior_cost_usd to 0', () => {
+  const wf = workflowFile('dev-harness.json');
+  const value = (node: string, name: string) => (nodeOf(wf, node).parameters.workflowInputs as { value: Record<string, string> }).value[name]!;
+  const input = (body: Record<string, unknown>) => ({ nodes: { 'Receive dev call': { body: { input: body } } }, json: { body: { input: body } } });
+  expect(evaluateExpression(value('Call process-invoice', 'ai_spent_usd'), input({}))).toBe(0);
+  expect(evaluateExpression(value('Call process-invoice', 'ai_spent_usd'), input({ ai_spent_usd: 5 }))).toBe(5);
+  expect(evaluateExpression(value('Call extract-invoice', 'prior_cost_usd'), input({}))).toBe(0);
+  expect(evaluateExpression(value('Call extract-invoice', 'prior_cost_usd'), input({ prior_cost_usd: 0.4 }))).toBe(0.4);
 });
 
 test('the ensure-folder target passes parent_id and name and responds with the folder id', () => {

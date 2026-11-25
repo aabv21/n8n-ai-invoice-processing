@@ -531,7 +531,7 @@ rect.c-bg-rect { fill: var(--bg); }
         </g>
         <g data-graph-role="automatic-crossover" style="--step:5">
           <path data-graph-role="automatic-crossover-underlay" d="M 394 92 L 394 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="recorded" data-edge-to="skipped" data-edge-label="screen fails" data-edge-key="5" data-edge-id="recorded-skipped" data-composition-points="394,92;394,280" data-composition-crossover="halo" data-composition-independent="true" d="M 394 92 L 394 280" class="a-default" data-animate="edge" style="--step: 5;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+          <path data-edge-from="recorded" data-edge-to="skipped" data-edge-label="screen fails or over budget" data-edge-key="5" data-edge-id="recorded-skipped" data-composition-points="394,92;394,280" data-composition-crossover="halo" data-composition-independent="true" d="M 394 92 L 394 280" class="a-default" data-animate="edge" style="--step: 5;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:6">
           <path data-graph-role="automatic-crossover-underlay" d="M 930 92 L 930 150 Q 930 162 942 162 L 978.3 162 Q 990.3 162 990.3 174 L 990.3 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
@@ -725,9 +725,9 @@ rect.c-bg-rect { fill: var(--bg); }
           <rect x="166.3" y="204" width="78" height="16" rx="4" class="c-mask"/>
           <text x="205.3" y="215.5" class="t-muted" font-size="10" text-anchor="middle">known event</text>
         </g>
-        <g data-edge-from="recorded" data-edge-to="skipped" data-edge-label="screen fails" data-edge-key="5" data-edge-id="recorded-skipped">
-          <rect x="304" y="188" width="84" height="16" rx="4" class="c-mask"/>
-          <text x="346" y="199.5" class="t-muted" font-size="10" text-anchor="middle">screen fails</text>
+        <g data-edge-from="recorded" data-edge-to="skipped" data-edge-label="screen fails or over budget" data-edge-key="5" data-edge-id="recorded-skipped">
+          <rect x="400" y="188" width="174" height="16" rx="4" class="c-mask"/>
+          <text x="487" y="199.5" class="t-muted" font-size="10" text-anchor="middle">screen fails or over budget</text>
         </g>
         <g data-edge-from="saved" data-edge-to="duplicate" data-edge-label="same invoice" data-edge-key="6" data-edge-id="saved-duplicate">
           <rect x="900.3" y="213" width="84" height="16" rx="4" class="c-mask"/>

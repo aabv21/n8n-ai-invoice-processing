@@ -39,6 +39,10 @@
             {
               "name": "received_at",
               "type": "string"
+            },
+            {
+              "name": "ai_spent_usd",
+              "type": "number"
             }
           ]
         }
@@ -140,7 +144,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        520,
+        800,
         700
       ],
       "parameters": {
@@ -176,7 +180,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        520,
+        800,
         300
       ],
       "parameters": {
@@ -199,7 +203,8 @@
             "binary_key": "={{ $json.binary_key }}",
             "rules": "={{ $('When called').first().json.config.validation }}",
             "today": "={{ $now.toISODate() }}",
-            "attempt": 1
+            "attempt": 1,
+            "prior_cost_usd": 0
           },
           "schema": [
             {
@@ -291,6 +296,15 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "prior_cost_usd",
+              "displayName": "prior_cost_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
             }
           ],
           "matchingColumns": [],
@@ -308,7 +322,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        800,
+        1080,
         300
       ],
       "parameters": {
@@ -328,7 +342,7 @@
                 "operation": "true",
                 "singleValue": true
               },
-              "leftValue": "={{ $json.retry === true && ($('When called').first().json.config.ai.retry_model ?? '') !== '' }}",
+              "leftValue": "={{ $json.retry === true && ($('When called').first().json.config.ai.retry_model ?? '') !== '' && $('When called').first().json.ai_spent_usd + $json.cost_usd < $('When called').first().json.config.ai.daily_budget_usd }}",
               "rightValue": ""
             }
           ]
@@ -342,7 +356,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        1080,
+        1360,
         620
       ],
       "parameters": {
@@ -366,7 +380,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        1360,
+        1640,
         620
       ],
       "parameters": {
@@ -389,7 +403,8 @@
             "binary_key": "={{ $json.binary_key }}",
             "rules": "={{ $('When called').first().json.config.validation }}",
             "today": "={{ $now.toISODate() }}",
-            "attempt": 2
+            "attempt": 2,
+            "prior_cost_usd": "={{ $json.cost_usd }}"
           },
           "schema": [
             {
@@ -481,6 +496,15 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "prior_cost_usd",
+              "displayName": "prior_cost_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
             }
           ],
           "matchingColumns": [],
@@ -498,14 +522,14 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1640,
+        1920,
         460
       ],
       "notes": "Why Code: turns every extraction outcome into one record and builds the Drive file name",
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Why Code: turns every extraction outcome into one record and builds the Drive file name. Generated from src/nodes/prepare-record.ts by pnpm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/prepare-record.ts\n  var prepare_record_exports = {};\n  __export(prepare_record_exports, {\n    run: () => run\n  });\n\n  // src/lib/invoice.ts\n  var EMPTY_INVOICE = {\n    supplier: null,\n    supplier_tax_id: null,\n    invoice_number: null,\n    issue_date: null,\n    due_date: null,\n    currency: null,\n    subtotal: null,\n    tax: null,\n    total: null,\n    line_items: [],\n    confidence: null\n  };\n\n  // src/lib/util.ts\n  var DATE_RE = /^\\d{4}-\\d{2}-\\d{2}$/;\n  var MIN_YEAR = 1900;\n  var MAX_YEAR = 2100;\n  function isValidIsoDate(iso) {\n    if (!DATE_RE.test(iso)) return false;\n    const year = Number(iso.slice(0, 4));\n    const month = Number(iso.slice(5, 7));\n    const day = Number(iso.slice(8, 10));\n    if (year < MIN_YEAR || year > MAX_YEAR) return false;\n    return DateTime.fromObject({ year, month, day }).isValid;\n  }\n  function emptyInvoice() {\n    return { ...EMPTY_INVOICE, line_items: [] };\n  }\n\n  // src/lib/file-name.ts\n  var SUPPLIER_SLUG_MAX = 40;\n  var NUMBER_SLUG_MAX = 30;\n  function slug(text) {\n    return text.replace(/['.]/g, \"\").normalize(\"NFKD\").replace(/\\p{M}/gu, \"\").toLowerCase().replace(/[^a-z0-9]+/g, \"-\").replace(/^-+|-+$/g, \"\");\n  }\n  function cutSlug(text, max) {\n    return slug(text).slice(0, max).replace(/^-+|-+$/g, \"\");\n  }\n  function invoiceFileName(input) {\n    const date = input.issue_date !== null && isValidIsoDate(input.issue_date) ? input.issue_date : DateTime.fromISO(input.received_at, { zone: \"utc\" }).setZone(\"America/Bogota\").toISODate();\n    if (date === null) throw new Error(`received_at is not a valid timestamp: ${input.received_at}`);\n    const supplierSlug = cutSlug(input.supplier ?? \"\", SUPPLIER_SLUG_MAX) || \"unknown-supplier\";\n    const numberSlug = cutSlug(input.invoice_number ?? \"\", NUMBER_SLUG_MAX) || `msg-${slug(input.event_id)}`;\n    const folder = `${date.slice(0, 4)}/${date.slice(5, 7)}`;\n    return { name: `${date}_${supplierSlug}_${numberSlug}.pdf`, folder };\n  }\n\n  // src/nodes/prepare-record.ts\n  function isSkip(input) {\n    return \"skip_reason\" in input;\n  }\n  function run(input) {\n    const record = isSkip(input) ? {\n      status: \"review\",\n      reasons: [input.skip_reason],\n      retry: false,\n      invoice: emptyInvoice(),\n      raw: null,\n      event_id: input.event_id,\n      received_at: input.received_at,\n      path: \"none\",\n      model: null,\n      attempt: 0\n    } : input;\n    const file = invoiceFileName({\n      issue_date: record.invoice.issue_date,\n      supplier: record.invoice.supplier,\n      invoice_number: record.invoice.invoice_number,\n      received_at: record.received_at,\n      event_id: record.event_id\n    });\n    return { ...record, file };\n  }\n  return __toCommonJS(prepare_record_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
+        "jsCode": "// Why Code: turns every extraction outcome into one record and builds the Drive file name. Generated from src/nodes/prepare-record.ts by pnpm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/prepare-record.ts\n  var prepare_record_exports = {};\n  __export(prepare_record_exports, {\n    run: () => run\n  });\n\n  // src/lib/invoice.ts\n  var EMPTY_INVOICE = {\n    supplier: null,\n    supplier_tax_id: null,\n    invoice_number: null,\n    issue_date: null,\n    due_date: null,\n    currency: null,\n    subtotal: null,\n    tax: null,\n    total: null,\n    line_items: [],\n    confidence: null\n  };\n\n  // src/lib/util.ts\n  var DATE_RE = /^\\d{4}-\\d{2}-\\d{2}$/;\n  var MIN_YEAR = 1900;\n  var MAX_YEAR = 2100;\n  function isValidIsoDate(iso) {\n    if (!DATE_RE.test(iso)) return false;\n    const year = Number(iso.slice(0, 4));\n    const month = Number(iso.slice(5, 7));\n    const day = Number(iso.slice(8, 10));\n    if (year < MIN_YEAR || year > MAX_YEAR) return false;\n    return DateTime.fromObject({ year, month, day }).isValid;\n  }\n  function emptyInvoice() {\n    return { ...EMPTY_INVOICE, line_items: [] };\n  }\n\n  // src/lib/file-name.ts\n  var SUPPLIER_SLUG_MAX = 40;\n  var NUMBER_SLUG_MAX = 30;\n  function slug(text) {\n    return text.replace(/['.]/g, \"\").normalize(\"NFKD\").replace(/\\p{M}/gu, \"\").toLowerCase().replace(/[^a-z0-9]+/g, \"-\").replace(/^-+|-+$/g, \"\");\n  }\n  function cutSlug(text, max) {\n    return slug(text).slice(0, max).replace(/^-+|-+$/g, \"\");\n  }\n  function invoiceFileName(input) {\n    const date = input.issue_date !== null && isValidIsoDate(input.issue_date) ? input.issue_date : DateTime.fromISO(input.received_at, { zone: \"utc\" }).setZone(\"America/Bogota\").toISODate();\n    if (date === null) throw new Error(`received_at is not a valid timestamp: ${input.received_at}`);\n    const supplierSlug = cutSlug(input.supplier ?? \"\", SUPPLIER_SLUG_MAX) || \"unknown-supplier\";\n    const numberSlug = cutSlug(input.invoice_number ?? \"\", NUMBER_SLUG_MAX) || `msg-${slug(input.event_id)}`;\n    const folder = `${date.slice(0, 4)}/${date.slice(5, 7)}`;\n    return { name: `${date}_${supplierSlug}_${numberSlug}.pdf`, folder };\n  }\n\n  // src/nodes/prepare-record.ts\n  function isSkip(input) {\n    return \"skip_reason\" in input;\n  }\n  function run(input) {\n    const record = isSkip(input) ? {\n      status: \"review\",\n      reasons: [input.skip_reason],\n      retry: false,\n      invoice: emptyInvoice(),\n      raw: null,\n      event_id: input.event_id,\n      received_at: input.received_at,\n      path: \"none\",\n      model: null,\n      attempt: 0,\n      cost_usd: 0\n    } : input;\n    const file = invoiceFileName({\n      issue_date: record.invoice.issue_date,\n      supplier: record.invoice.supplier,\n      invoice_number: record.invoice.invoice_number,\n      received_at: record.received_at,\n      event_id: record.event_id\n    });\n    return { ...record, file };\n  }\n  return __toCommonJS(prepare_record_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
       }
     },
     {
@@ -514,7 +538,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        1920,
+        2200,
         460
       ],
       "retryOnFail": true,
@@ -523,9 +547,9 @@
       "parameters": {
         "resource": "database",
         "operation": "executeQuery",
-        "query": "-- Saves a checked invoice and its line items once per event. Replaying the same event (a node\n-- retry, or an owner retry from the n8n UI) returns the row it already saved instead of a second\n-- one; a different event claiming the same supplier tax ID and invoice number is reported as a\n-- duplicate of the invoice that already holds that pair, instead of raising a constraint error.\n-- Parameters, in order:\n-- first: event_id (text, the invoice's source_event_id)\n-- second: gmail_message_id (text)\n-- third: received_at (timestamptz)\n-- fourth: status (text: 'ok' | 'review')\n-- fifth: review_reasons (text, a JSON array of reason strings, e.g. '[]' or '[\"totals_mismatch\"]')\n-- sixth: extraction_path (text: 'text' | 'vision' | 'none')\n-- seventh: model (text, nullable)\n-- eighth: attempts (smallint)\n-- ninth: invoice (text, a NormalizedInvoice JSON object, including its line_items array)\n-- tenth: raw_extraction (text, a JSON value, or NULL)\n-- eleventh: drive_file_name (text)\n-- twelfth: drive_folder (text)\nWITH replay AS (\n  SELECT id FROM invoices WHERE source_event_id = $1\n),\nfields AS (\n  SELECT *\n  FROM jsonb_to_record($9::jsonb) AS f(\n    supplier text, supplier_tax_id text, invoice_number text,\n    issue_date date, due_date date, currency text,\n    subtotal numeric(18,2), tax numeric(18,2), total numeric(18,2),\n    confidence numeric(4,3)\n  )\n),\ninserted AS (\n  INSERT INTO invoices (\n    source_event_id, gmail_message_id, received_at, status, review_reasons,\n    supplier, supplier_tax_id, invoice_number, issue_date, due_date, currency,\n    subtotal, tax, total, confidence,\n    extraction_path, model, attempts, raw_extraction, drive_file_name, drive_folder\n  )\n  SELECT\n    $1, $2, $3::timestamptz, $4, ARRAY(SELECT jsonb_array_elements_text($5::jsonb)),\n    f.supplier, f.supplier_tax_id, f.invoice_number, f.issue_date, f.due_date, f.currency,\n    f.subtotal, f.tax, f.total, f.confidence,\n    $6, $7, $8::smallint, $10::jsonb, $11, $12\n  FROM fields f\n  WHERE NOT EXISTS (SELECT 1 FROM replay)\n  ON CONFLICT DO NOTHING\n  RETURNING id\n),\nitems AS (\n  INSERT INTO invoice_items (invoice_id, line_no, description, quantity, unit_price, line_total)\n  SELECT inserted.id, li.line_no, li.description, li.quantity, li.unit_price, li.line_total\n  FROM inserted\n  CROSS JOIN LATERAL jsonb_to_recordset($9::jsonb -> 'line_items') AS li(\n    line_no smallint, description text, quantity numeric(14,3), unit_price numeric(18,4), line_total numeric(18,2)\n  )\n  RETURNING invoice_id\n)\nSELECT\n  (replay.id IS NOT NULL OR inserted.id IS NOT NULL) AS saved,\n  COALESCE(replay.id, inserted.id) AS invoice_id,\n  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN dup.id END AS duplicate_of,\n  -- The original's total and issue date, so the caller can tell a genuine re-send from a forged\n  -- copy with the same supplier tax ID and invoice number (Review, not a silent Duplicate).\n  -- issue_date goes out as YYYY-MM-DD text (to_char, not ::text, whatever the server's DateStyle): the Postgres node\n  -- parses a `date` into a JS Date, which would never equal the extracted ISO date string.\n  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN dup.total END AS duplicate_of_total,\n  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN to_char(dup.issue_date, 'YYYY-MM-DD') END AS duplicate_of_issue_date,\n  (SELECT count(*)::int FROM items) AS item_count\nFROM fields f\nLEFT JOIN replay ON true\nLEFT JOIN inserted ON true\nLEFT JOIN invoices dup\n  ON dup.supplier_tax_id = f.supplier_tax_id\n AND dup.invoice_number = f.invoice_number\n AND replay.id IS NULL AND inserted.id IS NULL;\n",
+        "query": "-- Saves a checked invoice and its line items once per event. Replaying the same event (a node\n-- retry, or an owner retry from the n8n UI) returns the row it already saved instead of a second\n-- one; a different event claiming the same supplier tax ID and invoice number is reported as a\n-- duplicate of the invoice that already holds that pair, instead of raising a constraint error.\n-- Parameters, in order:\n-- first: event_id (text, the invoice's source_event_id)\n-- second: gmail_message_id (text)\n-- third: received_at (timestamptz)\n-- fourth: status (text: 'ok' | 'review')\n-- fifth: review_reasons (text, a JSON array of reason strings, e.g. '[]' or '[\"totals_mismatch\"]')\n-- sixth: extraction_path (text: 'text' | 'vision' | 'none')\n-- seventh: model (text, nullable)\n-- eighth: attempts (smallint)\n-- ninth: invoice (text, a NormalizedInvoice JSON object, including its line_items array)\n-- tenth: raw_extraction (text, a JSON value, or NULL)\n-- eleventh: drive_file_name (text)\n-- twelfth: drive_folder (text)\n-- thirteenth: ai_cost_usd (numeric, the extraction's AI cost in USD; kept on the event even when the\n--   invoice is a duplicate and no row is inserted)\nWITH replay AS (\n  SELECT id FROM invoices WHERE source_event_id = $1\n),\nfields AS (\n  SELECT *\n  FROM jsonb_to_record($9::jsonb) AS f(\n    supplier text, supplier_tax_id text, invoice_number text,\n    issue_date date, due_date date, currency text,\n    subtotal numeric(18,2), tax numeric(18,2), total numeric(18,2),\n    confidence numeric(4,3)\n  )\n),\ninserted AS (\n  INSERT INTO invoices (\n    source_event_id, gmail_message_id, received_at, status, review_reasons,\n    supplier, supplier_tax_id, invoice_number, issue_date, due_date, currency,\n    subtotal, tax, total, confidence,\n    extraction_path, model, attempts, raw_extraction, drive_file_name, drive_folder\n  )\n  SELECT\n    $1, $2, $3::timestamptz, $4, ARRAY(SELECT jsonb_array_elements_text($5::jsonb)),\n    f.supplier, f.supplier_tax_id, f.invoice_number, f.issue_date, f.due_date, f.currency,\n    f.subtotal, f.tax, f.total, f.confidence,\n    $6, $7, $8::smallint, $10::jsonb, $11, $12\n  FROM fields f\n  WHERE NOT EXISTS (SELECT 1 FROM replay)\n  ON CONFLICT DO NOTHING\n  RETURNING id\n),\n-- A data-modifying CTE runs whether or not the final SELECT reads it, so the cost is kept on a\n-- replay and on a duplicate too. GREATEST: a lower figure never replaces a higher one already saved.\ncost AS (\n  UPDATE processed_events SET ai_cost_usd = GREATEST(ai_cost_usd, $13::numeric)\n  WHERE source = 'gmail' AND event_id = $1\n  RETURNING event_id\n),\nitems AS (\n  INSERT INTO invoice_items (invoice_id, line_no, description, quantity, unit_price, line_total)\n  SELECT inserted.id, li.line_no, li.description, li.quantity, li.unit_price, li.line_total\n  FROM inserted\n  CROSS JOIN LATERAL jsonb_to_recordset($9::jsonb -> 'line_items') AS li(\n    line_no smallint, description text, quantity numeric(14,3), unit_price numeric(18,4), line_total numeric(18,2)\n  )\n  RETURNING invoice_id\n)\nSELECT\n  (replay.id IS NOT NULL OR inserted.id IS NOT NULL) AS saved,\n  COALESCE(replay.id, inserted.id) AS invoice_id,\n  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN dup.id END AS duplicate_of,\n  -- The original's total and issue date, so the caller can tell a genuine re-send from a forged\n  -- copy with the same supplier tax ID and invoice number (Review, not a silent Duplicate).\n  -- issue_date goes out as YYYY-MM-DD text (to_char, not ::text, whatever the server's DateStyle): the Postgres node\n  -- parses a `date` into a JS Date, which would never equal the extracted ISO date string.\n  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN dup.total END AS duplicate_of_total,\n  CASE WHEN replay.id IS NULL AND inserted.id IS NULL THEN to_char(dup.issue_date, 'YYYY-MM-DD') END AS duplicate_of_issue_date,\n  (SELECT count(*)::int FROM items) AS item_count\nFROM fields f\nLEFT JOIN replay ON true\nLEFT JOIN inserted ON true\nLEFT JOIN invoices dup\n  ON dup.supplier_tax_id = f.supplier_tax_id\n AND dup.invoice_number = f.invoice_number\n AND replay.id IS NULL AND inserted.id IS NULL;\n",
         "options": {
-          "queryReplacement": "={{ $json.event_id }},{{ $('When called').first().json.message_id }},{{ $json.received_at }},{{ $json.status }},{{ JSON.stringify($json.reasons) }},{{ $json.path }},{{ $json.model }},{{ $json.attempt }},{{ $json.invoice }},{{ $json.raw }},{{ $json.file.name }},{{ $json.file.folder }}"
+          "queryReplacement": "={{ $json.event_id }},{{ $('When called').first().json.message_id }},{{ $json.received_at }},{{ $json.status }},{{ JSON.stringify($json.reasons) }},{{ $json.path }},{{ $json.model }},{{ $json.attempt }},{{ $json.invoice }},{{ $json.raw }},{{ $json.file.name }},{{ $json.file.folder }},{{ $json.cost_usd }}"
         }
       },
       "credentials": {
@@ -541,7 +565,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        2200,
+        2480,
         460
       ],
       "parameters": {
@@ -575,7 +599,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        2340,
+        2620,
         280
       ],
       "retryOnFail": true,
@@ -602,7 +626,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        2480,
+        2760,
         280
       ],
       "parameters": {
@@ -656,7 +680,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2620,
+        2900,
         160
       ],
       "retryOnFail": true,
@@ -681,7 +705,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2620,
+        2900,
         280
       ],
       "retryOnFail": true,
@@ -706,7 +730,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        2900,
+        3180,
         280
       ],
       "retryOnFail": true,
@@ -733,7 +757,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        2480,
+        2760,
         620
       ],
       "parameters": {
@@ -785,7 +809,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        2760,
+        3040,
         620
       ],
       "parameters": {
@@ -837,7 +861,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        3040,
+        3320,
         620
       ],
       "parameters": {
@@ -861,7 +885,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        3320,
+        3600,
         620
       ],
       "retryOnFail": true,
@@ -897,7 +921,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        3600,
+        3880,
         620
       ],
       "retryOnFail": true,
@@ -924,7 +948,7 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1.1,
       "position": [
-        3880,
+        4160,
         480
       ],
       "parameters": {
@@ -938,7 +962,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        4160,
+        4440,
         480
       ],
       "retryOnFail": true,
@@ -1066,7 +1090,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        3880,
+        4160,
         760
       ],
       "retryOnFail": true,
@@ -1264,7 +1288,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        4160,
+        4440,
         760
       ],
       "retryOnFail": true,
@@ -1289,7 +1313,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        4440,
+        4720,
         760
       ],
       "retryOnFail": true,
@@ -1331,7 +1355,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        520,
+        800,
         100
       ],
       "parameters": {
@@ -1346,7 +1370,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1640,
+        1920,
         100
       ],
       "parameters": {
@@ -1361,7 +1385,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2480,
+        2760,
         820
       ],
       "parameters": {
@@ -1376,7 +1400,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2480,
+        2760,
         1000
       ],
       "parameters": {
@@ -1391,7 +1415,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3880,
+        4160,
         300
       ],
       "parameters": {
@@ -1406,7 +1430,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        4160,
+        4440,
         940
       ],
       "parameters": {
@@ -1421,13 +1445,125 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        800,
+        1080,
         820
       ],
       "parameters": {
         "width": 760,
         "height": 220,
         "content": "NOTE: an extraction failure - the sub-workflow's own API or parse error - fails this execution outright, so the triggering Gmail event is left unfinished: no invoices row, no recorded outcome. Recovery: fix whatever caused the failure (credentials, prompt, schema, or similar) - rebuild and publish first if it was the prompt or schema - then retry the failed execution from n8n; it resumes at the failed node instead of starting over."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000041",
+      "name": "Over AI budget?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        520,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "60000000-0020-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ !(typeof $('When called').first().json.ai_spent_usd === 'number' && $('When called').first().json.ai_spent_usd < $('When called').first().json.config.ai.daily_budget_usd) }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000042",
+      "name": "Skip: over AI budget",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        800,
+        700
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "60000000-0021-4000-8000-0000000a0001",
+              "name": "skip_reason",
+              "type": "string",
+              "value": "ai_budget_exceeded"
+            },
+            {
+              "id": "60000000-0021-4000-8000-0000000a0002",
+              "name": "event_id",
+              "type": "string",
+              "value": "={{ $('When called').first().json.event_id }}"
+            },
+            {
+              "id": "60000000-0021-4000-8000-0000000a0003",
+              "name": "received_at",
+              "type": "string",
+              "value": "={{ $('When called').first().json.received_at }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000043",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        520,
+        880
+      ],
+      "parameters": {
+        "width": 520,
+        "height": 160,
+        "content": "## Daily AI budget\nOnce the day's saved AI cost (estimated, Bogota day) reaches `ai.daily_budget_usd`, or the spend is missing, the invoice skips extraction and goes to review as ai_budget_exceeded. The retry also stays off when it would cross the budget. Each extraction's cost is kept on its event, even for a duplicate."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000044",
+      "name": "Record AI cost",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        1080,
+        480
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Keeps the estimated AI cost of an attachment's extraction on its event, so the daily budget counts\n-- it even when the run later dies or the invoice turns out to be a duplicate. GREATEST means a\n-- lower figure never replaces a higher one already saved (Save invoice stores the final total,\n-- the retry included, and this statement stores the first pass beside it).\n-- Parameters, in order:\n-- first: event_id (text)\n-- second: ai_cost_usd (numeric, USD)\nUPDATE processed_events\nSET ai_cost_usd = GREATEST(ai_cost_usd, $2::numeric)\nWHERE source = 'gmail' AND event_id = $1\nRETURNING event_id, ai_cost_usd::float8 AS ai_cost_usd;\n",
+        "options": {
+          "queryReplacement": "={{ $json.event_id }},{{ $json.cost_usd }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
       }
     }
   ],
@@ -1493,7 +1629,7 @@
         ],
         [
           {
-            "node": "Extract with default model",
+            "node": "Over AI budget?",
             "type": "main",
             "index": 0
           }
@@ -1516,6 +1652,11 @@
         [
           {
             "node": "Needs retry?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Record AI cost",
             "type": "main",
             "index": 0
           }
@@ -1740,6 +1881,35 @@
         [
           {
             "node": "Is duplicate conflicting?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Over AI budget?": {
+      "main": [
+        [
+          {
+            "node": "Skip: over AI budget",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract with default model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip: over AI budget": {
+      "main": [
+        [
+          {
+            "node": "Prepare record",
             "type": "main",
             "index": 0
           }

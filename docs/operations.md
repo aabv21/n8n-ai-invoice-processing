@@ -45,7 +45,7 @@ Then match each one to its cause:
 ## Scenario and cost reports
 
 - `pnpm run scenarios -- --since <YYYY-MM-DDTHH:MM:SSZ>`: compares the six samples against `scripts/sql/scenario-report.sql`, run on stdin through `docker compose exec -T postgres psql -U <APP_DB_USER's value> -d app -At` (the value is passed as its own argument, never through a shell) with `since` bound by `\bind`. It rejects a malformed `--since` before building any psql input, prints `| file | result | details |`, exits 1 on any `FAIL`, and compares only a file's earliest row, reporting each extra row as its own `FAIL` (`<file>: N extra row`).
-- `pnpm run cost -- --since <ISO>`: pages through `extract-invoice`'s executions from the n8n public API (`GET /api/v1/executions`, header `X-N8N-API-KEY`) back to `--since`, and prints a Markdown table of invoice counts, retries, and average tokens and cost per extraction path, priced from `scripts/lib/pricing.ts`. Without `N8N_API_KEY`, it exits 1 with `N8N_API_KEY is not set (Settings → n8n API)`.
+- `pnpm run cost -- --since <ISO>`: pages through `extract-invoice`'s executions from the n8n public API (`GET /api/v1/executions`, header `X-N8N-API-KEY`) back to `--since`, and prints a Markdown table of invoice counts, retries, and average tokens and cost per extraction path, priced from `src/lib/pricing.ts`. Without `N8N_API_KEY`, it exits 1 with `N8N_API_KEY is not set (Settings → n8n API)`.
 
 ## Database commands
 

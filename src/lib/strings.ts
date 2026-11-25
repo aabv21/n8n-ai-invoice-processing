@@ -32,6 +32,7 @@ export const REASON_LABELS: Record<'en' | 'es', Record<ReviewReason, string>> = 
     low_confidence: 'Low reading confidence',
     too_many_pages: 'Too many pages',
     too_much_text: 'Too much text',
+    ai_budget_exceeded: 'Daily AI budget reached',
     unreadable_pdf: "The PDF can't be read",
   },
   es: {
@@ -60,6 +61,7 @@ export const REASON_LABELS: Record<'en' | 'es', Record<ReviewReason, string>> = 
     low_confidence: 'Lectura poco confiable',
     too_many_pages: 'Demasiadas páginas',
     too_much_text: 'Demasiado texto',
+    ai_budget_exceeded: 'Se alcanzó el presupuesto diario de IA',
     unreadable_pdf: 'PDF ilegible',
   },
 };
@@ -87,6 +89,8 @@ interface SummaryStrings {
   ok: string;
   review: string;
   duplicates: string;
+  /** The line under the counters naming the window's estimated AI cost. */
+  aiCost: string;
   unfinishedOne: string;
   unfinishedMany: string;
   /** Under the unfinished list when it's capped: "{count}" is how many stuck events it leaves out. */
@@ -120,6 +124,7 @@ export const SUMMARY_STRINGS: Record<'en' | 'es', SummaryStrings> = {
     ok: 'Processed',
     review: 'Review',
     duplicates: 'Duplicates',
+    aiCost: 'Estimated AI cost',
     unfinishedOne: '1 invoice did not finish processing. Open n8n\'s failed executions, fix the cause, and retry them.',
     unfinishedMany: '{count} invoices did not finish processing. Open n8n\'s failed executions, fix the cause, and retry them.',
     unfinishedMore: '{count} more not shown.',
@@ -148,6 +153,7 @@ export const SUMMARY_STRINGS: Record<'en' | 'es', SummaryStrings> = {
     ok: 'Procesadas',
     review: 'Por revisar',
     duplicates: 'Duplicadas',
+    aiCost: 'Costo estimado de IA',
     unfinishedOne: 'Una factura no terminó de procesarse. Abra las ejecuciones fallidas en n8n, corrija la causa y reinténtelas.',
     unfinishedMany: '{count} facturas no terminaron de procesarse. Abra las ejecuciones fallidas en n8n, corrija la causa y reinténtelas.',
     unfinishedMore: '{count} más sin mostrar.',

@@ -191,3 +191,23 @@ test("checkConfig leaves the caller's object unchanged", () => {
   expect(result.team_locale).toBe('en');
   expect(result.ai.retry_effort).toBe('medium');
 });
+
+test('rejects a negative or missing ai.daily_budget_usd', () => {
+  const message = 'config.ai.daily_budget_usd must be a finite number >= 0';
+  expect(() => checkConfig({ ...clone(), ai: { ...clone().ai, daily_budget_usd: -1 } })).toThrow(message);
+  const missing = clone();
+  delete (missing.ai as Partial<Config['ai']>).daily_budget_usd;
+  expect(() => checkConfig(missing)).toThrow(message);
+});
+test('accepts a zero ai.daily_budget_usd, which skips every AI call', () => {
+  expect(checkConfig({ ...clone(), ai: { ...clone().ai, daily_budget_usd: 0 } }).ai.daily_budget_usd).toBe(0);
+});
+test('rejects a model with no price', () => {
+  expect(() => checkConfig({ ...clone(), ai: { ...clone().ai, default_model: 'claude-unknown' } }))
+    .toThrow('config.ai.default_model (claude-unknown) has no price in src/lib/pricing.ts; add its rates there to keep the AI budget');
+  expect(() => checkConfig({ ...clone(), ai: { ...clone().ai, retry_model: 'claude-unknown' } }))
+    .toThrow('config.ai.retry_model (claude-unknown) has no price in src/lib/pricing.ts; add its rates there to keep the AI budget');
+});
+test('accepts an empty retry_model without a price', () => {
+  expect(checkConfig({ ...clone(), ai: { ...clone().ai, retry_model: '' } }).ai.retry_model).toBe('');
+});

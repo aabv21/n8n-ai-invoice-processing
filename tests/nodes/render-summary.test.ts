@@ -12,6 +12,7 @@ const day: SummaryRow = {
   review_items: [{ supplier: 'Marbetaria S.A.S.', invoice_number: 'MB-5520', currency: 'COP', total: 1416600,
     review_reasons: ['totals_mismatch'], drive_url: 'https://drive.google.com/file/d/abc/view' }],
   due_soon: [{ supplier: 'Bolsamar Empaques S.A.S.', invoice_number: 'BE-2041', due_date: '2026-11-01', currency: 'COP', total: 2082500, status: 'ok' }],
+  ai_cost_usd: 0.04,
 };
 test('summarizes the day in the subject', () =>
   expect(run(day).subject).toBe('Magdaport invoices, October 30, 2026: 6 arrived, 1 to review'));
@@ -19,6 +20,12 @@ test('shows the counts', () => {
   for (const s of ['>6</div>', '>4</div>', '>1</div>']) expect(run(day).html).toContain(s);
   for (const s of ['Arrived', 'Processed', 'Review', 'Duplicates']) expect(run(day).html).toContain(`>${s}</div>`);
 });
+test("shows the day's estimated AI cost in both languages", () => {
+  expect(run(day).html).toContain('Estimated AI cost: USD 0.04');
+  expect(run({ ...day, team_locale: 'es' }).html).toContain('Costo estimado de IA: USD 0,04');
+});
+test('a day of small AI cost shows more than two decimals', () =>
+  expect(run({ ...day, ai_cost_usd: 0.0042 }).html).toContain('Estimated AI cost: USD 0.0042'));
 test('formats COP without decimals and USD with cents', () => {
   expect(run(day).html).toContain('COP 2,082,500');
   expect(run(day).html).toContain('USD 2,191.00');
@@ -153,7 +160,7 @@ test("tells the reader to retry n8n's failed executions, in both languages", () 
   expect(es).not.toContain('README');
 });
 test('renders no unfinished table when there are none', () => {
-  const out = run({ ...day, report_date: '2026-06-15', arrived: 0, ok: 0, review: 0, duplicates: 0, totals_by_supplier: [], review_items: [], due_soon: [] });
+  const out = run({ ...day, report_date: '2026-06-15', arrived: 0, ok: 0, review: 0, duplicates: 0, totals_by_supplier: [], review_items: [], due_soon: [], ai_cost_usd: 0 });
   expect(isSummaryPreview(out)).toBe(true);
   expect(out.html).not.toContain('>File</th>');
   // Byte for byte what scripts/check-dev-response.ts gets back from an empty database.
@@ -166,6 +173,7 @@ test('renders no unfinished table when there are none', () => {
     `<h1 style="${STYLE.h1}">Magdaport invoices</h1>`,
     `<p style="${STYLE.dateLine}">June 15, 2026</p>`,
     `<table role="presentation" style="${STYLE.table}"><tr>${counter('0', 'Arrived')}${counter('0', 'Processed')}${counter('0', 'Review')}${counter('0', 'Duplicates')}</tr></table>`,
+    `<p style="${STYLE.aiCost}">Estimated AI cost: USD 0.00</p>`,
     `<p style="${p}">No invoices arrived in the last 24 hours.</p>`,
     h2('Invoices to review'),
     `<p style="${p}">Nothing needs review.</p>`,
