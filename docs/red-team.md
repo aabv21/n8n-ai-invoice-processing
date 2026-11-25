@@ -219,8 +219,11 @@ row in the README's [live checks](../README.md#live-checks):
 - **The Gmail filter breadth**: owner decision. The filter that applies the `Invoices` label
   decides what this pipeline ever sees; narrowing or widening it is a mailbox-configuration choice,
   not a code change.
-- **The Anthropic spend limit**: owner decision. Nothing in this repo caps total API spend; that's
-  a dashboard setting on the Anthropic account, made once the account is connected.
+- **The Anthropic spend limit**: owner decision, a dashboard setting on the Anthropic account. The
+  repo's own guard is `ai.daily_budget_usd`: once the day's estimated AI cost is reached, new
+  invoices skip the AI as `ai_budget_exceeded`, which limits a flood of new invoices to roughly the cap
+  plus whatever is already in flight (`Over AI budget?` in `workflows/process-invoice.json`). It's an
+  estimate, so the console limit stays.
 
 **Low impact, accepted as documented**: bidi and zero-width characters in extracted text: the
 escaping (HTML-escaping in the daily summary, bound SQL parameters, `RAW` Sheets writes) is correct

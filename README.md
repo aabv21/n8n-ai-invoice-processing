@@ -72,7 +72,7 @@ The headers are the database's column names on purpose: both tabs are written by
 
 ### Anthropic
 
-Put the API key in `.env` as `ANTHROPIC_API_KEY`, then set a monthly spend limit in the Anthropic console. Nothing in this repo caps total spend.
+Put the API key in `.env` as `ANTHROPIC_API_KEY`, then set a monthly spend limit in the Anthropic console. `ai.daily_budget_usd` caps the estimated spend per Bogota day: once the saved invoices' AI cost reaches it, new invoices go to review as `ai_budget_exceeded` with no AI call. The cap uses estimates, so the console limit stays the hard stop.
 
 ### The n8n API key
 
@@ -94,6 +94,7 @@ Put the API key in `.env` as `ANTHROPIC_API_KEY`, then set a monthly spend limit
 | `ai.default_model` | The first extraction model | `claude-haiku-5-5` |
 | `ai.retry_model` | The model for the one retry of a model-dependent review; `''` turns the retry off | `claude-sonnet-5-5` |
 | `ai.retry_effort` | Thinking effort for the retry; missing means `medium` | `medium` |
+| `ai.daily_budget_usd` | The estimated AI spend per Bogota day, in USD, after which new invoices skip the AI and go to review; `0` skips every AI call | `2` |
 | `ai.effort` | Thinking effort, `low`, `medium`, or `high` | `low` |
 | `extraction.min_text_chars_per_page` | Non-whitespace characters per page for the text path | `100` |
 | `extraction.max_pages` | Pages above which a PDF goes to review with no AI call | `20` |
@@ -115,6 +116,7 @@ The daily summary and the error alert render in the language `team_locale` names
 - **`team_locale`** is optional; a missing key reads as `en`.
 - **`extraction.max_text_chars`** is required; copy `60000` from `config/config.example.json`. `Check config` names the key until it's there.
 - **`validation.buyer_tax_id`** is required; set your company's NIT (the example ships Magdaport's fictional one). `Check config` names the key until it's there.
+- **`ai.daily_budget_usd`** is required; copy `2` from `config/config.example.json`. `Check config` names the key until it's there. Both models need a price in `src/lib/pricing.ts`.
 - **`REPLACE_ME`**: a config that still holds the example's placeholder in any key now fails `Check config`, naming the key, instead of failing later at Gmail or Drive.
 
 After pulling a change to `compose.yaml`, run `docker compose up -d --wait` to recreate the containers under the current hardening; the named volumes stay. Add the queue-mode flags if you run that stack.
@@ -149,7 +151,7 @@ The adversarial fixtures in `samples/adversarial/` (`pnpm run adversarial -- --b
 
 - **Code nodes, queries, and workflows:** every generated Code node, run as n8n's sandbox runs it; every workflow's wiring and settings, read from the committed JSON; and every query in `db/queries/` against a disposable Postgres as the runtime role, including a racing duplicate and the daily summary's window. [docs/testing.md](docs/testing.md) lists each suite.
 - **The local stack:** `pnpm run setup` and `pnpm run export` round-trip every workflow unchanged, and `node scripts/check-db.ts` proves the runtime role's grants and denials.
-- **Through the dev harness, with no Google or Anthropic account:** `process-invoice` saves an unreadable PDF once as a review row and stops at Drive; `intake-email` records each attachment once, carries the PDF binary into `process-invoice`, relabels an octet-stream PDF as `application/pdf`, and fails its batch once at `Fail the batch` when a call fails; `summary-preview` renders an escaped summary from real Postgres, including the list of unfinished events; and a half-filled `config.json` is rejected before any AI call.
+- **Through the dev harness, with no Google or Anthropic account:** `process-invoice` saves an unreadable PDF once as a review row and stops at Drive; `intake-email` records each attachment once, carries the PDF binary into `process-invoice`, relabels an octet-stream PDF as `application/pdf`, and fails its batch once at `Fail the batch` when a call fails; `summary-preview` renders an escaped summary from real Postgres, including the list of unfinished events; a `process-invoice` call with `ai_spent_usd` past the budget saves a review row with `ai_budget_exceeded`, no model and cost 0, and starts no `extract-invoice` run; and a half-filled `config.json` is rejected before any AI call.
 - **CI** runs the unit, workflow, and database suites, ShellCheck, gitleaks, `pnpm audit`, actionlint, zizmor, CodeQL, and a job that boots n8n and Postgres and calls `summary-preview` end to end.
 
 ### Live checks
@@ -182,11 +184,12 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 22 | Restart mid-execution | `docker compose restart n8n` while an extraction runs | The event shows as unfinished; recover it with [Recovering stuck events](docs/operations.md#recovering-stuck-events) |
 | 23 | Red team | Each `samples/adversarial/` PDF, one per email, the duplicate pair in order | Each label and saved row falls in its safe set in `samples/adversarial/expected.json`; the genuine re-send is labeled `Duplicate` |
 | 24 | Red team, parked | A long-text fixture under `max_text_chars`, and the off-schema phishing fixture | The Sheets write succeeds or fails loudly (the 50,000-character cell limit); the phishing fixture's error email echoes nothing harmful |
-| 25 | Spend limit | The Anthropic console | A monthly limit is set; the amount is the account owner's decision |
+| 25 | Spend limit and budget | The Anthropic console, and `ai.daily_budget_usd` in `config/config.json` | A monthly limit is set and `ai.daily_budget_usd` holds a value; both amounts are the owner's decision |
 | 26 | One failed attachment in a batch | Commands: row 26 below | Full expectation: row 26 below |
 | 27 | Sonnet retry on a scan | Commands: row 27 below | #4 `attempts = 2`, `model = claude-sonnet-5-5` |
 | 28 | Clean clone | Commands: row 28 below | Six `PASS` from `pnpm run scenarios` |
 | 29 | Summary in mail clients | Open the 18:00 summary in Gmail web, Gmail on a phone, and Outlook on the web; in Gmail, use "Show original" | The layout holds at phone width, with no sideways scroll of the page, in all three. Record whether the message has a `text/plain` part; if not, add it to Limitations |
+| 30 | AI budget | Commands: row 30 below | Full expectation: row 30 below |
 
 #### Live-check commands
 
@@ -280,14 +283,14 @@ Expected, in full: `invoice_rows` is 1; one event is `ok` and the other `duplica
 
 ```bash
 docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812', 'NL-0938');"
-# trash #2's and #4's Drive files and Sheets rows; in `config/config.json` set `extraction.max_pages: 1` (so #2 is skipped with no AI call) and `ai.default_model: claude-no-such-model` (so #4's first extraction fails); email `invoice-02-ten-items.pdf` and `invoice-04-scanned.pdf` together in one email; then
+# trash #2's and #4's Drive files and Sheets rows; in `config/config.json` set `extraction.max_pages: 1` (so #2 is skipped with no AI call), and in n8n set the Anthropic credential's API key to `invalid` (so #4's first extraction fails, as in row 16); email `invoice-02-ten-items.pdf` and `invoice-04-scanned.pdf` together in one email; then
 docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT file_name, outcome, invoice_id IS NOT NULL FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf');"
-# restore `20` and `claude-haiku-5-5`, then clean up with
+# restore `20` and the Anthropic key, then clean up with
 docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812', 'NL-0938');"
 # trash both files' Drive files and Sheets rows, and resend #4
 ```
 
-Expected, in full: #2 is labeled `Review` with outcome `review` and an invoice (`too_many_pages`); #4's extraction fails on the unknown model, so its outcome stays empty with no invoice; the `intake-email` alert names `Fail the batch` with "process-invoice failed for 1 attachment(s) in this batch"; after the restore, the resent #4 is labeled `Processed`
+Expected, in full: #2 is labeled `Review` with outcome `review` and an invoice (`too_many_pages`); #4's extraction fails on the invalid key, so its outcome stays empty with no invoice; the `intake-email` alert names `Fail the batch` with "process-invoice failed for 1 attachment(s) in this batch"; after the restore, the resent #4 is labeled `Processed`
 
 **Row 27.**
 
@@ -298,6 +301,18 @@ docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "W
 # run row 6's query
 # restore validation.min_confidence to 0.8
 ```
+
+**Row 30.**
+
+```bash
+# set `ai.daily_budget_usd: 0` in `config/config.json`, then delete #1 and trash its Drive file and Sheets rows
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name = 'invoice-01-two-items.pdf' RETURNING invoice_id) DELETE FROM invoices WHERE id IN (SELECT invoice_id FROM e) OR invoice_number = 'BE-2041';"
+# email invoice-01-two-items.pdf, then
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT i.extraction_path, i.model, i.attempts, i.status, i.review_reasons, pe.ai_cost_usd FROM processed_events pe JOIN invoices i ON i.id = pe.invoice_id WHERE pe.file_name = 'invoice-01-two-items.pdf' ORDER BY pe.received_at;"
+# clean up the review row with the first command again, trash its Drive file and Sheets rows, restore `ai.daily_budget_usd: 2`, resend #1, and repeat the query
+```
+
+Expected, in full: the first query prints `none||0|review|{ai_budget_exceeded}|0.000000`; after the cleanup and the resend, the query shows `ok` with a cost above `0`; the next summary's "Estimated AI cost" line is `USD 0.00` before the resend and above it after.
 
 **Row 28.**
 
@@ -350,6 +365,7 @@ Each item links to its row in the [failure table](docs/architecture.md#failure-m
 - **Credit notes go to review:** a credit note's negative total is `non_positive_total`; there's no credit-note outcome yet.
 - **Global discounts and withholdings depend on the reading:** the prompt asks for the total before withholdings and the subtotal after discounts; an invoice printed another way goes to review as `totals_mismatch`.
 - **Duplicate detection depends on the model's reading** of the supplier tax ID and invoice number; a misread number makes a re-sent invoice look new.
+- **The AI budget is an estimate, checked once per attachment:** the text path's cost is estimated from its length (the PDF path uses the API's real token usage), each attachment's cost is kept on its event (a duplicate counts too), the dev harness's `extract-invoice` target isn't counted, and the check reads the spend already saved, so one email's attachments and executions in flight can pass it, and a retried execution ("Retry with original workflow") reuses the spend read when it first ran, which may be from an earlier day. `pnpm run cost` stays the measured figure, and the console limit the hard stop.
 - **A poor text layer takes the text path**, even when its text is wrong, and consistently wrong values can pass the checks.
 - **Two first uploads in a month can race** and create two month folders with the same name.
 - **The PDF path is Anthropic-specific**; only the text path swaps providers by changing one node.

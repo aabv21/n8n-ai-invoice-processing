@@ -860,11 +860,11 @@ rect.c-bg-rect { fill: var(--bg); }
         </g>
         </g>
 
-        <g data-edge-from="process" data-edge-to="db" data-edge-label="unreadable or too many pages: skip extraction" data-edge-key="9">
+        <g data-edge-from="process" data-edge-to="db" data-edge-label="screen fails or over the daily AI budget: skip extraction" data-edge-key="9">
           <path data-composition-edge-from="process" data-composition-edge-to="db" data-composition-points="854,474;687.125,474" d="M 854 474 L 687.125 474" class="a-dashed" data-animate="edge" style="--step: 9;" stroke-width="1.4" marker-end="url(#arrowhead-dashed)"/>
         <g>
-          <rect x="616.0625" y="454" width="309" height="18" rx="3" class="c-mask"/>
-          <text x="770.5625" y="464" class="t-edge-dashed" font-size="11" text-anchor="middle">unreadable or too many pages: skip extraction</text>
+          <rect x="576.4625" y="454" width="388.2" height="18" rx="3" class="c-mask"/>
+          <text x="770.5625" y="464" class="t-edge-dashed" font-size="11" text-anchor="middle">screen fails or over the daily AI budget: skip extraction</text>
         </g>
         </g>
 

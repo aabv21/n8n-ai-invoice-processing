@@ -26,7 +26,8 @@ Covers every TypeScript module outside `tests/db/`:
 - `tests/samples.test.ts`: the six generated sample invoices: `scripts/lib/invoice-pdf.ts` renders each one and `pdfjs-dist` reads its text layer back, checked against `scripts/lib/sample-invoices.ts`'s own expected fields and the file name `invoiceFileName` would produce; an accented supplier name (`Distribuidora Cañaveral – Café Ñandú`) reads back exactly.
 - `tests/scripts/generate-adversarial-samples.test.ts`: every hidden-text adversarial fixture's planted content actually survives the same `pdfjs-dist` text extraction `process-invoice`'s own `Extract text` node performs, so a fixture that looks right on paper can't silently test nothing.
 - `tests/scripts/check-scenarios.test.ts`: `scripts/check-scenarios.ts`'s pure `compareScenario`, `loadExpectedSamples`, and `parseSince`, against `scripts/lib/sample-invoices.ts`'s expectations, no live Postgres.
-- `tests/scripts/measure-cost.test.ts`: `scripts/measure-cost.ts`'s `parseArgs`, `summarizeCosts`, and `fetchPage` (an API error keeps n8n's response body, with `fetch` stubbed), and `src/lib/pricing.ts`'s `costUsd`, against synthetic n8n execution data.
+- `tests/lib/ai-cost.test.ts` and `tests/lib/pricing.test.ts`: the per-call cost estimate (real usage on the PDF path, text length on the text path), the price table, and `hasPrice`.
+- `tests/scripts/measure-cost.test.ts`: `scripts/measure-cost.ts`'s `parseArgs`, `summarizeCosts`, and `fetchPage` (an API error keeps n8n's response body, with `fetch` stubbed), against synthetic n8n execution data.
 - `tests/scripts/check-dev-response.test.ts`: `scripts/check-dev-response.ts`'s `isSummaryPreview`, against fixed HTML strings, no live webhook.
 - `tests/scripts/init-env.test.ts`: `scripts/init-env.ts`'s `fillSecrets`, `writeEnvFile`, and `ensureN8nImportDir`, each against a fresh `mkdtempSync` directory under the OS temp dir, never the repo itself.
 

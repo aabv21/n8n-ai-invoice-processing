@@ -125,7 +125,7 @@
       "id": "recorded-skipped",
       "from": "recorded",
       "to": "skipped",
-      "label": "screen fails"
+      "label": "screen fails or over budget"
     },
     {
       "id": "saved-duplicate",
