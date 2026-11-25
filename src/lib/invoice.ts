@@ -29,6 +29,8 @@ export type ReviewReason =
   | 'too_much_text'
   | 'unreadable_pdf';
 
+export type SkipReason = Extract<ReviewReason, 'too_many_pages' | 'too_much_text' | 'unreadable_pdf'>;
+
 export interface LineItem {
   line_no: number;
   description: string;

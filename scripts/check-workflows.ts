@@ -65,10 +65,14 @@ export function hasCommentPlaceholder(query: string): boolean {
   return sqlComments(query).some((comment) => DOLLAR_DIGIT_RE.test(comment));
 }
 
-export function checkWorkflow(
-  wf: Workflow,
-  opts: { credentialIds: ReadonlySet<string>; generatedNodes: ReadonlySet<string>; generatedQueries: ReadonlySet<string> },
-): string[] {
+type CheckOptions = {
+  credentialIds: ReadonlySet<string>;
+  generatedNodes: ReadonlySet<string>;
+  generatedQueries: ReadonlySet<string>;
+};
+
+/** The top-level fields, `pinData`, `meta.instanceId`, and the settings. */
+export function checkSettings(wf: Workflow): string[] {
   const errors: string[] = [];
   // Widen past Workflow's own (optimistic) field types so a malformed or hand-edited file can be
   // reported instead of crashing the check.
@@ -96,48 +100,54 @@ export function checkWorkflow(
       errors.push(`settings.errorWorkflow must be ${ERROR_WORKFLOW_ID}`);
     }
   }
+  return errors;
+}
 
-  const nodesValue = raw.nodes;
-  const nodes = Array.isArray(nodesValue) ? (nodesValue as WorkflowNode[]) : [];
-  for (const node of nodes) {
-    for (const credential of Object.values(node.credentials ?? {})) {
-      if (!opts.credentialIds.has(credential.id)) errors.push(`credential ${credential.id} not in manifest`);
-    }
-
-    const serialized = JSON.stringify(node.parameters);
-    if (EMAIL_RE.test(serialized)) errors.push(`literal email in node ${node.name}`);
-    if (PHONE_RE.test(serialized)) errors.push(`literal phone in node ${node.name}`);
-    if (LONG_ID_RE.test(serialized)) errors.push(`literal long id in node ${node.name}`);
-    if (SECRET_RE.test(serialized)) errors.push(`secret-like value in node ${node.name}`);
-
-    if (node.type === 'n8n-nodes-base.code') {
-      const jsCode = typeof node.parameters.jsCode === 'string' ? node.parameters.jsCode : '';
-      if (!jsCode.startsWith('// Why Code:')) errors.push(`code node ${node.name} must start with // Why Code:`);
-      if (typeof node.notes !== 'string' || !node.notes.startsWith('Why Code: ')) {
-        errors.push(`code node ${node.name} must have a notes field starting with Why Code:`);
-      }
-      if (!opts.generatedNodes.has(node.name)) errors.push(`code node ${node.name} is not generated from src/nodes`);
-    }
-
-    if (RETRY_REQUIRED_TYPES.has(node.type) && node.retryOnFail !== true) {
-      errors.push(`node ${node.name} calls an external service without retry on fail`);
-    }
-
-    if (node.type === 'n8n-nodes-base.postgres' && node.parameters.operation === 'executeQuery') {
-      const query = node.parameters.query;
-      if (typeof query === 'string' && query.includes('{{')) {
-        errors.push(`query in node ${node.name} must use $n parameters, not expressions`);
-      }
-      if (typeof query === 'string' && hasCommentPlaceholder(query)) {
-        errors.push(`query in node ${node.name} has a $n placeholder inside a SQL comment`);
-      }
-      if (!opts.generatedQueries.has(node.name)) {
-        errors.push(`query in node ${node.name} is not generated from db/queries`);
-      }
-    }
+/** One node's rules. */
+export function checkNode(node: WorkflowNode, opts: CheckOptions): string[] {
+  const errors: string[] = [];
+  for (const credential of Object.values(node.credentials ?? {})) {
+    if (!opts.credentialIds.has(credential.id)) errors.push(`credential ${credential.id} not in manifest`);
   }
 
+  const serialized = JSON.stringify(node.parameters);
+  if (EMAIL_RE.test(serialized)) errors.push(`literal email in node ${node.name}`);
+  if (PHONE_RE.test(serialized)) errors.push(`literal phone in node ${node.name}`);
+  if (LONG_ID_RE.test(serialized)) errors.push(`literal long id in node ${node.name}`);
+  if (SECRET_RE.test(serialized)) errors.push(`secret-like value in node ${node.name}`);
+
+  if (node.type === 'n8n-nodes-base.code') {
+    const jsCode = typeof node.parameters.jsCode === 'string' ? node.parameters.jsCode : '';
+    if (!jsCode.startsWith('// Why Code:')) errors.push(`code node ${node.name} must start with // Why Code:`);
+    if (typeof node.notes !== 'string' || !node.notes.startsWith('Why Code: ')) {
+      errors.push(`code node ${node.name} must have a notes field starting with Why Code:`);
+    }
+    if (!opts.generatedNodes.has(node.name)) errors.push(`code node ${node.name} is not generated from src/nodes`);
+  }
+
+  if (RETRY_REQUIRED_TYPES.has(node.type) && node.retryOnFail !== true) {
+    errors.push(`node ${node.name} calls an external service without retry on fail`);
+  }
+
+  if (node.type === 'n8n-nodes-base.postgres' && node.parameters.operation === 'executeQuery') {
+    const query = node.parameters.query;
+    if (typeof query === 'string' && query.includes('{{')) {
+      errors.push(`query in node ${node.name} must use $n parameters, not expressions`);
+    }
+    if (typeof query === 'string' && hasCommentPlaceholder(query)) {
+      errors.push(`query in node ${node.name} has a $n placeholder inside a SQL comment`);
+    }
+    if (!opts.generatedQueries.has(node.name)) {
+      errors.push(`query in node ${node.name} is not generated from db/queries`);
+    }
+  }
   return errors;
+}
+
+export function checkWorkflow(wf: Workflow, opts: CheckOptions): string[] {
+  const nodesValue: unknown = wf.nodes;
+  const nodes = Array.isArray(nodesValue) ? (nodesValue as WorkflowNode[]) : [];
+  return [...checkSettings(wf), ...nodes.flatMap((n) => checkNode(n, opts))];
 }
 
 function main(): void {

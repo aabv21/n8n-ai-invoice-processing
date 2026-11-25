@@ -12,9 +12,9 @@ export interface SummaryRow {
   ok: number;
   review: number;
   duplicates: number;
-  /** Every event still without an outcome 30 minutes before the run, however old. */
+  /** Every event the query counts as stuck. */
   unfinished: number;
-  /** The oldest of those events, at most 20; `received_at` is already Bogota time, `YYYY-MM-DD HH:MM`. */
+  /** The oldest of those events, up to the query's cap; `received_at` is already Bogota time, `YYYY-MM-DD HH:MM`. */
   unfinished_events: { event_id: string; file_name: string | null; received_at: string }[];
   totals_by_supplier: { supplier: string | null; currency: string | null; invoices: number; total: number | null }[];
   review_items: {

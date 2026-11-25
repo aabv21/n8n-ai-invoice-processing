@@ -6,7 +6,7 @@ import { invoiceFileName } from '../../src/lib/file-name.ts';
 import type { NormalizedInvoice, ReviewReason } from '../../src/lib/invoice.ts';
 import { normalizeInvoice } from '../../src/lib/normalize-invoice.ts';
 
-export interface SampleLine {
+interface SampleLine {
   description: string;
   quantity: number;
   unit_price: number;

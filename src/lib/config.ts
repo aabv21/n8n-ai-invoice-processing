@@ -41,7 +41,7 @@ export interface Config {
 }
 
 /** The value `config/config.example.json` ships in every key an operator must fill in. */
-export const CONFIG_PLACEHOLDER = 'REPLACE_ME';
+const CONFIG_PLACEHOLDER = 'REPLACE_ME';
 
 /** Throws on the first string, depth-first in key order, that is still the example's placeholder. */
 function rejectPlaceholders(value: unknown, path: string): void {
@@ -125,9 +125,8 @@ export function checkConfig(config: unknown): Config {
     throw new Error("config.ai.retry_model must be a string ('' turns the retry off)");
   }
 
-  if (ai.retry_effort === undefined) {
-    ai.retry_effort = 'medium';
-  } else if (typeof ai.retry_effort !== 'string' || !EFFORT_VALUES.includes(ai.retry_effort as (typeof EFFORT_VALUES)[number])) {
+  // Missing means 'medium'; the defaults are applied to the returned copy, never the caller's object.
+  if (ai.retry_effort !== undefined && (typeof ai.retry_effort !== 'string' || !EFFORT_VALUES.includes(ai.retry_effort as (typeof EFFORT_VALUES)[number]))) {
     throw new Error(`config.ai.retry_effort must be one of ${EFFORT_VALUES.join(', ')}`);
   }
 
@@ -148,11 +147,9 @@ export function checkConfig(config: unknown): Config {
 
   // Missing means 'en'. team_locale is operator-set config, not inbound traffic, so there's no
   // other spelling to normalize.
-  if (root.team_locale === undefined) {
-    root.team_locale = 'en';
-  } else if (typeof root.team_locale !== 'string' || !TEAM_LOCALE_VALUES.includes(root.team_locale as (typeof TEAM_LOCALE_VALUES)[number])) {
+  if (root.team_locale !== undefined && (typeof root.team_locale !== 'string' || !TEAM_LOCALE_VALUES.includes(root.team_locale as (typeof TEAM_LOCALE_VALUES)[number]))) {
     throw new Error(`config.team_locale must be one of ${TEAM_LOCALE_VALUES.join(', ')}`);
   }
 
-  return config as Config;
+  return { ...root, team_locale: root.team_locale ?? 'en', ai: { ...ai, retry_effort: ai.retry_effort ?? 'medium' } } as Config;
 }

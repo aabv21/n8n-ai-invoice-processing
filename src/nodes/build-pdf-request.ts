@@ -1,6 +1,6 @@
 // Builds a Messages API body with a PDF document block and structured output, which no native
 // node sends. Pure: the HTTP call is a separate node; an oversized PDF is caught here, before it.
-export interface PdfRequestInput {
+interface PdfRequestInput {
   model: string;
   effort: 'low' | 'medium' | 'high';
   pdf_base64: string;

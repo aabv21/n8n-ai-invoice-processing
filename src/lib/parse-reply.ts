@@ -2,7 +2,7 @@
 // object (text path), or a Messages API `content`/`stop_reason` pair (vision path).
 import { isPlainObject } from './util.ts';
 
-export type ParseResult = { ok: true; value: Record<string, unknown> } | { ok: false; reason: 'unparseable_reply' | 'reply_truncated' | 'model_refused' };
+type ParseResult = { ok: true; value: Record<string, unknown> } | { ok: false; reason: 'unparseable_reply' | 'reply_truncated' | 'model_refused' };
 
 function joinTextBlocks(content: unknown): string {
   if (!Array.isArray(content)) return '';

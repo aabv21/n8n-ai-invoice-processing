@@ -41,24 +41,30 @@ function normalizeText(value: unknown): string | null {
   return trimmed === '' ? null : trimmed;
 }
 
+/** Splits a field into missing (null, undefined or blank), not a string, or its trimmed text. */
+function takeBlankAsMissing(value: unknown): { missing: true } | { missing: false; text: string } | { notString: true } {
+  if (value === null || value === undefined) return { missing: true };
+  if (typeof value !== 'string') return { notString: true };
+  const trimmed = value.trim();
+  return trimmed === '' ? { missing: true } : { missing: false, text: trimmed };
+}
+
 /**
  * A date field: missing (`null`/`undefined`/blank) is just missing (no reason); present but not a
  * real `YYYY-MM-DD` date - including a non-string value - is invalid (`reason`).
  */
 function normalizeDate(value: unknown, reason: 'invalid_issue_date' | 'invalid_due_date'): { value: string | null; reasons: ReviewReason[] } {
-  if (value === null || value === undefined) return { value: null, reasons: [] };
-  if (typeof value !== 'string') return { value: null, reasons: [reason] };
-  const trimmed = value.trim();
-  if (trimmed === '') return { value: null, reasons: [] };
-  return isValidIsoDate(trimmed) ? { value: trimmed, reasons: [] } : { value: null, reasons: [reason] };
+  const text = takeBlankAsMissing(value);
+  if ('missing' in text && text.missing) return { value: null, reasons: [] };
+  if ('notString' in text) return { value: null, reasons: [reason] };
+  return isValidIsoDate(text.text) ? { value: text.text, reasons: [] } : { value: null, reasons: [reason] };
 }
 
 function normalizeCurrency(value: unknown): { value: string | null; reasons: ReviewReason[] } {
-  if (value === null || value === undefined) return { value: null, reasons: [] };
-  if (typeof value !== 'string') return { value: null, reasons: ['invalid_currency'] };
-  const trimmed = value.trim();
-  if (trimmed === '') return { value: null, reasons: [] };
-  const upper = trimmed.toUpperCase();
+  const text = takeBlankAsMissing(value);
+  if ('missing' in text && text.missing) return { value: null, reasons: [] };
+  if ('notString' in text) return { value: null, reasons: ['invalid_currency'] };
+  const upper = text.text.toUpperCase();
   return ACCEPTED_CURRENCIES.has(upper) ? { value: upper, reasons: [] } : { value: null, reasons: ['invalid_currency'] };
 }
 

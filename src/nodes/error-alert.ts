@@ -13,7 +13,7 @@ export interface ErrorAlertInput {
   time: string;
 }
 
-export interface ErrorAlertOutput {
+interface ErrorAlertOutput {
   subject: string;
   message: string;
 }
