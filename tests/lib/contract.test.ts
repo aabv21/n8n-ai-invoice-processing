@@ -20,8 +20,23 @@ test('schema stays inside structured outputs', () => {
     expect(keysDeep(schema)).not.toContain(banned);
 });
 test('prompt states the rules the checks rely on', () => {
-  for (const s of ['Magdaport', 'null', 'YYYY-MM-DD', 'COP', 'USD', '1.190.000']) expect(prompt).toContain(s);
+  for (const s of ['Magdaport', 'null', 'COP', 'USD', '1.190.000']) expect(prompt).toContain(s);
   expect(prompt).not.toMatch(/\d{10}|@/);
+});
+test('the schema owns the per-field rules', () => {
+  for (const s of [
+    'The issuer\'s legal name as printed',
+    'without labels such as NIT',
+    'without labels such as No.',
+    'YYYY-MM-DD',
+    'ISO 4217',
+    'All taxes combined',
+    'in the order printed',
+    'from 0 to 1',
+  ]) expect(schemaText).toContain(s);
+});
+test('the prompt lists no per-field rules', () => {
+  for (const s of ['supplier_tax_id:', 'invoice_number:', '**Fields.**', 'YYYY-MM-DD', 'ISO 4217']) expect(prompt).not.toContain(s);
 });
 // The Information Extractor appends its own format instructions to this text as a LangChain
 // template, which treats `{`/`}` as template syntax - a brace here would break the text path.

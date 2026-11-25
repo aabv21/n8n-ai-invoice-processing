@@ -4,7 +4,7 @@
   "required": ["supplier", "supplier_tax_id", "invoice_number", "issue_date", "due_date", "currency", "subtotal", "tax", "total", "line_items", "confidence"],
   "properties": {
     "supplier": { "type": ["string", "null"], "description": "The issuer's legal name as printed on the invoice." },
-    "supplier_tax_id": { "type": ["string", "null"], "description": "The issuer's tax identification number as printed, such as a Colombian NIT." },
+    "supplier_tax_id": { "type": ["string", "null"], "description": "The issuer's tax identification number as printed, such as a Colombian NIT, without labels such as NIT." },
     "invoice_number": { "type": ["string", "null"], "description": "The invoice number as printed, without labels such as No." },
     "issue_date": { "type": ["string", "null"], "format": "date", "description": "The date the invoice was issued, as YYYY-MM-DD." },
     "due_date": { "type": ["string", "null"], "format": "date", "description": "The date payment is due, as YYYY-MM-DD." },
