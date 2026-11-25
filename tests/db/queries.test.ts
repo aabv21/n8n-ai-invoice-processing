@@ -388,3 +388,120 @@ test('the scenario report joins events, invoices, items, and duplicates', async 
   expect(report[0]?.invoice?.line_items).toHaveLength(2);
   expect(report[1]).toMatchObject({ file_name: 'invoice-06-copy-of-01.pdf', outcome: 'duplicate', duplicate_of_file: 'invoice-01-two-items.pdf' });
 });
+
+describe('approve-invoice', () => {
+  const FIELDS = {
+    supplier: 'Bolsamar Empaques S.A.S.', supplier_tax_id: '9013845522', invoice_number: 'BE-2041',
+    issue_date: '2026-10-03', due_date: '2026-11-02', currency: 'COP', subtotal: 1_750_000, tax: 332_500, total: 2_082_500,
+  };
+  interface Approval {
+    invoice_id: string; gmail_message_id: string | null; result: string; review_left: boolean;
+    supplier: string | null; invoice_number: string | null; issue_date: string | null; due_date: string | null; subtotal: number | null; total: number | null;
+  }
+  const approve = async (id: unknown, fields: object = FIELDS, by = 'Laura', email = 'rev') =>
+    (await db.run<Approval>('approve-invoice.sql', [id, fields, by, email]))[0]!;
+  // A review invoice with a wrong printed total, and its event left at outcome review. The event id
+  // is `<email>:attachment_<n>`, so the email id is what comes before the colon.
+  const seedReview = async (event = 'rev:attachment_0', invoice: NormalizedInvoice = { ...VALID_INVOICE, total: 2_000_000 }) => {
+    await db.run('record-event.sql', [event, `${event}.pdf`]);
+    const row = await save(event, invoice, 'review');
+    await db.run('record-outcome.sql', [event, 'review', row.invoice_id]);
+    return row.invoice_id!;
+  };
+  const seedSibling = async (event: string, outcome: string | null, number: string) => {
+    await db.run('record-event.sql', [event, `${event}.pdf`]);
+    const row = await save(event, { ...VALID_INVOICE, invoice_number: number, total: 2_000_000 }, 'review');
+    if (outcome !== null) await db.run('record-outcome.sql', [event, outcome, row.invoice_id]);
+    return row.invoice_id!;
+  };
+
+  test('approves a review invoice with corrected fields and marks its event ok', async () => {
+    const id = await seedReview();
+    expect(await approve(id)).toMatchObject({
+      invoice_id: String(id), gmail_message_id: 'rev', result: 'approved', review_left: false,
+      supplier: 'Bolsamar Empaques S.A.S.', invoice_number: 'BE-2041', issue_date: '2026-10-03', due_date: '2026-11-02', subtotal: 1_750_000, total: 2_082_500,
+    });
+    expect(await db.sql('SELECT status, review_reasons, total::text, approved_by, approved_at IS NOT NULL AS stamped FROM invoices WHERE id = $1', [id]))
+      .toEqual([{ status: 'ok', review_reasons: [], total: '2082500.00', approved_by: 'Laura', stamped: true }]);
+    expect(await db.sql("SELECT outcome FROM processed_events WHERE event_id = 'rev:attachment_0'")).toEqual([{ outcome: 'ok' }]);
+  });
+  test('reports already_approved on a replay and changes nothing', async () => {
+    const id = await seedReview();
+    await approve(id);
+    const [before] = await db.sql<{ approved_at: string }>('SELECT approved_at::text FROM invoices WHERE id = $1', [id]);
+    expect(await approve(id, { ...FIELDS, total: 1 }, 'Marta')).toMatchObject({ result: 'already_approved', gmail_message_id: 'rev' });
+    expect(await db.sql('SELECT approved_at::text, approved_by, total::text FROM invoices WHERE id = $1', [id]))
+      .toEqual([{ approved_at: before!.approved_at, approved_by: 'Laura', total: '2082500.00' }]);
+  });
+  test('a replay returns the values the first approval saved, not the replay cells', async () => {
+    const id = await seedReview();
+    await approve(id);
+    const replay = await approve(id, { ...FIELDS, supplier: 'Someone Else', invoice_number: 'ZZ-1', issue_date: '2026-01-05', total: 1 }, 'Marta');
+    expect(replay).toMatchObject({
+      result: 'already_approved', supplier: 'Bolsamar Empaques S.A.S.', invoice_number: 'BE-2041', issue_date: '2026-10-03', due_date: '2026-11-02', subtotal: 1_750_000, total: 2_082_500,
+    });
+  });
+  test('refuses a corrected key another invoice holds', async () => {
+    await save('held:attachment_0', { ...VALID_INVOICE, invoice_number: 'BE-9999' });
+    const id = await seedReview('rev:attachment_0', { ...VALID_INVOICE, invoice_number: 'BE-2041', total: 2_000_000 });
+    expect(await approve(id, { ...FIELDS, invoice_number: 'BE-9999' })).toMatchObject({ result: 'duplicate_key' });
+    expect(await db.sql('SELECT status, approved_at FROM invoices WHERE id = $1', [id])).toEqual([{ status: 'review', approved_at: null }]);
+    expect(await db.sql("SELECT outcome FROM processed_events WHERE event_id = 'rev:attachment_0'")).toEqual([{ outcome: 'review' }]);
+  });
+  test('reports not_in_review for an ok invoice, and not_found for an unknown id', async () => {
+    const ok = await save('ok:attachment_0');
+    expect(await approve(ok.invoice_id, FIELDS, 'Laura', 'ok')).toMatchObject({ result: 'not_in_review', gmail_message_id: 'ok' });
+    expect(await approve('987654')).toMatchObject({ invoice_id: '987654', gmail_message_id: null, result: 'not_found', review_left: false });
+  });
+  test('refuses a row whose email_id is not the invoice email, and approves nothing', async () => {
+    const mine = await seedReview('mine:attachment_0');
+    const other = await seedReview('other:attachment_0', { ...VALID_INVOICE, invoice_number: 'BE-3000', total: 2_000_000 });
+    // A pasted or edited invoice_id: this row (email "mine") now names the other invoice.
+    expect(await approve(other, FIELDS, 'Laura', 'mine')).toMatchObject({ result: 'row_mismatch', gmail_message_id: 'other' });
+    expect(await approve(mine, FIELDS, 'Laura', '')).toMatchObject({ result: 'row_mismatch' });
+    expect(await db.sql('SELECT status, approved_at FROM invoices ORDER BY id')).toEqual([
+      { status: 'review', approved_at: null }, { status: 'review', approved_at: null }]);
+    expect(await db.sql('SELECT outcome FROM processed_events ORDER BY received_at, event_id')).toEqual([{ outcome: 'review' }, { outcome: 'review' }]);
+  });
+  test('review_left is true while another attachment of the email still needs a person', async () => {
+    const first = await seedSibling('m1:attachment_0', 'review', 'BE-2041');
+    await seedSibling('m1:attachment_1', 'review', 'BE-2042');
+    expect(await approve(first, FIELDS, 'Laura', 'm1')).toMatchObject({ result: 'approved', review_left: true });
+    // Another email's review invoice doesn't count, and a finished sibling doesn't either.
+    const solo = await seedSibling('m2:attachment_0', 'review', 'BE-2050');
+    await seedSibling('m2:attachment_1', 'ok', 'BE-2051');
+    expect(await approve(solo, { ...FIELDS, invoice_number: 'BE-2050' }, 'Laura', 'm2')).toMatchObject({ result: 'approved', review_left: false });
+  });
+  test('review_left counts an unfinished or duplicate sibling event, and not the approved invoice own event', async () => {
+    const a = await seedSibling('m3:attachment_0', 'review', 'BE-2060');
+    await db.run('record-event.sql', ['m3:attachment_1', 'm3.pdf']);
+    expect(await approve(a, { ...FIELDS, invoice_number: 'BE-2060' }, 'Laura', 'm3')).toMatchObject({ result: 'approved', review_left: true });
+    await db.run('record-outcome.sql', ['m3:attachment_1', 'duplicate', a]);
+    // A replay now sees a duplicate sibling event of the same email.
+    expect(await approve(a, { ...FIELDS, invoice_number: 'BE-2060' }, 'Laura', 'm3')).toMatchObject({ result: 'already_approved', review_left: true });
+    const b = await seedSibling('m4:attachment_0', 'review', 'BE-2070');
+    expect(await approve(b, { ...FIELDS, invoice_number: 'BE-2070' }, 'Laura', 'm4')).toMatchObject({ review_left: false });
+  });
+  test('a call that raced an approval reports already_approved, not not_in_review', async () => {
+    const id = await seedReview();
+    const text = readFileSync('db/queries/approve-invoice.sql', 'utf8');
+    const params = [String(id), JSON.stringify(FIELDS), 'Laura', 'rev'];
+    const clientA = await db.connect();
+    try {
+      await clientA.query('BEGIN');
+      expect((await clientA.query(text, params)).rows[0]).toMatchObject({ result: 'approved' });
+      const raceB = db.sql<{ result: string }>(text, params);
+      // Wait until B is blocked on A's uncommitted row (a lock it hasn't been granted).
+      for (let tries = 0; ; tries++) {
+        const [waiting] = await db.sql<{ n: number }>('SELECT count(*)::int AS n FROM pg_locks WHERE NOT granted');
+        if (waiting!.n > 0) break;
+        if (tries === 100) throw new Error('the racing approval never blocked on the first one');
+        await new Promise((resolve) => setTimeout(resolve, 50));
+      }
+      await clientA.query('COMMIT');
+      expect((await raceB)[0]).toMatchObject({ result: 'already_approved', gmail_message_id: 'rev' });
+    } finally {
+      clientA.release();
+    }
+  });
+});

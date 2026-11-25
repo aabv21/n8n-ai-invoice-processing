@@ -125,7 +125,7 @@
       "id": "recorded-skipped",
       "from": "recorded",
       "to": "skipped",
-      "label": "screen fails or over budget"
+      "label": "screen or budget"
     },
     {
       "id": "saved-duplicate",
@@ -192,6 +192,13 @@
       "from": "unfinished",
       "to": "received",
       "label": "resend the email",
+      "variant": "dashed"
+    },
+    {
+      "id": "review-ok",
+      "from": "review",
+      "to": "ok",
+      "label": "approved",
       "variant": "dashed"
     }
   ],

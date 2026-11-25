@@ -208,6 +208,20 @@
         120,
         64
       ]
+    },
+    {
+      "id": "approve-invoices",
+      "type": "backend",
+      "label": "approve-invoices",
+      "sublabel": "every 5 min · approve",
+      "pos": [
+        1070,
+        500
+      ],
+      "size": [
+        120,
+        64
+      ]
     }
   ],
   "connections": [
@@ -374,16 +388,40 @@
       "id": "on-failure",
       "from": "process-invoice",
       "to": "error-handler",
-      "label": "on failure (7 workflows)",
+      "label": "on failure (9 workflows)",
       "variant": "dashed"
     },
     {
       "id": "test-calls",
       "from": "dev-harness",
       "to": "process-invoice",
-      "label": "test calls (6 targets)",
+      "label": "test calls (7 targets)",
       "variant": "dashed",
       "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "read-rows",
+      "from": "sheets",
+      "to": "approve-invoices",
+      "label": "rows in review",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "approve-save",
+      "from": "approve-invoices",
+      "to": "postgres",
+      "label": "approve once",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    },
+    {
+      "id": "approve-label",
+      "from": "approve-invoices",
+      "to": "gmail",
+      "label": "relabel",
+      "fromSide": "left",
       "toSide": "bottom"
     }
   ],

@@ -15,6 +15,7 @@ More views: the [invoice sequence](docs/diagrams/invoice-sequence.svg), the [lif
 - Checks totals, line items, dates, and the model's confidence, and retries once on Claude Sonnet 5.5, at effort `medium`, when a second read can change the verdict: low confidence, an unreadable or cut-off reply, or line items that don't add up on a scan.
 - Saves the invoice and its line items in Postgres, once per email and once per supplier invoice number, so a re-sent invoice becomes a `Duplicate`.
 - Files the PDF in Google Drive under `Invoices/<yyyy>/<mm>`, lists the invoice and its items in Google Sheets, and labels the email `Processed`, `Review`, or `Duplicate`.
+- Lets a reviewer correct a `Review` invoice in the `Invoices` tab and approve it by typing their name in `approved_by`: every 5 minutes the pipeline saves the corrected fields, marks it `ok`, and relabels the email `Processed`. A refused approval explains why in `approval_note`.
 - Emails the team a summary at 18:00 Bogota time: counts, totals by supplier, the invoices to review, what falls due in the next 7 days, and any event that didn't finish.
 
 [docs/architecture.md](docs/architecture.md) explains each part, every failure mode and its recovery, the scaling limits, and the design decisions. [docs/red-team.md](docs/red-team.md) treats the invoice PDF as untrusted input.
@@ -63,12 +64,14 @@ Create a folder, for example `Invoices`, and copy its ID from the URL (`https://
 
 Create a spreadsheet with two tabs, named as `google.invoices_tab` and `google.items_tab` say (`Invoices` and `Items` by default), and copy its ID from the URL into `google.spreadsheet_id`. Row 1 of each tab holds these exact headers, one per column, in this order:
 
-- `Invoices`: `invoice_id, received_at, supplier, supplier_tax_id, invoice_number, issue_date, due_date, currency, subtotal, tax, total, status, review_reasons, pdf_link, email_id`
+- `Invoices`: `invoice_id, received_at, supplier, supplier_tax_id, invoice_number, issue_date, due_date, currency, subtotal, tax, total, status, review_reasons, pdf_link, email_id, approved_by, approval_note`
 - `Items`: `item_key, invoice_id, invoice_number, line_no, description, quantity, unit_price, line_total`
 
 Both tabs are written by key (`invoice_id` and `item_key`), so a retried run updates its rows instead of adding new ones.
 
-The headers are the database's column names on purpose: both tabs are written by matching these names, so renaming a header breaks the write. `review_reasons` holds the reason codes; the daily summary shows each one in words.
+An existing `Invoices` tab: type `approved_by` and `approval_note` in the first two empty cells of row 1, right after `email_id`. Without them nobody can approve a row.
+
+The headers are the database's column names on purpose: both tabs are written by matching these names, so renaming a header breaks the write. `review_reasons` holds the reason codes; the daily summary shows each one in words. The last two columns are for the reviewer: `approved_by` is where you type your name to approve a corrected row, and `approval_note` is where the pipeline says why it refused one. `invoice_id` and `email_id` are the pipeline's: an approval needs the two to belong together, so don't edit or sort them apart from their row.
 
 ### Anthropic
 
@@ -161,14 +164,14 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | # | Check | Command or action | Expected |
 |---|---|---|---|
 | 1 | Credentials import | `pnpm run setup` on a `.env` with every value filled | Anthropic, Gmail, Google Drive, and Google Sheets import, with no `skip` |
-| 2 | Publish after sign-in | `pnpm run setup` again, after signing in to Gmail, Drive, and Sheets | No `hold gmail-entry.json` line |
+| 2 | Publish after sign-in | `pnpm run setup` again, after signing in to Gmail, Drive, and Sheets | No `hold gmail-entry.json` and no `hold approve-invoices.json` line |
 | 3 | Gmail filter | Email a PDF to the demo account | It arrives labeled `Invoices` |
 | 4 | OAuth Production | The Google Cloud consent screen | "In production"; seven days later, `daily-summary` still sends |
 | 5 | Samples | Commands: row 5 below | Six `PASS` |
 | 6 | Paths | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -c "SELECT drive_file_name, extraction_path, model, attempts, status, review_reasons FROM invoices ORDER BY id"'` | #4 `vision`, the rest `text` |
 | 7 | Request shape | #4's `extract-invoice` execution in n8n, and the text path's `Claude` sub-node | Full expectation: row 7 below |
 | 8 | No retry on a printed mismatch | The query from row 6, for #5 | Full expectation: row 8 below |
-| 9 | Drive and Sheets | The Drive root folder and the spreadsheet | 5 files under `Invoices/<yyyy>/<mm>`, named as in `samples/expected.json`; 5 `Invoices` rows and 19 `Items` rows; each `pdf_link` opens |
+| 9 | Drive and Sheets | The Drive root folder and the spreadsheet | 5 files under `Invoices/<yyyy>/<mm>`, named as in `samples/expected.json`; 5 `Invoices` rows and 19 `Items` rows, with `approved_by` and `approval_note` as the last two headers; each `pdf_link` opens |
 | 10 | Labels | The six sample emails | #1–#4 `Processed`, #5 `Review`, #6 `Duplicate` |
 | 11 | Two PDFs in one email | Send `adv-usd-restatement.pdf` and `adv-implausible-line.pdf` in one email | Two events (`:attachment_0` and `:attachment_1`) and two rows |
 | 12 | Octet-stream | Commands: row 12 below | The Drive file's type is PDF; the label call then fails on the fake message ID, so `intake-email` stops at `Fail the batch`, as expected |
@@ -190,6 +193,7 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 28 | Clean clone | Commands: row 28 below | Six `PASS` from `pnpm run scenarios` |
 | 29 | Summary in mail clients | Open the 18:00 summary in Gmail web, Gmail on a phone, and Outlook on the web; in Gmail, use "Show original" | The layout holds at phone width, with no sideways scroll of the page, in all three. Record whether the message has a `text/plain` part; if not, add it to Limitations |
 | 30 | AI budget | Commands: row 30 below | Full expectation: row 30 below |
+| 31 | Approve from Sheets | Commands: row 31 below | Full expectation: row 31 below |
 
 #### Live-check commands
 
@@ -314,6 +318,16 @@ docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "S
 
 Expected, in full: the first query prints `none||0|review|{ai_budget_exceeded}|0.000000`; after the cleanup and the resend, the query shows `ok` with a cost above `0`; the next summary's "Estimated AI cost" line is `USD 0.00` before the resend and above it after.
 
+**Row 31.**
+
+```bash
+# in the `Invoices` tab, on #5's row, set `total` to 1356600 (its subtotal 1140000 plus tax 216600, from `samples/expected.json`) and type your name in `approved_by`; wait 5 minutes
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT i.status, i.review_reasons, i.approved_by, i.total, pe.outcome FROM invoices i JOIN processed_events pe ON pe.invoice_id = i.id WHERE i.approved_at IS NOT NULL ORDER BY i.approved_at DESC LIMIT 1;"
+# then type 2026-02-30 in another review row's `issue_date`, with a name in `approved_by`, and wait 5 minutes
+```
+
+Expected, in full: the row shows `status ok` and an empty `approval_note`; #5's email carries `Processed`, not `Review`; the query prints `ok|{}|<your name>|1356600.00|ok`; a summary generated within 24 hours of #5's arrival lists it under the totals and not under review (past that window it no longer appears at all). Also confirm that approving one of two review invoices in the same email leaves `Review` on the email. The second row stays in `review` and its `approval_note` reads `Not approved: Invalid issue date. Fix the cells and keep your name in approved_by.` Leaving `approved_by` filled after a refusal makes the next poll repeat the note, harmlessly.
+
 **Row 28.**
 
 Clear the Sheets rows (keep the headers), trash `Invoices/<yyyy>`, and run the commands below. Then follow the [Quick start](#quick-start) exactly in the clone.
@@ -366,6 +380,12 @@ Each item links to its row in the [failure table](docs/architecture.md#failure-m
 - **Global discounts and withholdings depend on the reading:** the prompt asks for the total before withholdings and the subtotal after discounts; an invoice printed another way goes to review as `totals_mismatch`.
 - **Duplicate detection depends on the model's reading** of the supplier tax ID and invoice number; a misread number makes a re-sent invoice look new.
 - **The AI budget is an estimate, checked once per attachment:** the text path's cost is estimated from its length (the PDF path uses the API's real token usage), each attachment's cost is kept on its event (a duplicate counts too), the dev harness's `extract-invoice` target isn't counted, and the check reads the spend already saved, so one email's attachments and executions in flight can pass it, and a retried execution ("Retry with original workflow") reuses the spend read when it first ran, which may be from an earlier day. `pnpm run cost` stays the measured figure, and the console limit the hard stop.
+- **Approval corrects the header only:** line items, the Drive file name and the `Items` tab keep the extracted values.
+- **`approve-invoices` stays unpublished until the Google OAuth client values are in `.env`:** until then `pnpm run setup` skips the Sheets credential and prints `hold approve-invoices.json: needs Google Sheets`, as it does for `gmail-entry`, so nothing polls and no alert fires; the first `setup` after you add them publishes it.
+- **A row with a blank `invoice_id` or `email_id` is ignored**, since a refusal note couldn't be matched back to its row.
+- **Approval refuses what extraction refuses,** except the reading checks: a total at or below zero, the buyer's own NIT, a due date before the issue date, and an issue date in the future become a note, while a totals mismatch is allowed.
+- **`Review` stays on an email while another attachment of it needs a person,** and also when it carries a duplicate: the database can't tell a conflicting duplicate from a clean one, so remove the label by hand once you've checked.
+- **Approval is polled, not instant:** a reviewer waits up to 5 minutes, and `approved_by` is whatever name they type, since the Sheets values API can't say who edited a cell.
 - **A poor text layer takes the text path**, even when its text is wrong, and consistently wrong values can pass the checks.
 - **Two first uploads in a month can race** and create two month folders with the same name.
 - **The PDF path is Anthropic-specific**; only the text path swaps providers by changing one node.

@@ -31,7 +31,7 @@ An AI invoice-processing pipeline for Magdaport S.A.S., a fictional wholesale di
 - `schemas/invoice.schema.json`, `prompts/extract-invoice.md`: the extraction contract, copied into workflow JSON by the build.
 - `src/nodes/`: one `run()` per Code node; `src/lib/` holds the pure logic and the `{ en, es }` message tables; `src/globals.d.ts` declares `DateTime`.
 - `tests/`: the Vitest suites (`tests/helpers/` runs generated Code nodes like n8n's sandbox; `tests/db/` runs apart from `pnpm test`).
-- `workflows/`: the n8n workflow JSON, imported by `pnpm run setup`.
+- `workflows/`: the eleven n8n workflow JSON files, imported by `pnpm run setup`; `approve-invoices` polls the `Invoices` tab and calls `approve-invoice` per approved row.
 - `docs/`: the documents above. Update `architecture.md` when a change alters a component, the lifecycle, the data model, a failure mode, scaling, security, a platform behavior, or a design decision; `database.md` for a new query, table, grant, or migration; `red-team.md` for a new deterministic guard or attack surface; and `testing.md` when a suite is added, renamed, or changes what it covers.
 - `.n8n-import/`: a scratch bind mount for the export tooling. Never `rm -rf` it.
 

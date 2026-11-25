@@ -117,7 +117,7 @@ test('the ensure-folder target passes parent_id and name and responds with the f
 
   const rules = (nodeOf(wf, 'Route by target').parameters.rules as { values: { outputKey: string }[] }).values;
   // Appended after summary-preview, so every earlier target keeps its output index.
-  expect(rules.map((r) => r.outputKey)).toEqual(['load-config', 'extract-invoice', 'process-invoice', 'intake-email', 'summary-preview', 'ensure-folder']);
+  expect(rules.map((r) => r.outputKey)).toEqual(['load-config', 'extract-invoice', 'process-invoice', 'intake-email', 'summary-preview', 'ensure-folder', 'approve-invoice']);
 
   const call = nodeOf(wf, 'Call ensure-folder');
   expect(call.parameters).toMatchObject({
@@ -130,4 +130,29 @@ test('the ensure-folder target passes parent_id and name and responds with the f
   const connections = wf.connections as Record<string, MainConnections>;
   expect(connections['Route by target']!.main[5]!.map((c) => c.node)).toEqual(['Call ensure-folder']);
   expect(connections['Call ensure-folder']!.main[0]!.map((c) => c.node)).toEqual(['Respond with result']);
+});
+
+test('the approve-invoice target loads config and passes the row', () => {
+  const wf = workflowFile('dev-harness.json');
+
+  const rules = (nodeOf(wf, 'Route by target').parameters.rules as { values: { outputKey: string }[] }).values;
+  const index = rules.findIndex((r) => r.outputKey === 'approve-invoice');
+  expect(index).toBe(rules.length - 1);
+
+  expect(nodeOf(wf, 'Load config for approve-invoice').parameters).toMatchObject({ workflowId: { value: 'mgpLoadConfig001' } });
+  const call = nodeOf(wf, 'Call approve-invoice');
+  expect(call.alwaysOutputData).toBe(true);
+  expect(call.parameters).toMatchObject({ workflowId: { value: 'mgpApproveOne001' }, mode: 'once', options: { waitForSubWorkflow: true } });
+  const mapped = (call.parameters.workflowInputs as { value: Record<string, string> }).value;
+  expect(mapped.config).toBe('={{ $json.config }}');
+  const body = { input: { row: { invoice_id: '7', approved_by: 'Laura' } } };
+  expect(evaluateExpression(mapped.row!, { nodes: { 'Receive dev call': { body } } })).toEqual(body.input.row);
+
+  const connections = wf.connections as Record<string, MainConnections>;
+  expect(connections['Route by target']!.main[index]!.map((c) => c.node)).toEqual(['Load config for approve-invoice']);
+  expect(connections['Load config for approve-invoice']!.main[0]!.map((c) => c.node)).toEqual(['Call approve-invoice']);
+  expect(connections['Call approve-invoice']!.main[0]!.map((c) => c.node)).toEqual(['Respond with result']);
+  // The unknown-target fallback stays last.
+  const branches = connections['Route by target']!.main;
+  expect(branches[branches.length - 1]!.map((c) => c.node)).toEqual(['Respond unknown target']);
 });

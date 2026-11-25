@@ -522,6 +522,17 @@ svg[data-preset="editorial"] { --flow-halo-peak: 0.07; --flow-glow-peak: 0.28; -
   25.192% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
   40.307%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
+@keyframes archify-relay-comet-11 { 
+  0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  2.015% { opacity: var(--flow-peak, 0.9); }
+  14.875% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  17.562%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+}
+@keyframes archify-relay-wake-11 { 
+  0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  14.875% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  29.99%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+}
 @keyframes archify-relay-node-0 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
   0% { filter: var(--ambient-node-base-filter, none); }
@@ -646,6 +657,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <path data-edge-from="process-invoice" data-edge-to="n8n-store" data-edge-label="run data" data-edge-key="8" data-edge-id="to-executions" data-composition-points="475,271;422.5,271;422.5,499;370,499" d="M 475 271 L 422.5 271 L 422.5 499 L 370 499" class="a-default" data-animate="edge" style="--step: 8;" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="process-invoice" data-edge-to="error-handler" data-edge-label="on failure" data-edge-key="9" data-edge-id="to-handler" data-composition-points="530,300;530,584" d="M 530 300 L 530 584" class="a-default" data-animate="edge" style="--step: 9;" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="error-handler" data-edge-to="gmail-out" data-edge-label="alert email" data-edge-key="10" data-edge-id="to-alert" data-composition-points="585,613;852.5,613;852.5,394;905,394" d="M 585 613 L 852.5 613 L 852.5 394 L 905 394" class="a-default" data-animate="edge" style="--step: 10;" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sheets" data-edge-to="postgres" data-edge-label="approved fields" data-edge-key="11" data-edge-id="approvals" data-composition-points="800,499;810,499;810,271;800,271" d="M 800 499 L 810 499 L 810 271 L 800 271" class="a-default" data-animate="edge" style="--step: 11;" stroke-width="1.4" marker-end="url(#arrowhead)"/>
 
         <!-- Nodes -->
         <g id="node-gmail-in" data-node-id="gmail-in" data-node-label="Gmail" tabindex="0" role="button" aria-label="Focus Gmail, 01 / Sources" aria-pressed="false" data-node-kind="external" data-node-context="01 / Sources">
@@ -819,6 +831,10 @@ rect.c-bg-rect { fill: var(--bg); }
         <g data-edge-from="error-handler" data-edge-to="gmail-out" data-edge-label="alert email" data-edge-key="10" data-edge-id="to-alert">
           <rect x="819.55" y="482.5" width="65.9" height="16" rx="4" class="c-mask"/>
           <text x="852.5" y="493.5" class="t-edge-default" font-size="8" text-anchor="middle">alert email</text>
+        </g>
+        <g data-edge-from="sheets" data-edge-to="postgres" data-edge-label="approved fields" data-edge-key="11" data-edge-id="approvals">
+          <rect x="755.25" y="324" width="85.5" height="16" rx="4" class="c-mask"/>
+          <text x="798" y="335" class="t-edge-default" font-size="8" text-anchor="middle">approved fields</text>
         </g>
 
         <!-- Legend -->
