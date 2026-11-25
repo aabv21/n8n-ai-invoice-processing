@@ -7,7 +7,7 @@
     "quality_profile": "showcase",
     "viewBox": [
       1230,
-      640
+      780
     ]
   },
   "components": [
@@ -180,6 +180,48 @@
         120,
         64
       ]
+    },
+    {
+      "id": "ensure-folder",
+      "type": "backend",
+      "label": "ensure-folder",
+      "sublabel": "year and month folders",
+      "pos": [
+        452,
+        100
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "load-config",
+      "type": "backend",
+      "label": "load-config",
+      "sublabel": "reads config.json",
+      "pos": [
+        246,
+        680
+      ],
+      "size": [
+        120,
+        64
+      ]
+    },
+    {
+      "id": "approve-invoices",
+      "type": "backend",
+      "label": "approve-invoices",
+      "sublabel": "every 5 min · approve",
+      "pos": [
+        1070,
+        500
+      ],
+      "size": [
+        120,
+        64
+      ]
     }
   ],
   "connections": [
@@ -292,12 +334,94 @@
       "toSide": "bottom"
     },
     {
+      "id": "find-folder",
+      "from": "process-invoice",
+      "to": "ensure-folder",
+      "label": "month folder",
+      "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "folder-in-drive",
+      "from": "ensure-folder",
+      "to": "drive",
+      "label": "find or create",
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "cfg-intake",
+      "from": "intake-email",
+      "to": "load-config",
+      "label": "config",
+      "variant": "dashed",
+      "labelDy": 120
+    },
+    {
+      "id": "cfg-summary",
+      "from": "daily-summary",
+      "to": "load-config",
+      "label": "",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "variant": "dashed"
+    },
+    {
+      "id": "cfg-error",
+      "from": "error-handler",
+      "to": "load-config",
+      "label": "",
+      "fromSide": "bottom",
+      "toSide": "left",
+      "variant": "dashed"
+    },
+    {
+      "id": "cfg-dev",
+      "from": "dev-harness",
+      "to": "load-config",
+      "label": "",
+      "fromSide": "bottom",
+      "toSide": "right",
+      "variant": "dashed"
+    },
+    {
+      "id": "on-failure",
+      "from": "process-invoice",
+      "to": "error-handler",
+      "label": "on failure (9 workflows)",
+      "variant": "dashed"
+    },
+    {
       "id": "test-calls",
       "from": "dev-harness",
       "to": "process-invoice",
-      "label": "test calls",
+      "label": "test calls (7 targets)",
       "variant": "dashed",
       "fromSide": "top",
+      "toSide": "bottom"
+    },
+    {
+      "id": "read-rows",
+      "from": "sheets",
+      "to": "approve-invoices",
+      "label": "rows in review",
+      "fromSide": "right",
+      "toSide": "top"
+    },
+    {
+      "id": "approve-save",
+      "from": "approve-invoices",
+      "to": "postgres",
+      "label": "approve once",
+      "fromSide": "bottom",
+      "toSide": "bottom"
+    },
+    {
+      "id": "approve-label",
+      "from": "approve-invoices",
+      "to": "gmail",
+      "label": "relabel",
+      "fromSide": "left",
       "toSide": "bottom"
     }
   ],
@@ -317,7 +441,7 @@
       "items": [
         "Text path: Information Extractor with the Anthropic Chat Model",
         "PDF path: HTTP Request to the Messages API, structured output",
-        "A failed check retries once on Sonnet 5.5, on the same path"
+        "A review a second read can change retries once on Sonnet 5.5"
       ]
     },
     {

@@ -1,10 +1,15 @@
 // Prices as of 2026-10-30, from platform.claude.com/docs/en/about-claude/pricing (Model pricing
 // table). Haiku 5.5's higher tier applies per request, once that request's prompt passes 100,000
 // tokens.
-export const PRICES: Readonly<Record<string, { inputPerMTok: number; outputPerMTok: number; longPromptTokens?: number; longInputPerMTok?: number; longOutputPerMTok?: number }>> = {
+const PRICES: Readonly<Record<string, { inputPerMTok: number; outputPerMTok: number; longPromptTokens?: number; longInputPerMTok?: number; longOutputPerMTok?: number }>> = {
   'claude-haiku-5-5': { inputPerMTok: 0.1, outputPerMTok: 0.5, longPromptTokens: 100_000, longInputPerMTok: 0.5, longOutputPerMTok: 2.5 },
   'claude-sonnet-5-5': { inputPerMTok: 2, outputPerMTok: 10 },
 };
+
+/** True when the table prices the model. */
+export function hasPrice(model: string): boolean {
+  return Object.hasOwn(PRICES, model);
+}
 
 /** The cost of one model call, in USD. Throws for a model this table doesn't price. */
 export function costUsd(model: string, inputTokens: number, outputTokens: number): number {

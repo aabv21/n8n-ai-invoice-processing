@@ -6,3 +6,4 @@ config/*
 node_modules/
 .DS_Store
 docs/diagrams/*.delivery.json
+coverage/

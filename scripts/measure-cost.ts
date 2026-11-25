@@ -3,7 +3,7 @@
 // at the first execution older than --since, so it never scans the whole execution history.
 import { fileURLToPath } from 'node:url';
 import { loadDotEnv } from './lib/runtime.ts';
-import { costUsd } from './lib/pricing.ts';
+import { costUsd } from '../src/lib/pricing.ts';
 import { parseSince } from './lib/since.ts';
 
 const EXTRACT_INVOICE_WORKFLOW_ID = 'mgpExtractInv001';

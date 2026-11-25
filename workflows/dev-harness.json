@@ -183,6 +183,30 @@
                 ]
               },
               "renameOutput": true
+            },
+            {
+              "outputKey": "approve-invoice",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "40000000-0001-4000-8000-0000000a0107",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.body.target }}",
+                    "rightValue": "approve-invoice"
+                  }
+                ]
+              },
+              "renameOutput": true
             }
           ]
         },
@@ -220,12 +244,62 @@
       }
     },
     {
+      "id": "40000000-0000-4000-8000-000000000020",
+      "name": "Has PDF for extract-invoice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        400,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "40000000-0020-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ ($json.body.input.pdf_base64 ?? '') !== '' }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000021",
+      "name": "Convert PDF for extract-invoice",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        360
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "body.input.pdf_base64",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      }
+    },
+    {
       "id": "40000000-0000-4000-8000-000000000007",
       "name": "Call extract-invoice",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        400,
+        920,
         300
       ],
       "parameters": {
@@ -239,16 +313,17 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "event_id": "={{ $json.body.input.event_id }}",
-            "received_at": "={{ $json.body.input.received_at }}",
-            "path": "={{ $json.body.input.path }}",
-            "model": "={{ $json.body.input.model }}",
-            "effort": "={{ $json.body.input.effort }}",
-            "text": "={{ $json.body.input.text }}",
-            "binary_key": "={{ $json.body.input.binary_key }}",
-            "rules": "={{ $json.body.input.rules }}",
-            "today": "={{ $json.body.input.today }}",
-            "attempt": "={{ $json.body.input.attempt }}"
+            "event_id": "={{ $('Receive dev call').first().json.body.input.event_id }}",
+            "received_at": "={{ $('Receive dev call').first().json.body.input.received_at }}",
+            "path": "={{ $('Receive dev call').first().json.body.input.path }}",
+            "model": "={{ $('Receive dev call').first().json.body.input.model }}",
+            "effort": "={{ $('Receive dev call').first().json.body.input.effort }}",
+            "text": "={{ $('Receive dev call').first().json.body.input.text }}",
+            "binary_key": "={{ $('Receive dev call').first().json.body.input.binary_key ?? 'attachment_0' }}",
+            "rules": "={{ $('Receive dev call').first().json.body.input.rules }}",
+            "today": "={{ $('Receive dev call').first().json.body.input.today }}",
+            "attempt": "={{ $('Receive dev call').first().json.body.input.attempt }}",
+            "prior_cost_usd": "={{ $('Receive dev call').first().json.body.input.prior_cost_usd ?? 0 }}"
           },
           "schema": [
             {
@@ -340,6 +415,15 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "prior_cost_usd",
+              "displayName": "prior_cost_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
             }
           ],
           "matchingColumns": [],
@@ -394,7 +478,7 @@
       "parameters": {
         "width": 1200,
         "height": 160,
-        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input } runs a fixed sub-workflow and responds with its result; an unknown target answers 404. Localhost only (no tunnel in this demo); unpublish before any production use. Targets: load-config, extract-invoice, process-invoice, intake-email, summary-preview, and ensure-folder."
+        "content": "## Dev harness\nToken-protected test RPC; docs/architecture.md, Dev harness API, lists every target. Localhost only (no tunnel in this demo); unpublish before any production use."
       }
     },
     {
@@ -456,7 +540,7 @@
       "parameters": {
         "mode": "runOnceForAllItems",
         "language": "javaScript",
-        "jsCode": "// Why Code: validates the loaded config so a bad value fails loudly instead of silently disabling a check. Generated from src/nodes/check-config.ts by pnpm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/check-config.ts\n  var check_config_exports = {};\n  __export(check_config_exports, {\n    run: () => run\n  });\n\n  // src/lib/util.ts\n  function isPlainObject(value) {\n    return typeof value === \"object\" && value !== null && !Array.isArray(value);\n  }\n\n  // src/lib/config.ts\n  var CONFIG_PLACEHOLDER = \"REPLACE_ME\";\n  function rejectPlaceholders(value, path) {\n    if (typeof value === \"string\") {\n      if (value.trim() === CONFIG_PLACEHOLDER) {\n        throw new Error(`${path} is still the ${CONFIG_PLACEHOLDER} placeholder; fill it in config/config.json`);\n      }\n    } else if (Array.isArray(value)) {\n      value.forEach((entry, index) => {\n        rejectPlaceholders(entry, `${path}[${String(index)}]`);\n      });\n    } else if (isPlainObject(value)) {\n      for (const [key, entry] of Object.entries(value)) rejectPlaceholders(entry, `${path}.${key}`);\n    }\n  }\n  var LABEL_ID_KEYS = [\"processed\", \"review\", \"duplicate\"];\n  var GOOGLE_KEYS = [\"drive_root_folder_id\", \"spreadsheet_id\", \"invoices_tab\", \"items_tab\"];\n  var EXTRACTION_KEYS = [\"min_text_chars_per_page\", \"max_pages\", \"max_text_chars\"];\n  var EFFORT_VALUES = [\"low\", \"medium\", \"high\"];\n  var TEAM_LOCALE_VALUES = [\"en\", \"es\"];\n  function asObject(value, path) {\n    if (!isPlainObject(value)) throw new Error(`${path} must be an object`);\n    return value;\n  }\n  function requireFiniteAtLeast(path, value, min) {\n    if (typeof value !== \"number\" || !Number.isFinite(value) || value < min) {\n      throw new Error(`${path} must be a finite number >= ${String(min)}`);\n    }\n  }\n  function requireNumberInRange(path, value, min, max) {\n    if (typeof value !== \"number\" || !(value >= min && value <= max)) {\n      throw new Error(`${path} must be a number between ${String(min)} and ${String(max)}`);\n    }\n  }\n  function requireIntegerAtLeast(path, value, min) {\n    if (typeof value !== \"number\" || !Number.isInteger(value) || value < min) {\n      throw new Error(`${path} must be an integer >= ${String(min)}`);\n    }\n  }\n  function requireNonEmptyString(path, value) {\n    if (typeof value !== \"string\" || value === \"\") {\n      throw new Error(`${path} must be a non-empty string`);\n    }\n  }\n  function checkConfig(config) {\n    const root = asObject(config, \"config\");\n    rejectPlaceholders(root, \"config\");\n    const validation = asObject(root.validation, \"config.validation\");\n    requireFiniteAtLeast(\"config.validation.totals_tolerance\", validation.totals_tolerance, 0);\n    requireNumberInRange(\"config.validation.min_confidence\", validation.min_confidence, 0, 1);\n    const extraction = asObject(root.extraction, \"config.extraction\");\n    for (const key of EXTRACTION_KEYS) {\n      requireIntegerAtLeast(`config.extraction.${key}`, extraction[key], 1);\n    }\n    const ai = asObject(root.ai, \"config.ai\");\n    requireNonEmptyString(\"config.ai.default_model\", ai.default_model);\n    if (typeof ai.effort !== \"string\" || !EFFORT_VALUES.includes(ai.effort)) {\n      throw new Error(`config.ai.effort must be one of ${EFFORT_VALUES.join(\", \")}`);\n    }\n    if (ai.retry_model !== void 0 && typeof ai.retry_model !== \"string\") {\n      throw new Error(\"config.ai.retry_model must be a string ('' turns the retry off)\");\n    }\n    const gmail = asObject(root.gmail, \"config.gmail\");\n    const labelIds = asObject(gmail.label_ids, \"config.gmail.label_ids\");\n    for (const key of LABEL_ID_KEYS) {\n      requireNonEmptyString(`config.gmail.label_ids.${key}`, labelIds[key]);\n    }\n    const google = asObject(root.google, \"config.google\");\n    for (const key of GOOGLE_KEYS) {\n      requireNonEmptyString(`config.google.${key}`, google[key]);\n    }\n    requireNonEmptyString(\"config.team_email\", root.team_email);\n    if (root.team_locale === void 0) {\n      root.team_locale = \"en\";\n    } else if (typeof root.team_locale !== \"string\" || !TEAM_LOCALE_VALUES.includes(root.team_locale)) {\n      throw new Error(`config.team_locale must be one of ${TEAM_LOCALE_VALUES.join(\", \")}`);\n    }\n    return config;\n  }\n\n  // src/nodes/check-config.ts\n  function run(input) {\n    return { config: checkConfig(input.config) };\n  }\n  return __toCommonJS(check_config_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
+        "jsCode": "// Why Code: validates the loaded config so a bad value fails loudly instead of silently disabling a check. Generated from src/nodes/check-config.ts by pnpm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/check-config.ts\n  var check_config_exports = {};\n  __export(check_config_exports, {\n    run: () => run\n  });\n\n  // src/lib/util.ts\n  function isPlainObject(value) {\n    return typeof value === \"object\" && value !== null && !Array.isArray(value);\n  }\n\n  // src/lib/normalize-invoice.ts\n  var TAX_ID_LABEL_RE = (\n    // eslint-disable-next-line security/detect-unsafe-regex -- no nested/overlapping quantifier over the same class; a 10,000-char probe still resolves in under 1ms\n    /^\\s*(?:n\\.?\\s?i\\.?\\s?t|r\\.?\\s?u\\.?\\s?t|e\\.?\\s?i\\.?\\s?n|t\\.?\\s?i\\.?\\s?n|tax\\s*id|vat)(?![a-z])[\\s.:#]*(?:no(?![a-z])\\.?)?[\\s.:#]*/i\n  );\n  function normalizeTaxId(value) {\n    if (typeof value !== \"string\") return null;\n    const withoutLabel = value.replace(TAX_ID_LABEL_RE, \"\");\n    const kept = withoutLabel.toUpperCase().replace(/[^0-9A-Z]/g, \"\");\n    return /\\d/.test(kept) ? kept : null;\n  }\n\n  // src/lib/pricing.ts\n  var PRICES = {\n    \"claude-haiku-5-5\": { inputPerMTok: 0.1, outputPerMTok: 0.5, longPromptTokens: 1e5, longInputPerMTok: 0.5, longOutputPerMTok: 2.5 },\n    \"claude-sonnet-5-5\": { inputPerMTok: 2, outputPerMTok: 10 }\n  };\n  function hasPrice(model) {\n    return Object.hasOwn(PRICES, model);\n  }\n\n  // src/lib/config.ts\n  var CONFIG_PLACEHOLDER = \"REPLACE_ME\";\n  function rejectPlaceholders(value, path) {\n    if (typeof value === \"string\") {\n      if (value.trim() === CONFIG_PLACEHOLDER) {\n        throw new Error(`${path} is still the ${CONFIG_PLACEHOLDER} placeholder; fill it in config/config.json`);\n      }\n    } else if (Array.isArray(value)) {\n      value.forEach((entry, index) => {\n        rejectPlaceholders(entry, `${path}[${String(index)}]`);\n      });\n    } else if (isPlainObject(value)) {\n      for (const [key, entry] of Object.entries(value)) rejectPlaceholders(entry, `${path}.${key}`);\n    }\n  }\n  var LABEL_ID_KEYS = [\"processed\", \"review\", \"duplicate\"];\n  var GOOGLE_KEYS = [\"drive_root_folder_id\", \"spreadsheet_id\", \"invoices_tab\", \"items_tab\"];\n  var EXTRACTION_KEYS = [\"min_text_chars_per_page\", \"max_pages\", \"max_text_chars\"];\n  var EFFORT_VALUES = [\"low\", \"medium\", \"high\"];\n  var TEAM_LOCALE_VALUES = [\"en\", \"es\"];\n  function asObject(value, path) {\n    if (!isPlainObject(value)) throw new Error(`${path} must be an object`);\n    return value;\n  }\n  function requireFiniteAtLeast(path, value, min) {\n    if (typeof value !== \"number\" || !Number.isFinite(value) || value < min) {\n      throw new Error(`${path} must be a finite number >= ${String(min)}`);\n    }\n  }\n  function requireNumberInRange(path, value, min, max) {\n    if (typeof value !== \"number\" || !(value >= min && value <= max)) {\n      throw new Error(`${path} must be a number between ${String(min)} and ${String(max)}`);\n    }\n  }\n  function requireIntegerAtLeast(path, value, min) {\n    if (typeof value !== \"number\" || !Number.isInteger(value) || value < min) {\n      throw new Error(`${path} must be an integer >= ${String(min)}`);\n    }\n  }\n  function requireNonEmptyString(path, value) {\n    if (typeof value !== \"string\" || value === \"\") {\n      throw new Error(`${path} must be a non-empty string`);\n    }\n  }\n  function checkConfig(config) {\n    const root = asObject(config, \"config\");\n    rejectPlaceholders(root, \"config\");\n    const validation = asObject(root.validation, \"config.validation\");\n    requireFiniteAtLeast(\"config.validation.totals_tolerance\", validation.totals_tolerance, 0);\n    requireNumberInRange(\"config.validation.min_confidence\", validation.min_confidence, 0, 1);\n    if (typeof validation.buyer_tax_id !== \"string\" || normalizeTaxId(validation.buyer_tax_id) === null) {\n      throw new Error(\"config.validation.buyer_tax_id must be the buyer's tax ID, such as 901.555.210-1\");\n    }\n    const extraction = asObject(root.extraction, \"config.extraction\");\n    for (const key of EXTRACTION_KEYS) {\n      requireIntegerAtLeast(`config.extraction.${key}`, extraction[key], 1);\n    }\n    const ai = asObject(root.ai, \"config.ai\");\n    requireNonEmptyString(\"config.ai.default_model\", ai.default_model);\n    if (typeof ai.effort !== \"string\" || !EFFORT_VALUES.includes(ai.effort)) {\n      throw new Error(`config.ai.effort must be one of ${EFFORT_VALUES.join(\", \")}`);\n    }\n    if (ai.retry_model !== void 0 && typeof ai.retry_model !== \"string\") {\n      throw new Error(\"config.ai.retry_model must be a string ('' turns the retry off)\");\n    }\n    if (ai.retry_effort !== void 0 && (typeof ai.retry_effort !== \"string\" || !EFFORT_VALUES.includes(ai.retry_effort))) {\n      throw new Error(`config.ai.retry_effort must be one of ${EFFORT_VALUES.join(\", \")}`);\n    }\n    requireFiniteAtLeast(\"config.ai.daily_budget_usd\", ai.daily_budget_usd, 0);\n    for (const key of [\"default_model\", \"retry_model\"]) {\n      const model = ai[key];\n      if (typeof model === \"string\" && model !== \"\" && !hasPrice(model)) {\n        throw new Error(`config.ai.${key} (${model}) has no price in src/lib/pricing.ts; add its rates there to keep the AI budget`);\n      }\n    }\n    const gmail = asObject(root.gmail, \"config.gmail\");\n    const labelIds = asObject(gmail.label_ids, \"config.gmail.label_ids\");\n    for (const key of LABEL_ID_KEYS) {\n      requireNonEmptyString(`config.gmail.label_ids.${key}`, labelIds[key]);\n    }\n    const google = asObject(root.google, \"config.google\");\n    for (const key of GOOGLE_KEYS) {\n      requireNonEmptyString(`config.google.${key}`, google[key]);\n    }\n    requireNonEmptyString(\"config.team_email\", root.team_email);\n    if (root.team_locale !== void 0 && (typeof root.team_locale !== \"string\" || !TEAM_LOCALE_VALUES.includes(root.team_locale))) {\n      throw new Error(`config.team_locale must be one of ${TEAM_LOCALE_VALUES.join(\", \")}`);\n    }\n    return { ...root, team_locale: root.team_locale ?? \"en\", ai: { ...ai, retry_effort: ai.retry_effort ?? \"medium\" } };\n  }\n\n  // src/nodes/check-config.ts\n  function run(input) {\n    return { config: checkConfig(input.config) };\n  }\n  return __toCommonJS(check_config_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
       }
     },
     {
@@ -501,7 +585,8 @@
             "message_id": "={{ $('Receive dev call').first().json.body.input.message_id }}",
             "binary_key": "attachment_0",
             "file_name": "={{ $('Receive dev call').first().json.body.input.file_name }}",
-            "received_at": "={{ $('Receive dev call').first().json.body.input.received_at }}"
+            "received_at": "={{ $('Receive dev call').first().json.body.input.received_at }}",
+            "ai_spent_usd": "={{ $('Receive dev call').first().json.body.input.ai_spent_usd ?? 0 }}"
           },
           "schema": [
             {
@@ -556,6 +641,15 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_spent_usd",
+              "displayName": "ai_spent_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
               "canBeUsedToMatch": true
             }
           ],
@@ -742,6 +836,89 @@
           "waitForSubWorkflow": true
         }
       }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000018",
+      "name": "Load config for approve-invoice",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        1340
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpLoadConfig001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "schema": [],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000019",
+      "name": "Call approve-invoice",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        1340
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpApproveOne001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "config": "={{ $json.config }}",
+            "row": "={{ $('Receive dev call').first().json.body.input.row }}"
+          },
+          "schema": [
+            {
+              "id": "config",
+              "displayName": "config",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row",
+              "displayName": "row",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
     }
   ],
   "connections": {
@@ -767,7 +944,7 @@
         ],
         [
           {
-            "node": "Call extract-invoice",
+            "node": "Has PDF for extract-invoice?",
             "type": "main",
             "index": 0
           }
@@ -801,6 +978,13 @@
         [
           {
             "node": "Call ensure-folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load config for approve-invoice",
             "type": "main",
             "index": 0
           }
@@ -940,6 +1124,57 @@
         [
           {
             "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load config for approve-invoice": {
+      "main": [
+        [
+          {
+            "node": "Call approve-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call approve-invoice": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has PDF for extract-invoice?": {
+      "main": [
+        [
+          {
+            "node": "Convert PDF for extract-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call extract-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert PDF for extract-invoice": {
+      "main": [
+        [
+          {
+            "node": "Call extract-invoice",
             "type": "main",
             "index": 0
           }

@@ -3,11 +3,11 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 import { buildWorkflows, hardenAgainstFrozenDefineProperty, wrapBundle } from '../scripts/build-workflows.ts';
-import { checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows.ts';
+import { checkNode, checkSettings, checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows.ts';
 import { normalizeWorkflow } from '../scripts/export-workflows.ts';
-import { missingTriggerCredentials } from '../scripts/import-workflows.ts';
-import { listJsonFiles, readWorkflow, type Workflow, type WorkflowNode } from '../scripts/lib/workflow.ts';
-import { CONFIG_LOADER_ID, CREDENTIALS } from '../scripts/manifest.ts';
+import { missingPublishCredentials, missingTriggerCredentials } from '../scripts/import-workflows.ts';
+import { listJsonFiles, readWorkflow, writeWorkflow, type Workflow, type WorkflowNode } from '../scripts/lib/workflow.ts';
+import { CONFIG_LOADER_ID, CREDENTIALS, WORKFLOWS } from '../scripts/manifest.ts';
 import { buildCredentials, buildImportCall, EXPORT_SCRIPT, existingCredentialIds, IMPORT_SCRIPT, skipExisting } from '../scripts/setup-credentials.ts';
 import { runGenerated } from './helpers/run-generated.ts';
 
@@ -43,12 +43,31 @@ const built = async (): Promise<string> => {
   return String(readWorkflow(join(dir, 'clean.json')).nodes.find((n) => n.name === 'Double value')?.parameters.jsCode);
 };
 
+test('checkSettings reports a missing errorWorkflow', () => {
+  const clean = fx('clean');
+  const wf = { ...clean, settings: { ...clean.settings, errorWorkflow: undefined } };
+  expect(checkSettings(wf)).toEqual(['settings.errorWorkflow must be mgpErrorHandler1']);
+});
+test('checkNode reports a Postgres query built from an expression', () => {
+  const node: WorkflowNode = {
+    name: 'Read rows',
+    type: 'n8n-nodes-base.postgres',
+    retryOnFail: true,
+    parameters: { operation: 'executeQuery', query: 'SELECT {{ $json.id }}' },
+  } as unknown as WorkflowNode;
+  expect(checkNode(node, opts)).toEqual(['query in node Read rows must use $n parameters, not expressions']);
+});
 test('clean workflow passes', () => expect(checkWorkflow(fx('clean'), opts)).toEqual([]));
 test('pinned data is rejected', () => expect(errors(fx('pinned'))).toMatch(/pinData present/));
 test('literal email, phone, long id and secret are rejected', () => {
   for (const m of [/literal email/, /literal phone/, /literal long id/, /secret-like value/]) expect(errors(fx('leaky'))).toMatch(m);
 });
 test('unknown credential is rejected', () => expect(errors(fx('bad-credential'))).toMatch(/credential nope not in manifest/));
+test('check flags a Code node without a Why Code note', () => {
+  const clean = fx('clean');
+  const wf = { ...clean, nodes: clean.nodes.map((n) => (n.name === 'Double value' ? { ...n, notes: undefined } : n)) };
+  expect(checkWorkflow(wf, opts)).toEqual(['code node Double value must have a notes field starting with Why Code:']);
+});
 test('code node needs a Why Code line', () => expect(errors(fx('no-why'))).toMatch(/must start with \/\/ Why Code:/));
 test('hand-written code node is rejected', () =>
   expect(checkWorkflow(fx('clean'), { ...opts, generatedNodes: new Set() }).join('\n'))
@@ -146,6 +165,17 @@ test('only trigger credentials hold back publishing', () => {
   expect(missingTriggerCredentials(trigger, new Set())).toEqual(['mgpCredGmail0001']);
   expect(missingTriggerCredentials(mailer, new Set())).toEqual([]);
 });
+test('a workflow can name more credentials to wait for than its trigger uses', () => {
+  const schedule = fx('clean');
+  expect(missingPublishCredentials({ id: 'x', name: 'X', file: 'clean.json' }, schedule, new Set())).toEqual([]);
+  const held = { id: 'x', name: 'X', file: 'clean.json', holdUntil: ['mgpCredGSheets01'] };
+  expect(missingPublishCredentials(held, schedule, new Set())).toEqual(['mgpCredGSheets01']);
+  expect(missingPublishCredentials(held, schedule, new Set(['mgpCredGSheets01']))).toEqual([]);
+});
+test('approve-invoices waits for the Sheets credential, since its schedule trigger needs none and every run would fail without it', () => {
+  expect(WORKFLOWS.filter((w) => w.holdUntil !== undefined).map((w) => [w.file, w.holdUntil])).toEqual([['approve-invoices.json', ['mgpCredGSheets01']]]);
+  expect(CREDENTIALS.map((c) => c.id)).toContain('mgpCredGSheets01');
+});
 test('a missing directory lists no files', () => expect(listJsonFiles('tests/fixtures/does-not-exist')).toEqual([]));
 test('generated code runs like a Code node', async () =>
   expect(runGenerated(await built(), { n: 2 })).toEqual([{ json: { n: 4 } }]));
@@ -156,6 +186,15 @@ test('generated code still exports run when Object.defineProperty is frozen, lik
 });
 test('hardenAgainstFrozenDefineProperty rejects a bundle without the expected esbuild helper', () =>
   expect(() => hardenAgainstFrozenDefineProperty('var x = 1;')).toThrow(/esbuild output didn't contain/));
+test("the build writes each Code node's note from its manifest reason", async () => {
+  const dir = tempCopy();
+  const before = nodeIn(dir, 'Double value');
+  before.notes = 'stale';
+  writeWorkflow(join(dir, 'clean.json'), { ...readWorkflow(join(dir, 'clean.json')), nodes: readWorkflow(join(dir, 'clean.json')).nodes.map((n) => (n.name === 'Double value' ? before : n)) });
+  expect((await buildWorkflows({ dir, entries: [entry], write: false })).stale).toEqual(['clean.json › Double value']);
+  await buildWorkflows({ dir, entries: [entry], write: true });
+  expect(nodeIn(dir, 'Double value').notes).toBe('Why Code: fixture');
+});
 test('generated code carries the header and footer', async () => {
   const lines = (await built()).trimEnd().split('\n');
   expect(lines[0]).toBe('// Why Code: fixture. Generated from tests/fixtures/nodes/double-value.ts by pnpm run build:workflows; edit the source.');

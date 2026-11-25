@@ -1,5 +1,7 @@
 // Validates the config just loaded from /files/config/config.json: a bad value fails loudly here,
 // before any node downstream reads it or an AI call runs. Pure: no I/O, no clock.
+import { normalizeTaxId } from './normalize-invoice.ts';
+import { hasPrice } from './pricing.ts';
 import { isPlainObject } from './util.ts';
 
 export interface Config {
@@ -23,6 +25,10 @@ export interface Config {
     default_model: string;
     retry_model?: string;
     effort: 'low' | 'medium' | 'high';
+    /** The effort of the one retry; missing means 'medium'. */
+    retry_effort: 'low' | 'medium' | 'high';
+    /** The most the saved invoices' estimated AI cost may reach in one Bogota day before new invoices skip the AI. */
+    daily_budget_usd: number;
   };
   extraction: {
     min_text_chars_per_page: number;
@@ -32,11 +38,13 @@ export interface Config {
   validation: {
     totals_tolerance: number;
     min_confidence: number;
+    /** The buyer's own tax ID: an invoice whose supplier carries it goes to review. */
+    buyer_tax_id: string;
   };
 }
 
 /** The value `config/config.example.json` ships in every key an operator must fill in. */
-export const CONFIG_PLACEHOLDER = 'REPLACE_ME';
+const CONFIG_PLACEHOLDER = 'REPLACE_ME';
 
 /** Throws on the first string, depth-first in key order, that is still the example's placeholder. */
 function rejectPlaceholders(value: unknown, path: string): void {
@@ -101,6 +109,10 @@ export function checkConfig(config: unknown): Config {
   requireFiniteAtLeast('config.validation.totals_tolerance', validation.totals_tolerance, 0);
   requireNumberInRange('config.validation.min_confidence', validation.min_confidence, 0, 1);
 
+  if (typeof validation.buyer_tax_id !== 'string' || normalizeTaxId(validation.buyer_tax_id) === null) {
+    throw new Error("config.validation.buyer_tax_id must be the buyer's tax ID, such as 901.555.210-1");
+  }
+
   const extraction = asObject(root.extraction, 'config.extraction');
   for (const key of EXTRACTION_KEYS) {
     // eslint-disable-next-line security/detect-object-injection -- key is one of this module's own fixed keys, not user input
@@ -114,6 +126,21 @@ export function checkConfig(config: unknown): Config {
   }
   if (ai.retry_model !== undefined && typeof ai.retry_model !== 'string') {
     throw new Error("config.ai.retry_model must be a string ('' turns the retry off)");
+  }
+
+  // Missing means 'medium'; the defaults are applied to the returned copy, never the caller's object.
+  if (ai.retry_effort !== undefined && (typeof ai.retry_effort !== 'string' || !EFFORT_VALUES.includes(ai.retry_effort as (typeof EFFORT_VALUES)[number]))) {
+    throw new Error(`config.ai.retry_effort must be one of ${EFFORT_VALUES.join(', ')}`);
+  }
+
+  requireFiniteAtLeast('config.ai.daily_budget_usd', ai.daily_budget_usd, 0);
+  // A model with no price would make the budget silently blind to it.
+  for (const key of ['default_model', 'retry_model'] as const) {
+    // eslint-disable-next-line security/detect-object-injection -- key is one of this module's own fixed keys, not user input
+    const model = ai[key];
+    if (typeof model === 'string' && model !== '' && !hasPrice(model)) {
+      throw new Error(`config.ai.${key} (${model}) has no price in src/lib/pricing.ts; add its rates there to keep the AI budget`);
+    }
   }
 
   const gmail = asObject(root.gmail, 'config.gmail');
@@ -133,11 +160,9 @@ export function checkConfig(config: unknown): Config {
 
   // Missing means 'en'. team_locale is operator-set config, not inbound traffic, so there's no
   // other spelling to normalize.
-  if (root.team_locale === undefined) {
-    root.team_locale = 'en';
-  } else if (typeof root.team_locale !== 'string' || !TEAM_LOCALE_VALUES.includes(root.team_locale as (typeof TEAM_LOCALE_VALUES)[number])) {
+  if (root.team_locale !== undefined && (typeof root.team_locale !== 'string' || !TEAM_LOCALE_VALUES.includes(root.team_locale as (typeof TEAM_LOCALE_VALUES)[number]))) {
     throw new Error(`config.team_locale must be one of ${TEAM_LOCALE_VALUES.join(', ')}`);
   }
 
-  return config as Config;
+  return { ...root, team_locale: root.team_locale ?? 'en', ai: { ...ai, retry_effort: ai.retry_effort ?? 'medium' } } as Config;
 }

@@ -23,6 +23,24 @@ test.each(workflowFiles)('%s gives every node its own id', (file) => {
   expect(new Set(ids).size).toBe(ids.length);
 });
 
+// A sticky note drawn over a node hides it on the canvas. A node's position is its top-left corner,
+// so a node sitting exactly on a sticky's edge is not under it.
+test.each(workflowFiles)('%s has no sticky note covering a node', (file) => {
+  const { nodes } = readWorkflow(file);
+  const stickies = nodes.filter((n) => n.type === 'n8n-nodes-base.stickyNote');
+  const covered: string[] = [];
+  for (const sticky of stickies) {
+    const [sx, sy] = sticky.position as [number, number];
+    const { width, height } = sticky.parameters as { width: number; height: number };
+    for (const node of nodes) {
+      if (node.type === 'n8n-nodes-base.stickyNote') continue;
+      const [x, y] = node.position as [number, number];
+      if (x > sx && x < sx + width && y > sy && y < sy + height) covered.push(`${node.name} under ${sticky.name}`);
+    }
+  }
+  expect(covered).toEqual([]);
+});
+
 test('load-config reads the mounted config once', () => {
   const wf = workflowFile('load-config.json');
   // alwaysOutputData is pinned here too: a missing config file must still reach "Parse config" as

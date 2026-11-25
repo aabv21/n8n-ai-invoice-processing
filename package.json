@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit",
     "lint": "eslint .",
     "test": "vitest run",
+    "test:coverage": "vitest run --coverage",
     "test:db": "vitest run --config vitest.db.config.ts",
     "samples": "node scripts/generate-samples.ts",
     "adversarial": "node scripts/generate-adversarial-samples.ts",
@@ -20,16 +21,18 @@
     "setup": "node scripts/db-migrate.ts && node scripts/setup-credentials.ts && node scripts/import-workflows.ts",
     "export": "node scripts/export-workflows.ts",
     "scenarios": "node scripts/check-scenarios.ts",
-    "cost": "node scripts/measure-cost.ts"
+    "cost": "node scripts/measure-cost.ts",
+    "eval": "node scripts/run-eval.ts"
   },
   "devDependencies": {
     "@eslint/js": "^10.0.1",
-    "@napi-rs/canvas": "^1.1.0",
+    "@napi-rs/canvas": "^1.1.1",
     "@types/luxon": "^3.7.6",
     "@types/node": "^24.19.2",
     "@types/pg": "^8.23.1",
+    "@vitest/coverage-v8": "5.1.0",
     "esbuild": "0.28.2",
-    "eslint": "^10.14.0",
+    "eslint": "^10.15.0",
     "eslint-plugin-security": "^4.2.0",
     "jiti": "^2.7.0",
     "luxon": "^3.7.2",
@@ -37,7 +40,7 @@
     "pdfjs-dist": "^6.5.438",
     "pg": "^8.23.1",
     "typescript": "~6.0.3",
-    "typescript-eslint": "^8.72.1",
+    "typescript-eslint": "^8.73.0",
     "vitest": "^5.1.0"
   }
 }

@@ -4,6 +4,8 @@ export interface WorkflowEntry {
   file: string;
   /** This workflow's live webhook path, when its trigger is a plain webhook — used to confirm a publish actually took effect. */
   webhookPath?: string;
+  /** Credential IDs `pnpm run setup` waits for before publishing, beyond those its trigger node names: a schedule trigger has none, yet every run would fail without them. */
+  holdUntil?: readonly string[];
 }
 
 export interface CredentialEntry {
@@ -49,6 +51,8 @@ export const WORKFLOWS: readonly WorkflowEntry[] = [
   { id: 'mgpGmailEntry001', name: 'Gmail entry', file: 'gmail-entry.json' },
   { id: 'mgpIntakeEmail01', name: 'Intake email', file: 'intake-email.json' },
   { id: 'mgpDailySummary1', name: 'Daily summary', file: 'daily-summary.json' },
+  { id: 'mgpApproveOne001', name: 'Approve invoice', file: 'approve-invoice.json' },
+  { id: 'mgpApproveInvs01', name: 'Approve invoices', file: 'approve-invoices.json', holdUntil: ['mgpCredGSheets01'] },
 ];
 
 export const CREDENTIALS: readonly CredentialEntry[] = [
@@ -132,6 +136,24 @@ export const CODE_NODES: readonly CodeNodeEntry[] = [
     why: 'validates the loaded config so a bad value fails loudly instead of silently disabling a check',
   },
   {
+    file: 'approve-invoices.json',
+    node: 'Check config',
+    source: 'src/nodes/check-config.ts',
+    why: 'validates the loaded config so a bad value fails loudly instead of silently disabling a check',
+  },
+  {
+    file: 'approve-invoice.json',
+    node: 'Check approval',
+    source: 'src/nodes/check-approval.ts',
+    why: "normalizes a reviewer's corrected Sheets row and decides, with one tested rule set, whether it can be approved",
+  },
+  {
+    file: 'approve-invoice.json',
+    node: 'Render approval note',
+    source: 'src/nodes/approval-note.ts',
+    why: 'picks the team_locale message table for a refused approval',
+  },
+  {
     file: 'dev-harness.json',
     node: 'Check config for process-invoice',
     source: 'src/nodes/check-config.ts',
@@ -168,8 +190,10 @@ export const TEXT_PARAMS: readonly TextParamEntry[] = [
   { file: 'process-invoice.json', node: 'Record duplicate', parameter: 'query', source: 'db/queries/record-outcome.sql' },
   { file: 'process-invoice.json', node: 'Save Drive link', parameter: 'query', source: 'db/queries/save-drive-link.sql' },
   { file: 'process-invoice.json', node: 'Record outcome', parameter: 'query', source: 'db/queries/record-outcome.sql' },
+  { file: 'process-invoice.json', node: 'Record AI cost', parameter: 'query', source: 'db/queries/record-cost.sql' },
   { file: 'intake-email.json', node: 'Record event', parameter: 'query', source: 'db/queries/record-event.sql' },
   { file: 'daily-summary.json', node: 'Query summary', parameter: 'query', source: 'db/queries/daily-summary.sql' },
+  { file: 'approve-invoice.json', node: 'Save approval', parameter: 'query', source: 'db/queries/approve-invoice.sql' },
 ];
 
 export const BUILD_ENTRIES: readonly BuildEntry[] = [...CODE_NODES, ...TEXT_PARAMS];

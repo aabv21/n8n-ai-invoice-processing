@@ -6,12 +6,12 @@ import { callDev } from './lib/dev-client.ts';
  * takes the empty-day branch. 23:30 UTC is 18:30 in Bogota (UTC-5, no DST): the same calendar date.
  */
 const FIXED_RUN_AT = '2026-06-15T23:30:00Z';
-const EXPECTED_REPORT_DATE = '2026-06-15';
-const EXPECTED_SUBJECT = `Magdaport invoices ${EXPECTED_REPORT_DATE}: 0 arrived, 0 to review`;
+const EXPECTED_LONG_DATE = 'June 15, 2026';
+const EXPECTED_SUBJECT = `Magdaport invoices, ${EXPECTED_LONG_DATE}: 0 arrived, 0 to review`;
 
 /**
  * True only when `result` is exactly `{ subject, html }` with the expected subject, and the HTML
- * holds what only the generated `Render summary` node emits: the report-date heading, the empty-day
+ * holds what only the generated `Render summary` node emits: the title, the long report date, the empty-day
  * line, and all three section headings. Both embed `report_date`, which `daily-summary.sql` derives
  * from `run_at`, so this pins the Code node and the Postgres path without hard-coding the whole
  * HTML and its incidental whitespace.
@@ -24,11 +24,13 @@ export function isSummaryPreview(result: unknown): result is { subject: string; 
   if (r.subject !== EXPECTED_SUBJECT) return false;
   if (typeof r.html !== 'string') return false;
   return (
-    r.html.includes(`<h1>Magdaport invoices: ${EXPECTED_REPORT_DATE}</h1>`) &&
-    r.html.includes('<p>No invoices arrived in the last 24 hours.</p>') &&
-    r.html.includes('<h2>Totals by supplier</h2>') &&
-    r.html.includes('<h2>Review items</h2>') &&
-    r.html.includes('<h2>Due in the next 7 days</h2>')
+    r.html.startsWith('<div lang="en" style="') &&
+    r.html.includes('<h1 style="font-size:20px;margin:0 0 4px;">Magdaport invoices</h1>') &&
+    r.html.includes(EXPECTED_LONG_DATE) &&
+    r.html.includes('No invoices arrived in the last 24 hours.') &&
+    r.html.includes('>Invoices to review</h2>') &&
+    r.html.includes('>Totals by supplier</h2>') &&
+    r.html.includes('>Due in the next 7 days</h2>')
   );
 }
 

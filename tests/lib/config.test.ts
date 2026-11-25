@@ -64,6 +64,14 @@ test.each([
   config.validation.min_confidence = bad as unknown as number;
   expect(() => checkConfig(config)).toThrow('config.validation.min_confidence');
 });
+test("rejects a missing or digit-free validation.buyer_tax_id", () => {
+  const missing = clone();
+  delete (missing.validation as Partial<Config['validation']>).buyer_tax_id;
+  expect(() => checkConfig(missing)).toThrow("config.validation.buyer_tax_id must be the buyer's tax ID");
+  const bad = clone();
+  bad.validation.buyer_tax_id = 'n/a';
+  expect(() => checkConfig(bad)).toThrow("config.validation.buyer_tax_id must be the buyer's tax ID");
+});
 test.each([0, 1])('accepts validation.min_confidence at the boundary %d', (value) => {
   const config = clone();
   config.validation.min_confidence = value;
@@ -127,6 +135,15 @@ test('an empty ai.retry_model means no retry, and passes', () => {
   config.ai.retry_model = '';
   expect(() => checkConfig(config)).not.toThrow();
 });
+test('defaults ai.retry_effort to medium', () => {
+  const config = clone();
+  delete (config.ai as Partial<Config['ai']>).retry_effort;
+  expect(checkConfig(config).ai.retry_effort).toBe('medium');
+});
+test('rejects an unknown ai.retry_effort', () => {
+  const bad: unknown = { ...clone(), ai: { ...clone().ai, retry_effort: 'max' } };
+  expect(() => checkConfig(bad)).toThrow('config.ai.retry_effort must be one of low, medium, high');
+});
 test('a missing ai.retry_model passes too', () => {
   const config = clone();
   delete config.ai.retry_model;
@@ -163,4 +180,34 @@ test('a missing team_locale defaults to en, so an existing config without it sti
   const config = clone() as unknown as { team_locale?: string };
   delete config.team_locale;
   expect(checkConfig(config).team_locale).toBe('en');
+});
+test("checkConfig leaves the caller's object unchanged", () => {
+  const input = clone() as unknown as Record<string, unknown>;
+  delete input.team_locale;
+  delete (input.ai as Record<string, unknown>).retry_effort;
+  const result = checkConfig(input);
+  expect(input).not.toHaveProperty('team_locale');
+  expect(input.ai).not.toHaveProperty('retry_effort');
+  expect(result.team_locale).toBe('en');
+  expect(result.ai.retry_effort).toBe('medium');
+});
+
+test('rejects a negative or missing ai.daily_budget_usd', () => {
+  const message = 'config.ai.daily_budget_usd must be a finite number >= 0';
+  expect(() => checkConfig({ ...clone(), ai: { ...clone().ai, daily_budget_usd: -1 } })).toThrow(message);
+  const missing = clone();
+  delete (missing.ai as Partial<Config['ai']>).daily_budget_usd;
+  expect(() => checkConfig(missing)).toThrow(message);
+});
+test('accepts a zero ai.daily_budget_usd, which skips every AI call', () => {
+  expect(checkConfig({ ...clone(), ai: { ...clone().ai, daily_budget_usd: 0 } }).ai.daily_budget_usd).toBe(0);
+});
+test('rejects a model with no price', () => {
+  expect(() => checkConfig({ ...clone(), ai: { ...clone().ai, default_model: 'claude-unknown' } }))
+    .toThrow('config.ai.default_model (claude-unknown) has no price in src/lib/pricing.ts; add its rates there to keep the AI budget');
+  expect(() => checkConfig({ ...clone(), ai: { ...clone().ai, retry_model: 'claude-unknown' } }))
+    .toThrow('config.ai.retry_model (claude-unknown) has no price in src/lib/pricing.ts; add its rates there to keep the AI budget');
+});
+test('accepts an empty retry_model without a price', () => {
+  expect(checkConfig({ ...clone(), ai: { ...clone().ai, retry_model: '' } }).ai.retry_model).toBe('');
 });

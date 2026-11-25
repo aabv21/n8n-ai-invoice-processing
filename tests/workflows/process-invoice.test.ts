@@ -31,7 +31,7 @@ test('Sheets rows are written by key, not appended blindly', () => {
 test('item rows run before the outcome is recorded', () =>
   expect((nodeOf(wf, 'Split items').position as number[])[1]).toBeLessThan((nodeOf(wf, 'Append invoice row').position as number[])[1] ?? 0));
 test('every path converges on Prepare record', () => expect(sourcesOf(wf, 'Prepare record', 0).sort()).toEqual([
-  'Needs retry?', 'Retry with stronger model', 'Skip: too many pages', 'Skip: unreadable PDF']));
+  'Needs retry?', 'Retry with stronger model', 'Skip: over AI budget', 'Skip: too many pages', 'Skip: unreadable PDF']));
 
 // Regression-prone wiring that a careless edit could silently invert or that a UI save could
 // quietly reset to its default.
@@ -57,7 +57,8 @@ test('the duplicate, retry, and page-count decisions route true/false to the doc
     'Is duplicate?': ['Look up the original', 'Ensure year folder'],
     'Is duplicate conflicting?': ['Label as review (conflicting duplicate)', 'Label as duplicate'],
     'Needs retry?': ['Attach PDF for retry', 'Prepare record'],
-    'Too many pages?': ['Skip: too many pages', 'Extract with default model'],
+    'Too many pages?': ['Skip: too many pages', 'Over AI budget?'],
+    'Over AI budget?': ['Skip: over AI budget', 'Extract with default model'],
   };
   for (const [node, [first, second]] of Object.entries(expected)) {
     const branches = connections[node]!.main;
@@ -147,6 +148,109 @@ test('the skip reason names which limit was exceeded', () => {
     .assignments.find((a) => a.name === 'skip_reason')?.value;
   expect(skipReason).toContain('too_many_pages');
   expect(skipReason).toContain('too_much_text');
+});
+test('Save invoice binds the record\'s cost as the thirteenth value', () => {
+  const queryReplacement = (nodeOf(wf, 'Save invoice').parameters.options as { queryReplacement: string }).queryReplacement;
+  const values = evaluateSegments(queryReplacement, {
+    json: { event_id: 'm1:attachment_0', received_at: 't', status: 'ok', reasons: [], path: 'text', model: 'm', attempt: 1, invoice: {}, raw: {}, file: { name: 'f', folder: 'g' }, cost_usd: 0.0125 },
+    nodes: { 'When called': { message_id: 'm1' } },
+  });
+  expect(values).toHaveLength(13);
+  expect(values[12]).toBe(0.0125);
+});
+const leftOf = (node: string) => (nodeOf(wf, node).parameters.conditions as { conditions: { leftValue: string }[] }).conditions[0]!.leftValue;
+const calledWith = (ai_spent_usd: number, daily_budget_usd = 2) =>
+  ({ 'When called': { ai_spent_usd, config: { ai: { daily_budget_usd, retry_model: 'claude-sonnet-5-5' } } } });
+
+describe('Over AI budget?', () => {
+  const over = (spent: number, budget = 2) => evaluateExpression(leftOf('Over AI budget?'), { nodes: calledWith(spent, budget) });
+  test('Over AI budget? is true at or past daily_budget_usd', () => {
+    expect(over(2)).toBe(true);
+    expect(over(1.99)).toBe(false);
+    expect(over(3)).toBe(true);
+    expect(over(0, 0)).toBe(true);
+  });
+  // Fail closed: a missing or non-numeric spend, as on a retried run that lost it, never opens the gate.
+  test('Over AI budget? is true when the spend is missing or not a number', () => {
+    const missing = { 'When called': { config: { ai: { daily_budget_usd: 2 } } } };
+    const withSpend = (ai_spent_usd: unknown) => ({ 'When called': { ai_spent_usd, config: { ai: { daily_budget_usd: 2 } } } });
+    for (const nodes of [missing, withSpend(null), withSpend(undefined), withSpend('1'), withSpend(Number.NaN)]) {
+      expect(evaluateExpression(leftOf('Over AI budget?'), { nodes })).toBe(true);
+    }
+    expect(evaluateExpression(leftOf('Over AI budget?'), { nodes: withSpend(0) })).toBe(false);
+  });
+  test('an over-budget invoice skips extraction into Prepare record', () => {
+    const connections = wf.connections as Record<string, MainConnections>;
+    expect(connections['Over AI budget?']!.main[0]!.map((c) => c.node)).toEqual(['Skip: over AI budget']);
+    expect(connections['Skip: over AI budget']!.main[0]!.map((c) => c.node)).toEqual(['Prepare record']);
+    const assignments = (nodeOf(wf, 'Skip: over AI budget').parameters.assignments as { assignments: { name: string; value: string }[] }).assignments;
+    expect(assignments.find((a) => a.name === 'skip_reason')?.value).toBe('ai_budget_exceeded');
+    expect(assignments.map((a) => a.name).sort()).toEqual(['event_id', 'received_at', 'skip_reason']);
+  });
+  // A bulk resend after the day's budget is spent: every attachment reads the same exhausted spend,
+  // so each one is skipped, and the skip branch can reach no AI call and no retry.
+  test('a mass resend with the budget spent reaches review with no AI call and no retry', () => {
+    const reachable = (from: string, seen = new Set<string>()): Set<string> => {
+      if (seen.has(from)) return seen;
+      seen.add(from);
+      const byType = (wf.connections as Record<string, Record<string, { node: string }[][]>>)[from] ?? {};
+      for (const branches of Object.values(byType)) for (const branch of branches) for (const c of branch) reachable(c.node, seen);
+      return seen;
+    };
+    const downstream = reachable('Skip: over AI budget');
+    for (const node of ['Extract with default model', 'Needs retry?', 'Attach PDF for retry', 'Retry with stronger model']) {
+      expect(downstream.has(node), node).toBe(false);
+    }
+    // The gate reads the spend of the event's own Record event, so a resend with the budget spent skips every attachment.
+    expect(evaluateExpression(leftOf('Over AI budget?'), { nodes: calledWith(2.4) })).toBe(true);
+  });
+});
+test('the AI budget decision sits before every extraction call', () => {
+  expect(sourcesOf(wf, 'Over AI budget?', 0)).toEqual(['Too many pages?']);
+  expect(sourcesOf(wf, 'Extract with default model', 0)).toEqual(['Over AI budget?']);
+});
+test('the retry passes the first pass\'s cost as prior_cost_usd, and the first pass starts from zero', () => {
+  const value = (node: string) => (nodeOf(wf, node).parameters.workflowInputs as { value: Record<string, unknown> }).value.prior_cost_usd;
+  expect(evaluateExpression(value('Retry with stronger model') as string, { json: { cost_usd: 0.0125 } })).toBe(0.0125);
+  expect(value('Extract with default model')).toBe(0);
+});
+test("the first pass's cost is saved on its event in a branch beside Needs retry?", () => {
+  const connections = wf.connections as Record<string, MainConnections>;
+  expect(connections['Extract with default model']!.main[0]!.map((c) => c.node).sort()).toEqual(['Needs retry?', 'Record AI cost']);
+  const node = nodeOf(wf, 'Record AI cost');
+  expect(node).toMatchObject({ type: 'n8n-nodes-base.postgres', typeVersion: 2.8, retryOnFail: true, maxTries: 3, waitBetweenTries: 1000 });
+  const queryReplacement = (node.parameters.options as { queryReplacement: string }).queryReplacement;
+  expect(evaluateSegments(queryReplacement, { json: { event_id: 'm1:attachment_0', cost_usd: 0.004 } })).toEqual(['m1:attachment_0', 0.004]);
+  // A dead end: nothing downstream reads its output, so Needs retry? keeps the extraction item.
+  expect(connections['Record AI cost']).toBeUndefined();
+});
+test('When called takes the day\'s AI spend', () => {
+  const inputs = (nodeOf(wf, 'When called').parameters.workflowInputs as { values: { name: string; type: string }[] }).values;
+  expect(inputs).toContainEqual({ name: 'ai_spent_usd', type: 'number' });
+});
+
+describe('Needs retry?', () => {
+  const left = () => leftOf('Needs retry?');
+  const when = (json: Record<string, unknown>, ai: Record<string, unknown> = { retry_model: 'claude-sonnet-5-5' }) =>
+    evaluateExpression(left(), { json: { cost_usd: 0, ...json }, nodes: { 'When called': { ai_spent_usd: 0, config: { ai: { daily_budget_usd: 2, ...ai } } } } });
+  test('Needs retry? is false when the retry would cross the budget', () => {
+    const cheap = { status: 'review', retry: true, cost_usd: 0.02 };
+    const retry = (spent: number) => evaluateExpression(left(), { json: cheap, nodes: calledWith(spent) });
+    expect(retry(1.99)).toBe(false);
+    expect(retry(1)).toBe(true);
+  });
+  test("Needs retry? is false for a review the model can't change", () =>
+    expect(when({ status: 'review', retry: false })).toBe(false));
+  test('Needs retry? is true for a retryable review', () =>
+    expect(when({ status: 'review', retry: true })).toBe(true));
+  test('Needs retry? is false when the retry model is empty or missing', () => {
+    expect(when({ status: 'review', retry: true }, { retry_model: '' })).toBe(false);
+    expect(when({ status: 'review', retry: true }, {})).toBe(false);
+  });
+});
+test('the retry runs at retry_effort', () => {
+  const effort = (nodeOf(wf, 'Retry with stronger model').parameters.workflowInputs as { value: Record<string, string> }).value.effort;
+  expect(effort).toBe("={{ $('When called').first().json.config.ai.retry_effort }}");
 });
 test('a missing retry model is treated the same as an empty one', () => {
   // config.ai.retry_model turning the retry off is documented for an *empty* string; a config

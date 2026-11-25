@@ -1,5 +1,6 @@
 import { expect, test } from 'vitest';
-import { ERROR_ALERT_STRINGS, SUMMARY_STRINGS } from '../../src/lib/strings.ts';
+import type { ReviewReason } from '../../src/lib/invoice.ts';
+import { ERROR_ALERT_STRINGS, REASON_LABELS, STATUS_LABELS, SUMMARY_STRINGS, reasonLabel } from '../../src/lib/strings.ts';
 
 const LOCALES = ['en', 'es'] as const;
 
@@ -44,4 +45,32 @@ test('the Spanish error alert uses usted register, not tú', () => {
 test('the Spanish summary uses usted register, not tú', () => {
   const blob = JSON.stringify(SUMMARY_STRINGS.es);
   expect(blob).not.toMatch(/\btu\b|\btú\b|\bti\b/i);
+});
+
+const ALL_REASONS: Record<ReviewReason, true> = {
+  unparseable_reply: true, reply_truncated: true, model_refused: true, invalid_issue_date: true, invalid_due_date: true,
+  invalid_currency: true, missing_supplier: true, missing_supplier_tax_id: true, missing_invoice_number: true,
+  missing_issue_date: true, missing_currency: true, missing_subtotal: true, missing_tax: true, missing_total: true,
+  due_before_issue: true, issue_date_in_future: true, totals_mismatch: true, line_items_mismatch: true,
+  line_items_incomplete: true, non_positive_total: true, amount_out_of_range: true, supplier_is_buyer: true,
+  low_confidence: true, too_many_pages: true, too_much_text: true, unreadable_pdf: true,
+  ai_budget_exceeded: true,
+};
+
+test.each(LOCALES)('every review reason has a non-empty label in %s', (locale) => {
+  for (const reason of Object.keys(ALL_REASONS) as ReviewReason[]) {
+    expect(reasonLabel(reason, locale), reason).not.toBe('');
+    expect(reasonLabel(reason, locale), reason).not.toBe(reason);
+  }
+  expect(Object.keys(REASON_LABELS[locale]).sort()).toEqual(Object.keys(ALL_REASONS).sort());
+});
+
+test('an unknown reason falls back to its code', () => {
+  expect(reasonLabel('legacy_reason', 'es')).toBe('legacy_reason');
+  expect(reasonLabel('toString', 'en')).toBe('toString');
+});
+
+test('status labels match the Gmail label words', () => {
+  expect(STATUS_LABELS.en).toEqual({ ok: 'Processed', review: 'To review' });
+  expect(STATUS_LABELS.es).toEqual({ ok: 'Procesada', review: 'Por revisar' });
 });

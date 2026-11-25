@@ -20,14 +20,36 @@ test('schema stays inside structured outputs', () => {
     expect(keysDeep(schema)).not.toContain(banned);
 });
 test('prompt states the rules the checks rely on', () => {
-  for (const s of ['Magdaport', 'null', 'YYYY-MM-DD', 'COP', 'USD', '1.190.000']) expect(prompt).toContain(s);
+  for (const s of ['Magdaport', 'null', 'COP', 'USD', '1.190.000']) expect(prompt).toContain(s);
   expect(prompt).not.toMatch(/\d{10}|@/);
+});
+test('the schema owns the per-field rules', () => {
+  for (const s of [
+    'The issuer\'s legal name as printed',
+    'without labels such as NIT',
+    'without labels such as No.',
+    'YYYY-MM-DD',
+    'ISO 4217',
+    'All taxes combined',
+    'in the order printed',
+    'from 0 to 1',
+  ]) expect(schemaText).toContain(s);
+});
+test('the prompt lists no per-field rules', () => {
+  for (const s of ['supplier_tax_id:', 'invoice_number:', '**Fields.**', 'YYYY-MM-DD', 'ISO 4217']) expect(prompt).not.toContain(s);
 });
 // The Information Extractor appends its own format instructions to this text as a LangChain
 // template, which treats `{`/`}` as template syntax - a brace here would break the text path.
+// \b keeps the printed amount 1.190.000 from reading as a decimal.
+test('the prompt states no confidence threshold, which lives only in config', () => expect(prompt).not.toMatch(/\b0\.\d/));
+test('the prompt says total is before withholdings', () => expect(prompt).toContain('before any withholding'));
 test('prompt contains no braces', () => expect(prompt).not.toMatch(/[{}]/));
 // The inputSchema is this file's text, so it must pass the prompt's hygiene scan too (no run of
 // 10+ digits, no '@') before it's generated into workflow JSON.
 test('schema text passes the hygiene scan too', () => {
   expect(schemaText).not.toMatch(/\d{10}|@/);
+});
+
+test('the prompt nulls the number of a document that is not an invoice', () => {
+  expect(prompt).toContain('set invoice_number to null');
 });
