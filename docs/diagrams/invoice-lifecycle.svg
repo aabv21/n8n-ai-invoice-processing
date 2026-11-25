@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 1385 500" data-reader-fit="intrinsic-height" data-lifecycle-layout="main-path-v3" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase" data-motion-choreography="walk" style="--flow-cycle: 6.329s; width: 1385px; height: 500px; min-width: 0px;" width="1385" height="500" xmlns="http://www.w3.org/2000/svg"><style>
+<svg viewBox="0 0 1115 422" data-reader-fit="intrinsic-height" data-lifecycle-layout="main-path-v3" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase" data-motion-choreography="walk" style="--flow-cycle: 6.180s; width: 1115px; height: 422px; min-width: 0px;" width="1115" height="422" xmlns="http://www.w3.org/2000/svg"><style>
 /*
 JetBrains Mono variable WOFF2 subsets from Google Fonts service revision v24.
 These fixed bytes are shared by the viewer and its SVG/raster exports.
@@ -399,88 +399,88 @@ svg[data-preset="editorial"] { --flow-halo-peak: 0.07; --flow-glow-peak: 0.28; -
 }
 @keyframes archify-relay-ripple { 
   0% { r: 2px; opacity: var(--flow-peak, 0.6); }
-  11.851%, 100% { r: 20px; opacity: 0; }
+  12.136%, 100% { r: 20px; opacity: 0; }
 }
 @keyframes archify-relay-comet-0 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.445% { opacity: var(--flow-peak, 0.9); }
-  7.223% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  9.752%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.359% { opacity: var(--flow-peak, 0.9); }
+  6.796% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.385%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-0 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  7.223% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  21.445%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.796% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.359%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-1 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.445% { opacity: var(--flow-peak, 0.9); }
-  7.223% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  9.752%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.359% { opacity: var(--flow-peak, 0.9); }
+  6.796% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.385%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-1 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  7.223% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  21.445%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.796% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.359%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-2 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.445% { opacity: var(--flow-peak, 0.9); }
-  7.223% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  9.752%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.359% { opacity: var(--flow-peak, 0.9); }
+  6.796% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.385%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-2 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  7.223% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  21.445%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.796% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.359%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-3 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.445% { opacity: var(--flow-peak, 0.9); }
-  7.223% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  9.752%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.359% { opacity: var(--flow-peak, 0.9); }
+  6.796% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.385%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-3 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  7.223% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  21.445%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.796% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.359%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-node-0 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
   0% { filter: var(--ambient-node-base-filter, none); }
-  1.896%, 8.691% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
-  21.016% { filter: var(--ambient-node-base-filter, none); }
+  1.942%, 8.9% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
+  21.521% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-1 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  15.914% { filter: var(--ambient-node-base-filter, none); }
-  17.81%, 24.605% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
-  36.93% { filter: var(--ambient-node-base-filter, none); }
+  15.696% { filter: var(--ambient-node-base-filter, none); }
+  17.638%, 24.595% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
+  37.217% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-2 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  31.828% { filter: var(--ambient-node-base-filter, none); }
-  33.725%, 40.519% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
-  52.844% { filter: var(--ambient-node-base-filter, none); }
+  31.392% { filter: var(--ambient-node-base-filter, none); }
+  33.333%, 40.291% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
+  52.913% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-3 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  47.743% { filter: var(--ambient-node-base-filter, none); }
-  49.639%, 56.433% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
-  68.758% { filter: var(--ambient-node-base-filter, none); }
+  47.087% { filter: var(--ambient-node-base-filter, none); }
+  49.029%, 55.987% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
+  68.608% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-4 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  63.657% { filter: var(--ambient-node-base-filter, none); }
-  65.553%, 82.619% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
-  94.944% { filter: var(--ambient-node-base-filter, none); }
+  62.783% { filter: var(--ambient-node-base-filter, none); }
+  64.725%, 82.201% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 14px var(--arrow-emphasis)); }
+  94.822% { filter: var(--ambient-node-base-filter, none); }
 }
 :root, svg { --bg: #020617; --grid: #1e293b; --canvas-dot: rgba(148, 163, 184, 0.16); --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #94a3b8; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; --flow-cycle: ; --flow-halo-peak: ; --flow-glow-peak: ; --flow-tail-peak: ; --flow-head-peak: ; --flow-wake-peak: ; --flow-ripple-peak: ; --flow-peak: ; }
 @media (prefers-color-scheme: light) { :root, svg { --bg: #f4f5f7; --grid: #e9edf2; --canvas-dot: #e2e7ec; --text: #111827; --text-muted: #5b6474; --text-dim: #9aa3b2; --text-faint: #6b7280; --panel: #ffffff; --panel-border: #e5e7eb; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #64748b; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; --flow-cycle: ; --flow-halo-peak: ; --flow-glow-peak: ; --flow-tail-peak: ; --flow-head-peak: ; --flow-wake-peak: ; --flow-ripple-peak: ; --flow-peak: ; } }
 svg[data-theme="light"] { --bg: #f4f5f7; --grid: #e9edf2; --canvas-dot: #e2e7ec; --text: #111827; --text-muted: #5b6474; --text-dim: #9aa3b2; --text-faint: #6b7280; --panel: #ffffff; --panel-border: #e5e7eb; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #64748b; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; --flow-cycle: ; --flow-halo-peak: ; --flow-glow-peak: ; --flow-tail-peak: ; --flow-head-peak: ; --flow-wake-peak: ; --flow-ripple-peak: ; --flow-peak: ; }
 svg[data-theme="dark"] { --bg: #020617; --grid: #1e293b; --canvas-dot: rgba(148, 163, 184, 0.16); --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #94a3b8; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; --flow-cycle: ; --flow-halo-peak: ; --flow-glow-peak: ; --flow-tail-peak: ; --flow-head-peak: ; --flow-wake-peak: ; --flow-ripple-peak: ; --flow-peak: ; }
 rect.c-bg-rect { fill: var(--bg); }
-</style><rect x="0" y="0" width="1385" height="500" class="c-bg-rect"/>
+</style><rect x="0" y="0" width="1115" height="422" class="c-bg-rect"/>
         <title id="archify-diagram-title">Invoice lifecycle</title>
         <desc id="archify-diagram-description">A lifecycle diagram generated by Archify.</desc>
         <!-- Definitions -->
@@ -510,68 +510,72 @@ rect.c-bg-rect { fill: var(--bg); }
 
         <!-- Transition paths -->
         <g data-graph-role="automatic-crossover" style="--step:0">
-          <path data-graph-role="automatic-crossover-underlay" d="M 196 60 L 324 60" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="received" data-edge-to="recorded" data-edge-label="record" data-edge-key="0" data-edge-id="received-recorded" data-composition-points="196,60;324,60" data-composition-crossover="halo" data-composition-independent="true" d="M 196 60 L 324 60" class="a-emphasis" data-animate="edge" style="--step: 0;" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 196 60 L 270 60" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="received" data-edge-to="recorded" data-edge-label="record" data-edge-key="0" data-edge-id="received-recorded" data-composition-points="196,60;270,60" data-composition-crossover="halo" data-composition-independent="true" d="M 196 60 L 270 60" class="a-emphasis" data-animate="edge" style="--step: 0;" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:1">
-          <path data-graph-role="automatic-crossover-underlay" d="M 464 60 L 592 60" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="recorded" data-edge-to="extracted" data-edge-label="new" data-edge-key="1" data-edge-id="recorded-extracted" data-composition-points="464,60;592,60" data-composition-crossover="halo" data-composition-independent="true" d="M 464 60 L 592 60" class="a-emphasis" data-animate="edge" style="--step: 1;" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 410 60 L 482 60" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="recorded" data-edge-to="extracted" data-edge-label="new" data-edge-key="1" data-edge-id="recorded-extracted" data-composition-points="410,60;482,60" data-composition-crossover="halo" data-composition-independent="true" d="M 410 60 L 482 60" class="a-emphasis" data-animate="edge" style="--step: 1;" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:2">
-          <path data-graph-role="automatic-crossover-underlay" d="M 732 60 L 860 60" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="extracted" data-edge-to="saved" data-edge-label="save" data-edge-key="2" data-edge-id="extracted-saved" data-composition-points="732,60;860,60" data-composition-crossover="halo" data-composition-independent="true" d="M 732 60 L 860 60" class="a-emphasis" data-animate="edge" style="--step: 2;" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 622 60 L 694 60" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="extracted" data-edge-to="saved" data-edge-label="save" data-edge-key="2" data-edge-id="extracted-saved" data-composition-points="622,60;694,60" data-composition-crossover="halo" data-composition-independent="true" d="M 622 60 L 694 60" class="a-emphasis" data-animate="edge" style="--step: 2;" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:3">
-          <path data-graph-role="automatic-crossover-underlay" d="M 1000 60 L 1128 60" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="saved" data-edge-to="ok" data-edge-label="ok" data-edge-key="3" data-edge-id="saved-ok" data-composition-points="1000,60;1128,60" data-composition-crossover="halo" data-composition-independent="true" d="M 1000 60 L 1128 60" class="a-emphasis" data-animate="edge" style="--step: 3;" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 834 60 L 906 60" fill="none" stroke="var(--mask)" stroke-width="5.8" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="saved" data-edge-to="ok" data-edge-label="ok" data-edge-key="3" data-edge-id="saved-ok" data-composition-points="834,60;906,60" data-composition-crossover="halo" data-composition-independent="true" d="M 834 60 L 906 60" class="a-emphasis" data-animate="edge" style="--step: 3;" stroke-width="1.8" marker-end="url(#arrowhead-emphasis)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:4">
-          <path data-graph-role="automatic-crossover-underlay" d="M 368 92 L 368 132 Q 368 144 356 144 L 172.3 144 Q 160.3 144 160.3 156 L 160.3 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="recorded" data-edge-to="dropped" data-edge-label="known event" data-edge-key="4" data-edge-id="recorded-dropped" data-composition-points="368,92;368,144;160.3,144;160.3,280" data-composition-crossover="halo" data-composition-independent="true" d="M 368 92 L 368 132 Q 368 144 356 144 L 172.3 144 Q 160.3 144 160.3 156 L 160.3 280" class="a-default" data-animate="edge" style="--step: 4;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 314 92 L 314 114 Q 314 126 302 126 L 208.8 126 Q 196.8 126 196.8 138 L 196.8 220" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="recorded" data-edge-to="dropped" data-edge-label="known event" data-edge-key="4" data-edge-id="recorded-dropped" data-composition-points="314,92;314,126;196.8,126;196.8,220" data-composition-crossover="halo" data-composition-independent="true" d="M 314 92 L 314 114 Q 314 126 302 126 L 208.8 126 Q 196.8 126 196.8 138 L 196.8 220" class="a-default" data-animate="edge" style="--step: 4;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:5">
-          <path data-graph-role="automatic-crossover-underlay" d="M 394 92 L 394 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="recorded" data-edge-to="skipped" data-edge-label="screen fails or over budget" data-edge-key="5" data-edge-id="recorded-skipped" data-composition-points="394,92;394,280" data-composition-crossover="halo" data-composition-independent="true" d="M 394 92 L 394 280" class="a-default" data-animate="edge" style="--step: 5;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 340 92 L 340 220" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="recorded" data-edge-to="skipped" data-edge-label="screen or budget" data-edge-key="5" data-edge-id="recorded-skipped" data-composition-points="340,92;340,220" data-composition-crossover="halo" data-composition-independent="true" d="M 340 92 L 340 220" class="a-default" data-animate="edge" style="--step: 5;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:6">
-          <path data-graph-role="automatic-crossover-underlay" d="M 930 92 L 930 150 Q 930 162 942 162 L 978.3 162 Q 990.3 162 990.3 174 L 990.3 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="saved" data-edge-to="duplicate" data-edge-label="same invoice" data-edge-key="6" data-edge-id="saved-duplicate" data-composition-points="930,92;930,162;990.3,162;990.3,280" data-composition-crossover="halo" data-composition-independent="true" d="M 930 92 L 930 150 Q 930 162 942 162 L 978.3 162 Q 990.3 162 990.3 174 L 990.3 280" class="a-default" data-animate="edge" style="--step: 6;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 764 92 L 764 220" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="saved" data-edge-to="duplicate" data-edge-label="same invoice" data-edge-key="6" data-edge-id="saved-duplicate" data-composition-points="764,92;764,220" data-composition-crossover="halo" data-composition-independent="true" d="M 764 92 L 764 220" class="a-default" data-animate="edge" style="--step: 6;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:7">
-          <path data-graph-role="automatic-crossover-underlay" d="M 956 92 L 956 132 Q 956 144 968 144 L 1246.3 144 Q 1258.3 144 1258.3 156 L 1258.3 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="saved" data-edge-to="review" data-edge-label="check fails" data-edge-key="7" data-edge-id="saved-review" data-composition-points="956,92;956,144;1258.3,144;1258.3,280" data-composition-crossover="halo" data-composition-independent="true" d="M 956 92 L 956 132 Q 956 144 968 144 L 1246.3 144 Q 1258.3 144 1258.3 156 L 1258.3 280" class="a-default" data-animate="edge" style="--step: 7;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 790 92 L 790 114 Q 790 126 802 126 L 963.8 126 Q 975.8 126 975.8 138 L 975.8 220" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="saved" data-edge-to="review" data-edge-label="check fails" data-edge-key="7" data-edge-id="saved-review" data-composition-points="790,92;790,126;975.8,126;975.8,220" data-composition-crossover="halo" data-composition-independent="true" d="M 790 92 L 790 114 Q 790 126 802 126 L 963.8 126 Q 975.8 126 975.8 138 L 975.8 220" class="a-default" data-animate="edge" style="--step: 7;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:8">
-          <path data-graph-role="automatic-crossover-underlay" d="M 904 92 L 904 132 Q 904 144 892 144 L 756.6 144 Q 744.6 144 744.6 156 L 744.6 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="saved" data-edge-to="unfinished" data-edge-label="later step fails" data-edge-key="8" data-edge-id="saved-unfinished" data-composition-points="904,92;904,144;744.6,144;744.6,280" data-composition-crossover="halo" data-composition-independent="true" d="M 904 92 L 904 132 Q 904 144 892 144 L 756.6 144 Q 744.6 144 744.6 156 L 744.6 280" class="a-security" data-animate="edge" style="--step: 8;" stroke-width="1.2" marker-end="url(#arrowhead-security)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 738 92 L 738 114 Q 738 126 726 126 L 625.1 126 Q 613.1 126 613.1 138 L 613.1 220" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="saved" data-edge-to="unfinished" data-edge-label="later step fails" data-edge-key="8" data-edge-id="saved-unfinished" data-composition-points="738,92;738,126;613.1,126;613.1,220" data-composition-crossover="halo" data-composition-independent="true" d="M 738 92 L 738 114 Q 738 126 726 126 L 625.1 126 Q 613.1 126 613.1 138 L 613.1 220" class="a-security" data-animate="edge" style="--step: 8;" stroke-width="1.2" marker-end="url(#arrowhead-security)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:9">
-          <path data-graph-role="automatic-crossover-underlay" d="M 438.3 344 L 438.3 402 Q 438.3 414 450.3 414 L 1233.3 414 Q 1245.3 414 1245.3 402 L 1245.3 344" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="skipped" data-edge-to="review" data-edge-label="as review" data-edge-key="9" data-edge-id="skipped-review" data-composition-points="438.3,344;438.3,414;1245.3,414;1245.3,344" data-composition-crossover="halo" data-composition-independent="true" d="M 438.3 344 L 438.3 402 Q 438.3 414 450.3 414 L 1233.3 414 Q 1245.3 414 1245.3 402 L 1245.3 344" class="a-default" data-animate="edge" style="--step: 9;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 390.8 284 L 390.8 324 Q 390.8 336 402.8 336 L 963.8 336 Q 975.8 336 975.8 324 L 975.8 284" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="skipped" data-edge-to="review" data-edge-label="as review" data-edge-key="9" data-edge-id="skipped-review" data-composition-points="390.8,284;390.8,336;975.8,336;975.8,284" data-composition-crossover="halo" data-composition-independent="true" d="M 390.8 284 L 390.8 324 Q 390.8 336 402.8 336 L 963.8 336 Q 975.8 336 975.8 324 L 975.8 284" class="a-default" data-animate="edge" style="--step: 9;" stroke-width="1.2" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:10">
-          <path data-graph-role="automatic-crossover-underlay" d="M 420 92 L 420 150 Q 420 162 432 162 L 681.1 162 Q 693.1 162 693.1 174 L 693.1 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="recorded" data-edge-to="unfinished" data-edge-label="lost reply" data-edge-key="10" data-edge-id="recorded-unfinished" data-composition-points="420,92;420,162;693.1,162;693.1,280" data-composition-crossover="halo" data-composition-independent="true" d="M 420 92 L 420 150 Q 420 162 432 162 L 681.1 162 Q 693.1 162 693.1 174 L 693.1 280" class="a-security" data-animate="edge" style="--step: 10;" stroke-width="1.2" marker-end="url(#arrowhead-security)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 366 92 L 366 132 Q 366 144 378 144 L 549.6 144 Q 561.6 144 561.6 156 L 561.6 220" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="recorded" data-edge-to="unfinished" data-edge-label="lost reply" data-edge-key="10" data-edge-id="recorded-unfinished" data-composition-points="366,92;366,144;561.6,144;561.6,220" data-composition-crossover="halo" data-composition-independent="true" d="M 366 92 L 366 132 Q 366 144 378 144 L 549.6 144 Q 561.6 144 561.6 156 L 561.6 220" class="a-security" data-animate="edge" style="--step: 10;" stroke-width="1.2" marker-end="url(#arrowhead-security)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:11">
-          <path data-graph-role="automatic-crossover-underlay" d="M 662 92 L 662 132 Q 662 144 674 144 L 706.8 144 Q 718.8 144 718.8 156 L 718.8 280" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="extracted" data-edge-to="unfinished" data-edge-label="call fails" data-edge-key="11" data-edge-id="extracted-unfinished" data-composition-points="662,92;662,144;718.8,144;718.8,280" data-composition-crossover="halo" data-composition-independent="true" d="M 662 92 L 662 132 Q 662 144 674 144 L 706.8 144 Q 718.8 144 718.8 156 L 718.8 280" class="a-security" data-animate="edge" style="--step: 11;" stroke-width="1.2" marker-end="url(#arrowhead-security)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 552 92 L 552 114 Q 552 126 564 126 L 575.3 126 Q 587.3 126 587.3 138 L 587.3 220" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="extracted" data-edge-to="unfinished" data-edge-label="call fails" data-edge-key="11" data-edge-id="extracted-unfinished" data-composition-points="552,92;552,126;587.3,126;587.3,220" data-composition-crossover="halo" data-composition-independent="true" d="M 552 92 L 552 114 Q 552 126 564 126 L 575.3 126 Q 587.3 126 587.3 138 L 587.3 220" class="a-security" data-animate="edge" style="--step: 11;" stroke-width="1.2" marker-end="url(#arrowhead-security)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:12">
-          <path data-graph-role="automatic-crossover-underlay" d="M 770.3 280 L 770.3 192 Q 770.3 180 782.3 180 L 1186 180 Q 1198 180 1198 168 L 1198 92" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="unfinished" data-edge-to="ok" data-edge-label="retry" data-edge-key="12" data-edge-id="unfinished-ok" data-composition-points="770.3,280;770.3,180;1198,180;1198,92" data-composition-crossover="halo" data-composition-independent="true" d="M 770.3 280 L 770.3 192 Q 770.3 180 782.3 180 L 1186 180 Q 1198 180 1198 168 L 1198 92" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 638.8 220 L 638.8 156 Q 638.8 144 650.8 144 L 951 144 Q 963 144 963 132 L 963 92" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="unfinished" data-edge-to="ok" data-edge-label="retry" data-edge-key="12" data-edge-id="unfinished-ok" data-composition-points="638.8,220;638.8,144;963,144;963,92" data-composition-crossover="halo" data-composition-independent="true" d="M 638.8 220 L 638.8 156 Q 638.8 144 650.8 144 L 951 144 Q 963 144 963 132 L 963 92" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:13">
-          <path data-graph-role="automatic-crossover-underlay" d="M 718.8 344 L 718.8 384 Q 718.8 396 730.8 396 L 1259.3 396 Q 1271.3 396 1271.3 384 L 1271.3 344" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="unfinished" data-edge-to="review" data-edge-label="retry" data-edge-key="13" data-edge-id="unfinished-review" data-composition-points="718.8,344;718.8,396;1271.3,396;1271.3,344" data-composition-crossover="halo" data-composition-independent="true" d="M 718.8 344 L 718.8 384 Q 718.8 396 730.8 396 L 1259.3 396 Q 1271.3 396 1271.3 384 L 1271.3 344" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 587.3 284 L 587.3 306 Q 587.3 318 599.3 318 L 989.8 318 Q 1001.8 318 1001.8 306 L 1001.8 284" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="unfinished" data-edge-to="review" data-edge-label="retry" data-edge-key="13" data-edge-id="unfinished-review" data-composition-points="587.3,284;587.3,318;1001.8,318;1001.8,284" data-composition-crossover="halo" data-composition-independent="true" d="M 587.3 284 L 587.3 306 Q 587.3 318 599.3 318 L 989.8 318 Q 1001.8 318 1001.8 306 L 1001.8 284" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:14">
-          <path data-graph-role="automatic-crossover-underlay" d="M 792.3 312 L 920.3 312" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="unfinished" data-edge-to="duplicate" data-edge-label="retry" data-edge-key="14" data-edge-id="unfinished-duplicate" data-composition-points="792.3,312;920.3,312" data-composition-crossover="halo" data-composition-independent="true" d="M 792.3 312 L 920.3 312" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 660.8199999999999 252 L 734.8199999999999 252" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="unfinished" data-edge-to="duplicate" data-edge-label="retry" data-edge-key="14" data-edge-id="unfinished-duplicate" data-composition-points="660.8199999999999,252;734.8199999999999,252" data-composition-crossover="halo" data-composition-independent="true" d="M 660.8199999999999 252 L 734.8199999999999 252" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:15">
-          <path data-graph-role="automatic-crossover-underlay" d="M 667.3 280 L 667.3 192 Q 667.3 180 655.3 180 L 138 180 Q 126 180 126 168 L 126 92" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="unfinished" data-edge-to="received" data-edge-label="resend the email" data-edge-key="15" data-edge-id="unfinished-received" data-composition-points="667.3,280;667.3,180;126,180;126,92" data-composition-crossover="halo" data-composition-independent="true" d="M 667.3 280 L 667.3 192 Q 667.3 180 655.3 180 L 138 180 Q 126 180 126 168 L 126 92" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 535.8 220 L 535.8 174 Q 535.8 162 523.8 162 L 138 162 Q 126 162 126 150 L 126 92" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="unfinished" data-edge-to="received" data-edge-label="resend the email" data-edge-key="15" data-edge-id="unfinished-received" data-composition-points="535.8,220;535.8,162;126,162;126,92" data-composition-crossover="halo" data-composition-independent="true" d="M 535.8 220 L 535.8 174 Q 535.8 162 523.8 162 L 138 162 Q 126 162 126 150 L 126 92" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:16">
+          <path data-graph-role="automatic-crossover-underlay" d="M 989 220 L 989 92" fill="none" stroke="var(--mask)" stroke-width="5.2" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="review" data-edge-to="ok" data-edge-label="approved" data-edge-key="16" data-edge-id="review-ok" data-composition-points="989,220;989,92" data-composition-crossover="halo" data-composition-independent="true" d="M 989 220 L 989 92" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.2" marker-end="url(#arrowhead-dashed)"/>
         </g>
 
 
@@ -590,220 +594,223 @@ rect.c-bg-rect { fill: var(--bg); }
 
         <g id="node-recorded" data-node-id="recorded" data-node-label="recorded" tabindex="0" role="button" aria-label="Focus recorded, event row, Lifecycle state" aria-pressed="false" data-node-kind="active" data-node-sublabel="event row" data-node-tag="gate" data-node-context="Lifecycle state">
           <title>recorded · event row · Lifecycle state · gate</title>
-          <rect x="324" y="28" width="140" height="64" rx="8" class="c-mask"/>
-          <rect x="324" y="28" width="140" height="64" rx="8" class="c-frontend" data-animate="node" style="--step: 1; --flow-node-name: archify-relay-node-1;" stroke-width="1.5"/>
+          <rect x="270" y="28" width="140" height="64" rx="8" class="c-mask"/>
+          <rect x="270" y="28" width="140" height="64" rx="8" class="c-frontend" data-animate="node" style="--step: 1; --flow-node-name: archify-relay-node-1;" stroke-width="1.5"/>
           
-          <text x="347" y="42" class="t-frontend" font-size="8" font-weight="700">02</text>
-          <text data-node-label="" x="394" y="51" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">recorded</text>
-          <text x="394" y="68" class="t-muted" font-size="9" text-anchor="middle">event row</text>
-          <text x="394" y="83" class="t-frontend" font-size="8" text-anchor="middle">gate</text>
+          <text x="293" y="42" class="t-frontend" font-size="8" font-weight="700">02</text>
+          <text data-node-label="" x="340" y="51" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">recorded</text>
+          <text x="340" y="68" class="t-muted" font-size="9" text-anchor="middle">event row</text>
+          <text x="340" y="83" class="t-frontend" font-size="8" text-anchor="middle">gate</text>
         </g>
 
         <g id="node-extracted" data-node-id="extracted" data-node-label="extracted" tabindex="0" role="button" aria-label="Focus extracted, AI read, Lifecycle state" aria-pressed="false" data-node-kind="active" data-node-sublabel="AI read" data-node-tag="AI" data-node-context="Lifecycle state">
           <title>extracted · AI read · Lifecycle state · AI</title>
-          <rect x="592" y="28" width="140" height="64" rx="8" class="c-mask"/>
-          <rect x="592" y="28" width="140" height="64" rx="8" class="c-frontend" data-animate="node" style="--step: 2; --flow-node-name: archify-relay-node-2;" stroke-width="1.5"/>
+          <rect x="482" y="28" width="140" height="64" rx="8" class="c-mask"/>
+          <rect x="482" y="28" width="140" height="64" rx="8" class="c-frontend" data-animate="node" style="--step: 2; --flow-node-name: archify-relay-node-2;" stroke-width="1.5"/>
           
-          <text x="615" y="42" class="t-frontend" font-size="8" font-weight="700">03</text>
-          <text data-node-label="" x="662" y="51" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">extracted</text>
-          <text x="662" y="68" class="t-muted" font-size="9" text-anchor="middle">AI read</text>
-          <text x="662" y="83" class="t-frontend" font-size="8" text-anchor="middle">AI</text>
+          <text x="505" y="42" class="t-frontend" font-size="8" font-weight="700">03</text>
+          <text data-node-label="" x="552" y="51" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">extracted</text>
+          <text x="552" y="68" class="t-muted" font-size="9" text-anchor="middle">AI read</text>
+          <text x="552" y="83" class="t-frontend" font-size="8" text-anchor="middle">AI</text>
         </g>
 
         <g id="node-saved" data-node-id="saved" data-node-label="saved" tabindex="0" role="button" aria-label="Focus saved, outcome NULL, Lifecycle state" aria-pressed="false" data-node-kind="decision" data-node-sublabel="outcome NULL" data-node-tag="save" data-node-context="Lifecycle state">
           <title>saved · outcome NULL · Lifecycle state · save</title>
-          <rect x="860" y="28" width="140" height="64" rx="8" class="c-mask"/>
-          <rect x="860" y="28" width="140" height="64" rx="8" class="c-database" data-animate="node" style="--step: 3; --flow-node-name: archify-relay-node-3;" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="decision" class="semantic-sigil s-database" transform="translate(866 34) scale(0.6875)">
+          <rect x="694" y="28" width="140" height="64" rx="8" class="c-mask"/>
+          <rect x="694" y="28" width="140" height="64" rx="8" class="c-database" data-animate="node" style="--step: 3; --flow-node-name: archify-relay-node-3;" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="decision" class="semantic-sigil s-database" transform="translate(700 34) scale(0.6875)">
             <path d="M8 2.2 13.8 8 8 13.8 2.2 8Z"/>
           </g>
-          <text x="883" y="42" class="t-database" font-size="8" font-weight="700">04</text>
-          <text data-node-label="" x="930" y="51" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">saved</text>
-          <text x="930" y="68" class="t-muted" font-size="9" text-anchor="middle">outcome NULL</text>
-          <text x="930" y="83" class="t-database" font-size="8" text-anchor="middle">save</text>
+          <text x="717" y="42" class="t-database" font-size="8" font-weight="700">04</text>
+          <text data-node-label="" x="764" y="51" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">saved</text>
+          <text x="764" y="68" class="t-muted" font-size="9" text-anchor="middle">outcome NULL</text>
+          <text x="764" y="83" class="t-database" font-size="8" text-anchor="middle">save</text>
         </g>
 
         <g id="node-ok" data-node-id="ok" data-node-label="ok" tabindex="0" role="button" aria-label="Focus ok, outcome ok, Lifecycle state" aria-pressed="false" data-node-kind="success" data-node-sublabel="outcome ok" data-node-tag="terminal" data-node-context="Lifecycle state">
           <title>ok · outcome ok · Lifecycle state · terminal</title>
-          <rect x="1128" y="28" width="140" height="64" rx="8" class="c-mask"/>
-          <rect x="1128" y="28" width="140" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 4; --flow-node-name: archify-relay-node-4;" stroke-width="1.5"/>
-          <rect x="1131" y="31" width="134" height="58" rx="5" class="c-backend" style="fill: none" stroke-width="1"/>
-          <g aria-hidden="true" data-semantic-sigil="success" class="semantic-sigil s-backend" transform="translate(1134 34) scale(0.6875)">
+          <rect x="906" y="28" width="140" height="64" rx="8" class="c-mask"/>
+          <rect x="906" y="28" width="140" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 4; --flow-node-name: archify-relay-node-4;" stroke-width="1.5"/>
+          <rect x="909" y="31" width="134" height="58" rx="5" class="c-backend" style="fill: none" stroke-width="1"/>
+          <g aria-hidden="true" data-semantic-sigil="success" class="semantic-sigil s-backend" transform="translate(912 34) scale(0.6875)">
             <circle cx="8" cy="8" r="5.3"/>
             <path d="m5.2 8 1.8 1.8 3.8-4"/>
           </g>
-          <text x="1151" y="42" class="t-backend" font-size="8" font-weight="700">05</text>
-          <text data-node-label="" x="1198" y="51" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">ok</text>
-          <text x="1198" y="68" class="t-muted" font-size="9" text-anchor="middle">outcome ok</text>
-          <text x="1198" y="83" class="t-backend" font-size="8" text-anchor="middle">terminal</text>
+          <text x="929" y="42" class="t-backend" font-size="8" font-weight="700">05</text>
+          <text data-node-label="" x="976" y="51" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">ok</text>
+          <text x="976" y="68" class="t-muted" font-size="9" text-anchor="middle">outcome ok</text>
+          <text x="976" y="83" class="t-backend" font-size="8" text-anchor="middle">terminal</text>
         </g>
 
         <g id="node-dropped" data-node-id="dropped" data-node-label="dropped" tabindex="0" role="button" aria-label="Focus dropped, event already seen, Lifecycle state" aria-pressed="false" data-node-kind="neutral" data-node-sublabel="event already seen" data-node-tag="terminal" data-node-context="Lifecycle state">
           <title>dropped · event already seen · Lifecycle state · terminal</title>
-          <rect x="89.29999999999995" y="280" width="142" height="64" rx="8" class="c-mask"/>
-          <rect x="89.29999999999995" y="280" width="142" height="64" rx="8" class="c-external" data-animate="node" style="--step: 5;" stroke-width="1.5"/>
-          <rect x="92.29999999999995" y="283" width="136" height="58" rx="5" class="c-external" style="fill: none" stroke-width="1"/>
-          <g aria-hidden="true" data-semantic-sigil="stop" class="semantic-sigil s-external" transform="translate(95.29999999999995 286) scale(0.6875)">
+          <rect x="125.81999999999994" y="220" width="142" height="64" rx="8" class="c-mask"/>
+          <rect x="125.81999999999994" y="220" width="142" height="64" rx="8" class="c-external" data-animate="node" style="--step: 5;" stroke-width="1.5"/>
+          <rect x="128.81999999999994" y="223" width="136" height="58" rx="5" class="c-external" style="fill: none" stroke-width="1"/>
+          <g aria-hidden="true" data-semantic-sigil="stop" class="semantic-sigil s-external" transform="translate(131.81999999999994 226) scale(0.6875)">
             <circle cx="8" cy="8" r="5.3"/>
             <rect x="6.1" y="6.1" width="3.8" height="3.8" rx=".5" class="sigil-fill"/>
           </g>
-          <text data-node-label="" x="160.29999999999995" y="303" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">dropped</text>
-          <text x="160.29999999999995" y="320" class="t-muted" font-size="9" text-anchor="middle">event already seen</text>
-          <text x="160.29999999999995" y="335" class="t-muted" font-size="8" text-anchor="middle">terminal</text>
+          <text data-node-label="" x="196.81999999999994" y="243" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">dropped</text>
+          <text x="196.81999999999994" y="260" class="t-muted" font-size="9" text-anchor="middle">event already seen</text>
+          <text x="196.81999999999994" y="275" class="t-muted" font-size="8" text-anchor="middle">terminal</text>
         </g>
 
         <g id="node-skipped" data-node-id="skipped" data-node-label="skipped" tabindex="0" role="button" aria-label="Focus skipped, unreadable or too big, Lifecycle state" aria-pressed="false" data-node-kind="waiting" data-node-sublabel="unreadable or too big" data-node-tag="no AI call" data-node-context="Lifecycle state">
           <title>skipped · unreadable or too big · Lifecycle state · no AI call</title>
-          <rect x="359.29999999999995" y="280" width="158" height="64" rx="8" class="c-mask"/>
-          <rect x="359.29999999999995" y="280" width="158" height="64" rx="8" class="c-cloud" data-animate="node" style="--step: 6;" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="waiting" class="semantic-sigil s-cloud" transform="translate(365.29999999999995 286) scale(0.6875)">
+          <rect x="311.81999999999994" y="220" width="158" height="64" rx="8" class="c-mask"/>
+          <rect x="311.81999999999994" y="220" width="158" height="64" rx="8" class="c-cloud" data-animate="node" style="--step: 6;" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="waiting" class="semantic-sigil s-cloud" transform="translate(317.81999999999994 226) scale(0.6875)">
             <path d="M4 2.5h8M4 13.5h8M5 3c0 2.8 2 3.2 3 5-1 1.8-3 2.2-3 5M11 3c0 2.8-2 3.2-3 5 1 1.8 3 2.2 3 5"/>
           </g>
-          <text data-node-label="" x="438.29999999999995" y="303" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">skipped</text>
-          <text x="438.29999999999995" y="320" class="t-muted" font-size="9" text-anchor="middle">unreadable or too big</text>
-          <text x="438.29999999999995" y="335" class="t-cloud" font-size="8" text-anchor="middle">no AI call</text>
+          <text data-node-label="" x="390.81999999999994" y="243" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">skipped</text>
+          <text x="390.81999999999994" y="260" class="t-muted" font-size="9" text-anchor="middle">unreadable or too big</text>
+          <text x="390.81999999999994" y="275" class="t-cloud" font-size="8" text-anchor="middle">no AI call</text>
         </g>
 
         <g id="node-duplicate" data-node-id="duplicate" data-node-label="duplicate" tabindex="0" role="button" aria-label="Focus duplicate, outcome duplicate, Lifecycle state" aria-pressed="false" data-node-kind="neutral" data-node-sublabel="outcome duplicate" data-node-tag="terminal" data-node-context="Lifecycle state">
           <title>duplicate · outcome duplicate · Lifecycle state · terminal</title>
-          <rect x="920.3" y="280" width="140" height="64" rx="8" class="c-mask"/>
-          <rect x="920.3" y="280" width="140" height="64" rx="8" class="c-external" data-animate="node" style="--step: 7;" stroke-width="1.5"/>
-          <rect x="923.3" y="283" width="134" height="58" rx="5" class="c-external" style="fill: none" stroke-width="1"/>
-          <g aria-hidden="true" data-semantic-sigil="stop" class="semantic-sigil s-external" transform="translate(926.3 286) scale(0.6875)">
+          <rect x="734.8199999999999" y="220" width="140" height="64" rx="8" class="c-mask"/>
+          <rect x="734.8199999999999" y="220" width="140" height="64" rx="8" class="c-external" data-animate="node" style="--step: 7;" stroke-width="1.5"/>
+          <rect x="737.8199999999999" y="223" width="134" height="58" rx="5" class="c-external" style="fill: none" stroke-width="1"/>
+          <g aria-hidden="true" data-semantic-sigil="stop" class="semantic-sigil s-external" transform="translate(740.8199999999999 226) scale(0.6875)">
             <circle cx="8" cy="8" r="5.3"/>
             <rect x="6.1" y="6.1" width="3.8" height="3.8" rx=".5" class="sigil-fill"/>
           </g>
-          <text data-node-label="" x="990.3" y="303" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">duplicate</text>
-          <text x="990.3" y="320" class="t-muted" font-size="9" text-anchor="middle">outcome duplicate</text>
-          <text x="990.3" y="335" class="t-muted" font-size="8" text-anchor="middle">terminal</text>
+          <text data-node-label="" x="804.8199999999999" y="243" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">duplicate</text>
+          <text x="804.8199999999999" y="260" class="t-muted" font-size="9" text-anchor="middle">outcome duplicate</text>
+          <text x="804.8199999999999" y="275" class="t-muted" font-size="8" text-anchor="middle">terminal</text>
         </g>
 
         <g id="node-review" data-node-id="review" data-node-label="review" tabindex="0" role="button" aria-label="Focus review, outcome review, Lifecycle state" aria-pressed="false" data-node-kind="waiting" data-node-sublabel="outcome review" data-node-tag="terminal" data-node-context="Lifecycle state">
           <title>review · outcome review · Lifecycle state · terminal</title>
-          <rect x="1188.3" y="280" width="140" height="64" rx="8" class="c-mask"/>
-          <rect x="1188.3" y="280" width="140" height="64" rx="8" class="c-cloud" data-animate="node" style="--step: 8;" stroke-width="1.5"/>
-          <rect x="1191.3" y="283" width="134" height="58" rx="5" class="c-cloud" style="fill: none" stroke-width="1"/>
-          <g aria-hidden="true" data-semantic-sigil="waiting" class="semantic-sigil s-cloud" transform="translate(1194.3 286) scale(0.6875)">
+          <rect x="918.8199999999999" y="220" width="140" height="64" rx="8" class="c-mask"/>
+          <rect x="918.8199999999999" y="220" width="140" height="64" rx="8" class="c-cloud" data-animate="node" style="--step: 8;" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="waiting" class="semantic-sigil s-cloud" transform="translate(924.8199999999999 226) scale(0.6875)">
             <path d="M4 2.5h8M4 13.5h8M5 3c0 2.8 2 3.2 3 5-1 1.8-3 2.2-3 5M11 3c0 2.8-2 3.2-3 5 1 1.8 3 2.2 3 5"/>
           </g>
-          <text data-node-label="" x="1258.3" y="303" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">review</text>
-          <text x="1258.3" y="320" class="t-muted" font-size="9" text-anchor="middle">outcome review</text>
-          <text x="1258.3" y="335" class="t-cloud" font-size="8" text-anchor="middle">terminal</text>
+          <text data-node-label="" x="988.8199999999999" y="243" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">review</text>
+          <text x="988.8199999999999" y="260" class="t-muted" font-size="9" text-anchor="middle">outcome review</text>
+          <text x="988.8199999999999" y="275" class="t-cloud" font-size="8" text-anchor="middle">terminal</text>
         </g>
 
         <g id="node-unfinished" data-node-id="unfinished" data-node-label="unfinished" tabindex="0" role="button" aria-label="Focus unfinished, a later step failed, Lifecycle state" aria-pressed="false" data-node-kind="failure" data-node-sublabel="a later step failed" data-node-tag="recoverable" data-node-context="Lifecycle state">
           <title>unfinished · a later step failed · Lifecycle state · recoverable</title>
-          <rect x="645.3" y="280" width="147" height="64" rx="8" class="c-mask"/>
-          <rect x="645.3" y="280" width="147" height="64" rx="8" class="c-security" data-animate="node" style="--step: 9;" stroke-width="1.5"/>
-          <g aria-hidden="true" data-semantic-sigil="failure" class="semantic-sigil s-security" transform="translate(651.3 286) scale(0.6875)">
+          <rect x="513.8199999999999" y="220" width="147" height="64" rx="8" class="c-mask"/>
+          <rect x="513.8199999999999" y="220" width="147" height="64" rx="8" class="c-security" data-animate="node" style="--step: 9;" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="failure" class="semantic-sigil s-security" transform="translate(519.8199999999999 226) scale(0.6875)">
             <circle cx="8" cy="8" r="5.3"/>
             <path d="m5.7 5.7 4.6 4.6m0-4.6-4.6 4.6"/>
           </g>
-          <text data-node-label="" x="718.8" y="303" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">unfinished</text>
-          <text x="718.8" y="320" class="t-muted" font-size="9" text-anchor="middle">a later step failed</text>
-          <text x="718.8" y="335" class="t-security" font-size="8" text-anchor="middle">recoverable</text>
+          <text data-node-label="" x="587.3199999999999" y="243" class="t-primary" font-size="12" font-weight="600" text-anchor="middle">unfinished</text>
+          <text x="587.3199999999999" y="260" class="t-muted" font-size="9" text-anchor="middle">a later step failed</text>
+          <text x="587.3199999999999" y="275" class="t-security" font-size="8" text-anchor="middle">recoverable</text>
         </g>
 
         <!-- Transition labels -->
         <g data-edge-from="received" data-edge-to="recorded" data-edge-label="record" data-edge-key="0" data-edge-id="received-recorded">
-          <rect x="236" y="38" width="48" height="16" rx="4" class="c-mask"/>
-          <text x="260" y="49.5" class="t-edge-emphasis" font-size="10" text-anchor="middle">record</text>
+          <rect x="209" y="38" width="48" height="16" rx="4" class="c-mask"/>
+          <text x="233" y="49.5" class="t-edge-emphasis" font-size="10" text-anchor="middle">record</text>
         </g>
         <g data-edge-from="recorded" data-edge-to="extracted" data-edge-label="new" data-edge-key="1" data-edge-id="recorded-extracted">
-          <rect x="513" y="38" width="30" height="16" rx="4" class="c-mask"/>
-          <text x="528" y="49.5" class="t-edge-emphasis" font-size="10" text-anchor="middle">new</text>
+          <rect x="431" y="38" width="30" height="16" rx="4" class="c-mask"/>
+          <text x="446" y="49.5" class="t-edge-emphasis" font-size="10" text-anchor="middle">new</text>
         </g>
         <g data-edge-from="extracted" data-edge-to="saved" data-edge-label="save" data-edge-key="2" data-edge-id="extracted-saved">
-          <rect x="778" y="38" width="36" height="16" rx="4" class="c-mask"/>
-          <text x="796" y="49.5" class="t-edge-emphasis" font-size="10" text-anchor="middle">save</text>
+          <rect x="640" y="38" width="36" height="16" rx="4" class="c-mask"/>
+          <text x="658" y="49.5" class="t-edge-emphasis" font-size="10" text-anchor="middle">save</text>
         </g>
         <g data-edge-from="saved" data-edge-to="ok" data-edge-label="ok" data-edge-key="3" data-edge-id="saved-ok">
-          <rect x="1052" y="38" width="24" height="16" rx="4" class="c-mask"/>
-          <text x="1064" y="49.5" class="t-edge-emphasis" font-size="10" text-anchor="middle">ok</text>
+          <rect x="858" y="38" width="24" height="16" rx="4" class="c-mask"/>
+          <text x="870" y="49.5" class="t-edge-emphasis" font-size="10" text-anchor="middle">ok</text>
         </g>
         <g data-edge-from="recorded" data-edge-to="dropped" data-edge-label="known event" data-edge-key="4" data-edge-id="recorded-dropped">
-          <rect x="166.3" y="204" width="78" height="16" rx="4" class="c-mask"/>
-          <text x="205.3" y="215.5" class="t-muted" font-size="10" text-anchor="middle">known event</text>
+          <rect x="112.80000000000001" y="175" width="78" height="16" rx="4" class="c-mask"/>
+          <text x="151.8" y="186.5" class="t-muted" font-size="10" text-anchor="middle">known event</text>
         </g>
-        <g data-edge-from="recorded" data-edge-to="skipped" data-edge-label="screen fails or over budget" data-edge-key="5" data-edge-id="recorded-skipped">
-          <rect x="400" y="188" width="174" height="16" rx="4" class="c-mask"/>
-          <text x="487" y="199.5" class="t-muted" font-size="10" text-anchor="middle">screen fails or over budget</text>
+        <g data-edge-from="recorded" data-edge-to="skipped" data-edge-label="screen or budget" data-edge-key="5" data-edge-id="recorded-skipped">
+          <rect x="226" y="138" width="108" height="16" rx="4" class="c-mask"/>
+          <text x="280" y="149.5" class="t-muted" font-size="10" text-anchor="middle">screen or budget</text>
         </g>
         <g data-edge-from="saved" data-edge-to="duplicate" data-edge-label="same invoice" data-edge-key="6" data-edge-id="saved-duplicate">
-          <rect x="900.3" y="213" width="84" height="16" rx="4" class="c-mask"/>
-          <text x="942.3" y="224.5" class="t-muted" font-size="10" text-anchor="middle">same invoice</text>
+          <rect x="674" y="158" width="84" height="16" rx="4" class="c-mask"/>
+          <text x="716" y="169.5" class="t-muted" font-size="10" text-anchor="middle">same invoice</text>
         </g>
         <g data-edge-from="saved" data-edge-to="review" data-edge-label="check fails" data-edge-key="7" data-edge-id="saved-review">
-          <rect x="1174.3" y="204" width="78" height="16" rx="4" class="c-mask"/>
-          <text x="1213.3" y="215.5" class="t-muted" font-size="10" text-anchor="middle">check fails</text>
+          <rect x="891.8" y="165" width="78" height="16" rx="4" class="c-mask"/>
+          <text x="930.8" y="176.5" class="t-muted" font-size="10" text-anchor="middle">check fails</text>
         </g>
         <g data-edge-from="saved" data-edge-to="unfinished" data-edge-label="later step fails" data-edge-key="8" data-edge-id="saved-unfinished">
-          <rect x="790" y="110" width="108" height="16" rx="4" class="c-mask"/>
-          <text x="844" y="121.5" class="t-edge-security" font-size="10" text-anchor="middle">later step fails</text>
+          <rect x="624" y="101" width="108" height="16" rx="4" class="c-mask"/>
+          <text x="678" y="112.5" class="t-edge-security" font-size="10" text-anchor="middle">later step fails</text>
         </g>
         <g data-edge-from="skipped" data-edge-to="review" data-edge-label="as review" data-edge-key="9" data-edge-id="skipped-review">
-          <rect x="808.8" y="406" width="66" height="16" rx="4" class="c-mask"/>
-          <text x="841.8" y="417.5" class="t-muted" font-size="10" text-anchor="middle">as review</text>
+          <rect x="650.3" y="328" width="66" height="16" rx="4" class="c-mask"/>
+          <text x="683.3" y="339.5" class="t-muted" font-size="10" text-anchor="middle">as review</text>
         </g>
         <g data-edge-from="recorded" data-edge-to="unfinished" data-edge-label="lost reply" data-edge-key="10" data-edge-id="recorded-unfinished">
-          <rect x="426" y="119" width="72" height="16" rx="4" class="c-mask"/>
-          <text x="462" y="130.5" class="t-edge-security" font-size="10" text-anchor="middle">lost reply</text>
+          <rect x="372" y="110" width="72" height="16" rx="4" class="c-mask"/>
+          <text x="408" y="121.5" class="t-edge-security" font-size="10" text-anchor="middle">lost reply</text>
         </g>
         <g data-edge-from="extracted" data-edge-to="unfinished" data-edge-label="call fails" data-edge-key="11" data-edge-id="extracted-unfinished">
-          <rect x="584" y="110" width="72" height="16" rx="4" class="c-mask"/>
-          <text x="620" y="121.5" class="t-edge-security" font-size="10" text-anchor="middle">call fails</text>
+          <rect x="474" y="101" width="72" height="16" rx="4" class="c-mask"/>
+          <text x="510" y="112.5" class="t-edge-security" font-size="10" text-anchor="middle">call fails</text>
         </g>
         <g data-edge-from="unfinished" data-edge-to="ok" data-edge-label="retry" data-edge-key="12" data-edge-id="unfinished-ok">
-          <rect x="776.3" y="222" width="42" height="16" rx="4" class="c-mask"/>
-          <text x="797.3" y="233.5" class="t-edge-dashed" font-size="10" text-anchor="middle">retry</text>
+          <rect x="644.8" y="184" width="42" height="16" rx="4" class="c-mask"/>
+          <text x="665.8" y="195.5" class="t-edge-dashed" font-size="10" text-anchor="middle">retry</text>
         </g>
         <g data-edge-from="unfinished" data-edge-to="review" data-edge-label="retry" data-edge-key="13" data-edge-id="unfinished-review">
-          <rect x="974.05" y="388" width="42" height="16" rx="4" class="c-mask"/>
-          <text x="995.05" y="399.5" class="t-edge-dashed" font-size="10" text-anchor="middle">retry</text>
+          <rect x="773.55" y="310" width="42" height="16" rx="4" class="c-mask"/>
+          <text x="794.55" y="321.5" class="t-edge-dashed" font-size="10" text-anchor="middle">retry</text>
         </g>
         <g data-edge-from="unfinished" data-edge-to="duplicate" data-edge-label="retry" data-edge-key="14" data-edge-id="unfinished-duplicate">
-          <rect x="835.3" y="290" width="42" height="16" rx="4" class="c-mask"/>
-          <text x="856.3" y="301.5" class="t-edge-dashed" font-size="10" text-anchor="middle">retry</text>
+          <rect x="676.8199999999999" y="230" width="42" height="16" rx="4" class="c-mask"/>
+          <text x="697.8199999999999" y="241.5" class="t-edge-dashed" font-size="10" text-anchor="middle">retry</text>
         </g>
         <g data-edge-from="unfinished" data-edge-to="received" data-edge-label="resend the email" data-edge-key="15" data-edge-id="unfinished-received">
-          <rect x="553.3" y="222" width="108" height="16" rx="4" class="c-mask"/>
-          <text x="607.3" y="233.5" class="t-edge-dashed" font-size="10" text-anchor="middle">resend the email</text>
+          <rect x="421.79999999999995" y="183" width="108" height="16" rx="4" class="c-mask"/>
+          <text x="475.79999999999995" y="194.5" class="t-edge-dashed" font-size="10" text-anchor="middle">resend the email</text>
+        </g>
+        <g data-edge-from="review" data-edge-to="ok" data-edge-label="approved" data-edge-key="16" data-edge-id="review-ok">
+          <rect x="995" y="148" width="60" height="16" rx="4" class="c-mask"/>
+          <text x="1025" y="159.5" class="t-edge-dashed" font-size="10" text-anchor="middle">approved</text>
         </g>
 
         <!-- Legend -->
         <g data-legend="">
-          <text x="40" y="448" class="t-primary" font-size="12" font-weight="650">Legend</text>
-          <g data-legend-semantic-kind="start" data-legend-x="40" data-legend-baseline="468" data-legend-width="136">
-            <circle cx="44.5" cy="464.5" r="4.5" style="fill: var(--arrow-emphasis)"/><path d="M 49 464.5 L 58 464.5" class="a-emphasis" stroke-width="1.4"/><path d="M 57 461 L 64 464.5 L 57 468 Z" style="fill: var(--arrow-emphasis)"/>
-            <text x="74" y="468" class="t-muted" font-size="10" font-weight="500">initial state</text>
+          <text x="40" y="370" class="t-primary" font-size="12" font-weight="650">Legend</text>
+          <g data-legend-semantic-kind="start" data-legend-x="40" data-legend-baseline="390" data-legend-width="136">
+            <circle cx="44.5" cy="386.5" r="4.5" style="fill: var(--arrow-emphasis)"/><path d="M 49 386.5 L 58 386.5" class="a-emphasis" stroke-width="1.4"/><path d="M 57 383 L 64 386.5 L 57 390 Z" style="fill: var(--arrow-emphasis)"/>
+            <text x="74" y="390" class="t-muted" font-size="10" font-weight="500">initial state</text>
           </g>
-          <g data-legend-semantic-kind="active" data-legend-x="198" data-legend-baseline="468" data-legend-width="81">
-            <rect x="198" y="460" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
-            <text x="220" y="468" class="t-muted" font-size="10" font-weight="500">active</text>
+          <g data-legend-semantic-kind="active" data-legend-x="198" data-legend-baseline="390" data-legend-width="81">
+            <rect x="198" y="382" width="14" height="9" rx="2" class="c-frontend" stroke-width="1"/>
+            <text x="220" y="390" class="t-muted" font-size="10" font-weight="500">active</text>
           </g>
-          <g data-legend-semantic-kind="waiting" data-legend-x="301" data-legend-baseline="468" data-legend-width="87">
-            <rect x="301" y="460" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
-            <text x="323" y="468" class="t-muted" font-size="10" font-weight="500">waiting</text>
+          <g data-legend-semantic-kind="waiting" data-legend-x="301" data-legend-baseline="390" data-legend-width="87">
+            <rect x="301" y="382" width="14" height="9" rx="2" class="c-cloud" stroke-width="1"/>
+            <text x="323" y="390" class="t-muted" font-size="10" font-weight="500">waiting</text>
           </g>
-          <g data-legend-semantic-kind="decision" data-legend-x="410" data-legend-baseline="468" data-legend-width="93">
-            <rect x="410" y="460" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
-            <text x="432" y="468" class="t-muted" font-size="10" font-weight="500">decision</text>
+          <g data-legend-semantic-kind="decision" data-legend-x="410" data-legend-baseline="390" data-legend-width="93">
+            <rect x="410" y="382" width="14" height="9" rx="2" class="c-database" stroke-width="1"/>
+            <text x="432" y="390" class="t-muted" font-size="10" font-weight="500">decision</text>
           </g>
-          <g data-legend-semantic-kind="success" data-legend-x="525" data-legend-baseline="468" data-legend-width="87">
-            <rect x="525" y="460" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
-            <text x="547" y="468" class="t-muted" font-size="10" font-weight="500">success</text>
+          <g data-legend-semantic-kind="success" data-legend-x="525" data-legend-baseline="390" data-legend-width="87">
+            <rect x="525" y="382" width="14" height="9" rx="2" class="c-backend" stroke-width="1"/>
+            <text x="547" y="390" class="t-muted" font-size="10" font-weight="500">success</text>
           </g>
-          <g data-legend-semantic-kind="failure" data-legend-x="634" data-legend-baseline="468" data-legend-width="130">
-            <rect x="634" y="460" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
-            <text x="656" y="468" class="t-muted" font-size="10" font-weight="500">failure / exit</text>
+          <g data-legend-semantic-kind="failure" data-legend-x="634" data-legend-baseline="390" data-legend-width="130">
+            <rect x="634" y="382" width="14" height="9" rx="2" class="c-security" stroke-width="1"/>
+            <text x="656" y="390" class="t-muted" font-size="10" font-weight="500">failure / exit</text>
           </g>
-          <g data-legend-semantic-kind="neutral" data-legend-x="786" data-legend-baseline="468" data-legend-width="87">
-            <rect x="786" y="460" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
-            <text x="808" y="468" class="t-muted" font-size="10" font-weight="500">neutral</text>
+          <g data-legend-semantic-kind="neutral" data-legend-x="786" data-legend-baseline="390" data-legend-width="87">
+            <rect x="786" y="382" width="14" height="9" rx="2" class="c-external" stroke-width="1"/>
+            <text x="808" y="390" class="t-muted" font-size="10" font-weight="500">neutral</text>
           </g>
-          <g data-legend-semantic-kind="final" data-legend-x="895" data-legend-baseline="468" data-legend-width="93">
-            <rect x="895" y="460" width="14" height="9" rx="2" class="c-external" stroke-width="1"/><rect x="897.5" y="462.5" width="9" height="4" rx="1" class="c-external" style="fill: none" stroke-width="0.8"/>
-            <text x="919" y="468" class="t-muted" font-size="10" font-weight="500">final state</text>
+          <g data-legend-semantic-kind="final" data-legend-x="895" data-legend-baseline="390" data-legend-width="93">
+            <rect x="895" y="382" width="14" height="9" rx="2" class="c-external" stroke-width="1"/><rect x="897.5" y="384.5" width="9" height="4" rx="1" class="c-external" style="fill: none" stroke-width="0.8"/>
+            <text x="919" y="390" class="t-muted" font-size="10" font-weight="500">final state</text>
           </g>
         </g>
       </svg>

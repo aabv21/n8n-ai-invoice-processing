@@ -5255,6 +5255,7 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <path data-edge-from="process-invoice" data-edge-to="n8n-store" data-edge-label="run data" data-edge-key="8" data-edge-id="to-executions" data-composition-points="475,271;422.5,271;422.5,499;370,499" d="M 475 271 L 422.5 271 L 422.5 499 L 370 499" class="a-default" data-animate="edge" style="--step:8" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="process-invoice" data-edge-to="error-handler" data-edge-label="on failure" data-edge-key="9" data-edge-id="to-handler" data-composition-points="530,300;530,584" d="M 530 300 L 530 584" class="a-default" data-animate="edge" style="--step:9" stroke-width="1.4" marker-end="url(#arrowhead)"/>
         <path data-edge-from="error-handler" data-edge-to="gmail-out" data-edge-label="alert email" data-edge-key="10" data-edge-id="to-alert" data-composition-points="585,613;852.5,613;852.5,394;905,394" d="M 585 613 L 852.5 613 L 852.5 394 L 905 394" class="a-default" data-animate="edge" style="--step:10" stroke-width="1.4" marker-end="url(#arrowhead)"/>
+        <path data-edge-from="sheets" data-edge-to="postgres" data-edge-label="approved fields" data-edge-key="11" data-edge-id="approvals" data-composition-points="800,499;810,499;810,271;800,271" d="M 800 499 L 810 499 L 810 271 L 800 271" class="a-default" data-animate="edge" style="--step:11" stroke-width="1.4" marker-end="url(#arrowhead)"/>
 
         <!-- Nodes -->
         <g id="node-gmail-in" data-node-id="gmail-in" data-node-label="Gmail" tabindex="0" role="button" aria-label="Focus Gmail, 01 / Sources" aria-pressed="false" data-node-kind="external" data-node-context="01 / Sources">
@@ -5428,6 +5429,10 @@ OTHER DEALINGS IN THE FONT SOFTWARE.
         <g data-detail="context" data-edge-from="error-handler" data-edge-to="gmail-out" data-edge-label="alert email" data-edge-key="10" data-edge-id="to-alert">
           <rect x="819.55" y="482.5" width="65.9" height="16" rx="4" class="c-mask"/>
           <text x="852.5" y="493.5" class="t-edge-default" font-size="8" text-anchor="middle">alert email</text>
+        </g>
+        <g data-detail="context" data-edge-from="sheets" data-edge-to="postgres" data-edge-label="approved fields" data-edge-key="11" data-edge-id="approvals">
+          <rect x="755.25" y="324" width="85.5" height="16" rx="4" class="c-mask"/>
+          <text x="798" y="335" class="t-edge-default" font-size="8" text-anchor="middle">approved fields</text>
         </g>
 
         <!-- Legend -->

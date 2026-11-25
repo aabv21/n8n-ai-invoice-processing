@@ -257,6 +257,28 @@
       "to": "gmail-out",
       "label": "alert email",
       "variant": "default"
+    },
+    {
+      "id": "approvals",
+      "from": "sheets",
+      "to": "postgres",
+      "label": "approved fields",
+      "fromSide": "right",
+      "toSide": "right",
+      "via": [
+        [
+          810,
+          499
+        ],
+        [
+          810,
+          271
+        ]
+      ],
+      "labelAt": [
+        798,
+        335
+      ]
     }
   ],
   "cards": [

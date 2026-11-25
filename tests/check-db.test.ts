@@ -7,6 +7,7 @@ import {
   PROBES,
   probeScript,
   psqlLiteral,
+  ref,
   roleProblems,
   RUNTIME_GRANTS,
   workflowStatements,
@@ -100,6 +101,7 @@ describe('workflow statements', () => {
 
   it('finds every Postgres query node in workflows/', () => {
     expect(statements.map(key).sort()).toEqual([
+      'approve-invoice.json › Save approval',
       'daily-summary.json › Query summary',
       'intake-email.json › Record event',
       'process-invoice.json › Look up the original',
@@ -121,6 +123,10 @@ describe('workflow statements', () => {
 
   it('binds the Save invoice probe\'s thirteenth value, the AI cost', () => {
     expect(PROBES.find((p) => p.node === 'Save invoice')?.params[12]).toBe('0');
+  });
+
+  it('probes approve-invoice › Save approval with the saved probe invoice id, a JSON header, an approver and the email id', () => {
+    expect(PROBES.find((p) => p.node === 'Save approval')?.params).toEqual([ref('probe_invoice_id'), '{"supplier":"Probe"}', 'Probe', 'gm-check-db-probe']);
   });
 
   it('runs every probe as the workflow wrote it, inside one transaction it rolls back, in dependency order', () => {

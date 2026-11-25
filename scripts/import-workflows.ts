@@ -26,6 +26,15 @@ export function missingTriggerCredentials(wf: Workflow, available: ReadonlySet<s
   return missing;
 }
 
+/** `missingTriggerCredentials`, plus any credential the manifest says this workflow waits for, in order and without duplicates. */
+export function missingPublishCredentials(entry: WorkflowEntry, wf: Workflow, available: ReadonlySet<string>): string[] {
+  const missing = missingTriggerCredentials(wf, available);
+  for (const id of entry.holdUntil ?? []) {
+    if (!available.has(id) && !missing.includes(id)) missing.push(id);
+  }
+  return missing;
+}
+
 const WORKFLOWS_DIR = 'workflows';
 
 /**
@@ -52,7 +61,7 @@ async function publishWorkflows(available: ReadonlySet<string>): Promise<{ publi
     }
 
     const wf = readWorkflow(path);
-    const missing = missingTriggerCredentials(wf, available);
+    const missing = missingPublishCredentials(entry, wf, available);
     if (missing.length > 0) {
       const names = missing.map((id) => credentialNames.get(id) ?? id).join(', ');
       console.log(`hold ${entry.file}: needs ${names}`);

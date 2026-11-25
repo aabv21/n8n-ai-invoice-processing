@@ -183,6 +183,30 @@
                 ]
               },
               "renameOutput": true
+            },
+            {
+              "outputKey": "approve-invoice",
+              "conditions": {
+                "options": {
+                  "version": 2,
+                  "leftValue": "",
+                  "caseSensitive": true,
+                  "typeValidation": "strict"
+                },
+                "combinator": "and",
+                "conditions": [
+                  {
+                    "id": "40000000-0001-4000-8000-0000000a0107",
+                    "operator": {
+                      "type": "string",
+                      "operation": "equals"
+                    },
+                    "leftValue": "={{ $json.body.target }}",
+                    "rightValue": "approve-invoice"
+                  }
+                ]
+              },
+              "renameOutput": true
             }
           ]
         },
@@ -762,6 +786,89 @@
           "waitForSubWorkflow": true
         }
       }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000018",
+      "name": "Load config for approve-invoice",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        400,
+        1340
+      ],
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpLoadConfig001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {},
+          "schema": [],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": true
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000019",
+      "name": "Call approve-invoice",
+      "type": "n8n-nodes-base.executeWorkflow",
+      "typeVersion": 1.4,
+      "position": [
+        660,
+        1340
+      ],
+      "alwaysOutputData": true,
+      "parameters": {
+        "source": "database",
+        "workflowId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "mgpApproveOne001"
+        },
+        "mode": "once",
+        "workflowInputs": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "config": "={{ $json.config }}",
+            "row": "={{ $('Receive dev call').first().json.body.input.row }}"
+          },
+          "schema": [
+            {
+              "id": "config",
+              "displayName": "config",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "row",
+              "displayName": "row",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "object",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "matchingColumns": [],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "waitForSubWorkflow": true
+        }
+      }
     }
   ],
   "connections": {
@@ -821,6 +928,13 @@
         [
           {
             "node": "Call ensure-folder",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Load config for approve-invoice",
             "type": "main",
             "index": 0
           }
@@ -956,6 +1070,28 @@
       ]
     },
     "Call ensure-folder": {
+      "main": [
+        [
+          {
+            "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Load config for approve-invoice": {
+      "main": [
+        [
+          {
+            "node": "Call approve-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Call approve-invoice": {
       "main": [
         [
           {

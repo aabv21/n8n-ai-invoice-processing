@@ -204,3 +204,36 @@ export const ERROR_ALERT_STRINGS: Record<'en' | 'es', ErrorAlertStrings> = {
     time: 'Hora',
   },
 };
+
+interface ApprovalStrings {
+  /** "{reasons}" is the reasons' labels joined with "; ". */
+  rejected: string;
+  badId: string;
+  badApprover: string;
+  duplicate_key: string;
+  not_in_review: string;
+  not_found: string;
+  row_mismatch: string;
+}
+
+/** The note written to `approval_note` when a reviewer's approval is refused. */
+export const APPROVAL_STRINGS: Record<'en' | 'es', ApprovalStrings> = {
+  en: {
+    rejected: 'Not approved: {reasons}. Fix the cells and keep your name in approved_by.',
+    badId: 'Not approved: invoice_id must be the number this pipeline wrote.',
+    badApprover: 'Not approved: write your name, up to 100 characters, in approved_by.',
+    duplicate_key: 'Not approved: another invoice already has this supplier NIT and invoice number.',
+    not_in_review: 'Not approved: this invoice is not in review.',
+    not_found: 'Not approved: no saved invoice has this invoice_id.',
+    row_mismatch: "Not approved: invoice_id and email_id don't belong to the same invoice. Don't edit those two columns.",
+  },
+  es: {
+    rejected: 'No se aprobó: {reasons}. Corrija las celdas y deje su nombre en approved_by.',
+    badId: 'No se aprobó: invoice_id debe ser el número que escribió el sistema.',
+    badApprover: 'No se aprobó: escriba su nombre, de hasta 100 caracteres, en approved_by.',
+    duplicate_key: 'No se aprobó: otra factura ya tiene este NIT de proveedor y número de factura.',
+    not_in_review: 'No se aprobó: esta factura no está en revisión.',
+    not_found: 'No se aprobó: ninguna factura guardada tiene este invoice_id.',
+    row_mismatch: 'No se aprobó: invoice_id y email_id no corresponden a la misma factura. No edite esas dos columnas.',
+  },
+};
