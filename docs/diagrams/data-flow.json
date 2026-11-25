@@ -1,0 +1,282 @@
+{
+  "schema_version": 1,
+  "diagram_type": "dataflow",
+  "meta": {
+    "title": "Where invoice data goes",
+    "output": "docs/diagrams/data-flow.html",
+    "quality_profile": "showcase"
+  },
+  "stages": [
+    {
+      "label": "Sources"
+    },
+    {
+      "label": "Intake"
+    },
+    {
+      "label": "Process"
+    },
+    {
+      "label": "Stores and services"
+    },
+    {
+      "label": "Out"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "gmail-in",
+      "type": "external",
+      "label": "Gmail",
+      "stage": 0,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "config",
+      "type": "backend",
+      "label": "config.json",
+      "stage": 0,
+      "row": 0,
+      "width": 110
+    },
+    {
+      "id": "intake-email",
+      "type": "backend",
+      "label": "intake-email",
+      "stage": 1,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "process-invoice",
+      "type": "backend",
+      "label": "process-invoice",
+      "stage": 2,
+      "row": 1,
+      "width": 110
+    },
+    {
+      "id": "anthropic",
+      "type": "external",
+      "label": "Anthropic API",
+      "stage": 3,
+      "row": 0,
+      "brand": "anthropic",
+      "width": 120
+    },
+    {
+      "id": "postgres",
+      "type": "database",
+      "label": "Postgres",
+      "stage": 3,
+      "row": 1,
+      "brand": "postgresql",
+      "width": 110
+    },
+    {
+      "id": "drive",
+      "type": "external",
+      "label": "Google Drive",
+      "stage": 3,
+      "row": 2,
+      "width": 110
+    },
+    {
+      "id": "sheets",
+      "type": "external",
+      "label": "Google Sheets",
+      "stage": 3,
+      "row": 3,
+      "width": 110
+    },
+    {
+      "id": "gmail-out",
+      "type": "external",
+      "label": "Gmail",
+      "stage": 4,
+      "row": 2,
+      "width": 110
+    },
+    {
+      "id": "n8n-store",
+      "type": "database",
+      "label": "n8n executions",
+      "stage": 1,
+      "row": 3,
+      "width": 110
+    },
+    {
+      "id": "error-handler",
+      "type": "backend",
+      "label": "error-handler",
+      "stage": 2,
+      "row": 4,
+      "width": 110
+    }
+  ],
+  "flows": [
+    {
+      "id": "pdf-bytes",
+      "from": "gmail-in",
+      "to": "intake-email",
+      "label": "PDF bytes",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "new-pdfs",
+      "from": "intake-email",
+      "to": "process-invoice",
+      "label": "new PDFs",
+      "variant": "emphasis",
+      "route": "straight"
+    },
+    {
+      "id": "to-model",
+      "from": "process-invoice",
+      "to": "anthropic",
+      "label": "text or PDF",
+      "variant": "security",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          595,
+          271
+        ],
+        [
+          595,
+          157
+        ]
+      ],
+      "labelAt": [
+        641,
+        150
+      ]
+    },
+    {
+      "id": "to-db",
+      "from": "process-invoice",
+      "to": "postgres",
+      "label": "invoice",
+      "variant": "emphasis",
+      "fromSide": "right",
+      "toSide": "left",
+      "labelAt": [
+        657,
+        264
+      ]
+    },
+    {
+      "id": "to-drive",
+      "from": "process-invoice",
+      "to": "drive",
+      "label": "PDF file",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          607,
+          271
+        ],
+        [
+          607,
+          385
+        ]
+      ],
+      "labelAt": [
+        652,
+        378
+      ]
+    },
+    {
+      "id": "to-sheets",
+      "from": "process-invoice",
+      "to": "sheets",
+      "label": "rows",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "left",
+      "via": [
+        [
+          619,
+          271
+        ],
+        [
+          619,
+          499
+        ]
+      ],
+      "labelAt": [
+        654,
+        492
+      ]
+    },
+    {
+      "id": "to-mail",
+      "from": "postgres",
+      "to": "gmail-out",
+      "label": "daily report",
+      "variant": "default"
+    },
+    {
+      "id": "from-config",
+      "from": "config",
+      "to": "process-invoice",
+      "label": "IDs, limits",
+      "variant": "default",
+      "fromSide": "right",
+      "toSide": "top",
+      "channelX": 470
+    },
+    {
+      "id": "to-executions",
+      "from": "process-invoice",
+      "to": "n8n-store",
+      "label": "run data",
+      "variant": "default"
+    },
+    {
+      "id": "to-handler",
+      "from": "process-invoice",
+      "to": "error-handler",
+      "label": "on failure",
+      "variant": "default",
+      "fromSide": "bottom",
+      "toSide": "top",
+      "labelAt": [
+        530,
+        335
+      ]
+    },
+    {
+      "id": "to-alert",
+      "from": "error-handler",
+      "to": "gmail-out",
+      "label": "alert email",
+      "variant": "default"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "cyan",
+      "title": "What leaves the machine",
+      "items": [
+        "Only the PDF or its text goes to Anthropic, and the extracted fields come back",
+        "Google receives the PDF and the rows the team reads",
+        "Gmail carries the daily summary and error alerts"
+      ]
+    },
+    {
+      "dot": "emerald",
+      "title": "What stays, and for how long",
+      "items": [
+        "Postgres holds the invoice, its items and every event, kept indefinitely",
+        "n8n keeps each execution's data, including Gmail content, for 168 h",
+        "config.json is a local file, mounted read-only"
+      ]
+    }
+  ]
+}

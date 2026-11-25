@@ -6,6 +6,8 @@ A demo n8n workflow that reads supplier invoices from Gmail, extracts them with 
 
 ![Architecture: Gmail feeds gmail-entry and intake-email; process-invoice saves each invoice to Postgres, files the PDF in Google Drive, lists it in Google Sheets, and labels the email; extract-invoice calls Anthropic](docs/diagrams/architecture.svg)
 
+More views: the [invoice sequence](docs/diagrams/invoice-sequence.svg), the [lifecycle](docs/diagrams/invoice-lifecycle.svg) and [where the data goes](docs/diagrams/data-flow.svg). Each has an interactive page next to it (`.html`).
+
 ## What it does
 
 - Polls Gmail every minute for mail labeled `Invoices` with a PDF attachment, and records each attachment once, so a re-delivered email is never processed twice.

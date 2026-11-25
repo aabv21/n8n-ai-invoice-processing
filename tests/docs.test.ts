@@ -28,3 +28,34 @@ test('no doc uses a spaced em dash as punctuation', () => {
   const offenders = files.filter((file) => readFileSync(file, 'utf8').includes(' — '));
   expect(offenders).toEqual([]);
 });
+
+test("every diagram is referenced from the README, docs/architecture.md and the diagrams' own index", () => {
+  const images = readdirSync('docs/diagrams').filter((name) => name.endsWith('.svg'));
+  expect(images.length).toBeGreaterThanOrEqual(4);
+  const readme = readFileSync('README.md', 'utf8');
+  const architecture = readFileSync('docs/architecture.md', 'utf8');
+  const index = readFileSync('docs/diagrams/README.md', 'utf8');
+  for (const image of images) {
+    expect(readme, `README.md names ${image}`).toContain(image);
+    expect(architecture, `docs/architecture.md names ${image}`).toContain(image);
+    expect(index, `docs/diagrams/README.md lists ${image}`).toContain(image);
+  }
+});
+
+/** GitHub's heading slug: lowercase, punctuation dropped, spaces to hyphens. */
+function slug(heading: string): string {
+  return heading.toLowerCase().replace(/`/g, '').replace(/[^\p{L}\p{N} _-]/gu, '').replace(/ /g, '-');
+}
+
+test('every link with an anchor into a Markdown file points at a heading that exists', () => {
+  const files = ['README.md', 'AGENTS.md', 'CONTRIBUTING.md', 'SECURITY.md', ...markdownFiles('docs')];
+  for (const file of files) {
+    const text = readFileSync(file, 'utf8');
+    for (const [, target, anchor] of text.matchAll(/\]\(([^)#\s]*)#([^)\s]+)\)/g)) {
+      const path = target === '' ? file : join(dirname(file), target as string);
+      if (!path.endsWith('.md')) continue;
+      const headings = [...readFileSync(path, 'utf8').matchAll(/^#{1,6} (.+)$/gm)].map((m) => slug(m[1] as string));
+      expect(headings, `${file} links to ${path}#${anchor as string}`).toContain(anchor);
+    }
+  }
+});

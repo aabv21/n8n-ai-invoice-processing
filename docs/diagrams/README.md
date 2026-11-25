@@ -4,6 +4,8 @@ Edit only each `*.json` source, then regenerate its `*.html` page and `*.svg` ex
 
 - `architecture`: the system diagram. [source](architecture.json), [page](architecture.html), [image](architecture.svg).
 - `invoice-sequence`: the invoice sequence. [source](invoice-sequence.json), [page](invoice-sequence.html), [image](invoice-sequence.svg).
+- `invoice-lifecycle`: the states an invoice event passes through (type `lifecycle`). [source](invoice-lifecycle.json), [page](invoice-lifecycle.html), [image](invoice-lifecycle.svg).
+- `data-flow`: where invoice data goes (type `dataflow`). [source](data-flow.json), [page](data-flow.html), [image](data-flow.svg).
 
 `*.delivery.json` receipts (one per diagram, written by `archify deliver`) hold local absolute paths and are gitignored; never force-add one.
 
@@ -15,4 +17,4 @@ Regenerate a diagram after editing its source in `docs/diagrams/`, with [archify
   3. Open the page in a browser, choose **Export**, then **SVG**, and save over `docs/diagrams/architecture.svg`, which `README.md` and `docs/architecture.md` embed.
   4. Optionally, `node ../archify/archify/bin/archify.mjs visual-check docs/diagrams/architecture.html --json --out-dir ../archify-evidence` checks the page in a real browser at four desktop sizes, with screenshots outside the repo.
 
-  For the sequence diagram, run the same steps with type `sequence` and the `invoice-sequence` files.
+  For the other diagrams, run the same steps with their type (`sequence`, `lifecycle`, `dataflow`) and their own files.

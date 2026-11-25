@@ -4,7 +4,7 @@ This page traces one supplier invoice through the pipeline, from the Gmail poll 
 
 ![System architecture: Gmail feeds gmail-entry and intake-email; process-invoice saves to Postgres, files the PDF in Google Drive, writes Google Sheets rows, and labels the email; extract-invoice calls Anthropic](diagrams/architecture.svg)
 
-Both diagrams on this page come from JSON sources in `docs/diagrams/`. From each source, [archify](https://github.com/tt-a1i/archify) renders an SVG image and an interactive HTML page with search, focus, and light and dark themes, and [`docs/diagrams/README.md`](diagrams/README.md) lists the regeneration steps.
+The four diagrams on this page come from JSON sources in `docs/diagrams/`. From each source, [archify](https://github.com/tt-a1i/archify) renders an SVG image and an interactive HTML page with search, focus, and light and dark themes, and [`docs/diagrams/README.md`](diagrams/README.md) lists the regeneration steps.
 
 ## Context: who uses it and where it runs
 
@@ -68,6 +68,10 @@ The `dev-harness` workflow lets a developer run one sub-workflow without waiting
 The sequence diagram groups the path into seven bands, and the numbered steps below follow the same order:
 
 ![Invoice lifecycle: poll, idempotency gate, screens and extraction, Sonnet retry, replay-safe save, duplicate branch that reads back the original and labels it Duplicate or Review, then Drive, Sheets, label, and outcome](diagrams/invoice-sequence.svg)
+
+Each event ends in one outcome, or stays unfinished until someone recovers it (see [Recovering stuck events](operations.md#recovering-stuck-events)):
+
+![Invoice lifecycle: received, recorded, extracted, saved, then ok, with exits to dropped, skipped, duplicate, review and unfinished](diagrams/invoice-lifecycle.svg)
 
 1. **Poll**: Once a minute, the Gmail Trigger in `gmail-entry` searches for `label:invoices has:attachment filename:pdf -label:processed -label:review -label:duplicate`, read or unread. It sees only mail that arrived after its last poll, and it fetches at most 10 emails per poll, leaving the rest for later polls. `Hand to intake` passes the whole poll to `intake-email` in one call, with no field mapping, because that workflow accepts all data.
 2. **Idempotency gate**: `intake-email` loads `config.json` and checks it before anything else. It splits each email into one item per attachment and keeps the PDFs, by MIME type or a `.pdf` name in any letter case. `Record event` then inserts each attachment’s event, `<message id>:<attachment key>`, into `processed_events` with `ON CONFLICT DO NOTHING`. A known event comes back as a bare `{success: true}` item with no `event_id`, which `Keep new attachments` drops, so `process-invoice` runs once for each new attachment only. `Mark as PDF` then sets an attachment that Gmail typed `application/octet-stream` (let through by its `.pdf` name) to `application/pdf`, in both the item's `mime_type` and its binary, so a real PDF is stored in Drive as a PDF; the binary's data reference, name, and size stay as they are, and any other type passes through unchanged, so a non-PDF named `.pdf` fails extraction as `unreadable_pdf`. `Process invoice` calls `process-invoice` once per new attachment, one after the other, with its error output on, so by design one bad PDF fails only its own call and the remaining attachments still get theirs. That rests on n8n's per-item error output, pinned by the workflow tests; the README's live checks run it with two attachments. Every failed call then reaches `Fail the batch`, which fails `intake-email` once, naming how many attachments failed, so `error-handler` alerts for the batch even when a call failed before `process-invoice` started.
@@ -139,6 +143,7 @@ The default stack is one n8n process and one Postgres server. Each limit below n
 
 ## Security: untrusted documents, secrets, and retention
 
+![Where invoice data goes: Gmail, intake-email and process-invoice, then Anthropic, Postgres, Drive and Sheets, with the config file feeding process-invoice](diagrams/data-flow.svg)
 
 The pipeline treats every invoice as untrusted input: the model’s output is only ever data, and each value is bound, escaped, or written raw before it reaches SQL, HTML, or Sheets. Each control in detail:
 
