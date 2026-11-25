@@ -27,6 +27,16 @@ export function isBuyerTaxId(supplierTaxId: string, buyerTaxId: string): boolean
   return supplier === buyer || supplier === buyer.slice(0, -1) || buyer === supplier.slice(0, -1);
 }
 
+/** One reason per required field that is null, in the order of REQUIRED_FIELDS. */
+export function missingFieldReasons(invoice: NormalizedInvoice): ReviewReason[] {
+  const reasons: ReviewReason[] = [];
+  for (const [field, reason] of REQUIRED_FIELDS) {
+    // eslint-disable-next-line security/detect-object-injection -- field is one of this module's own fixed keys, not user input
+    if (invoice[field] === null) reasons.push(reason);
+  }
+  return reasons;
+}
+
 export function validateInvoice(invoice: NormalizedInvoice, rules: ValidationRules, today: string): ReviewReason[] {
   // A missing or malformed rule would otherwise make every comparison against it silently false
   // (`n > undefined` and `n < undefined` are both false), passing every invoice as ok.
@@ -38,12 +48,7 @@ export function validateInvoice(invoice: NormalizedInvoice, rules: ValidationRul
     throw new Error('validateInvoice: rules.buyer_tax_id must be a tax ID with at least one digit');
   }
 
-  const reasons: ReviewReason[] = [];
-
-  for (const [field, reason] of REQUIRED_FIELDS) {
-    // eslint-disable-next-line security/detect-object-injection -- field is one of this module's own fixed keys, not user input
-    if (invoice[field] === null) reasons.push(reason);
-  }
+  const reasons: ReviewReason[] = missingFieldReasons(invoice);
 
   if (invoice.supplier_tax_id !== null && isBuyerTaxId(invoice.supplier_tax_id, rules.buyer_tax_id)) {
     reasons.push('supplier_is_buyer');
