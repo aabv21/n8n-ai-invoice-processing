@@ -1,5 +1,6 @@
 // Validates the config just loaded from /files/config/config.json: a bad value fails loudly here,
 // before any node downstream reads it or an AI call runs. Pure: no I/O, no clock.
+import { normalizeTaxId } from './normalize-invoice.ts';
 import { isPlainObject } from './util.ts';
 
 export interface Config {
@@ -23,6 +24,8 @@ export interface Config {
     default_model: string;
     retry_model?: string;
     effort: 'low' | 'medium' | 'high';
+    /** The effort of the one retry; missing means 'medium'. */
+    retry_effort: 'low' | 'medium' | 'high';
   };
   extraction: {
     min_text_chars_per_page: number;
@@ -32,6 +35,8 @@ export interface Config {
   validation: {
     totals_tolerance: number;
     min_confidence: number;
+    /** The buyer's own tax ID: an invoice whose supplier carries it goes to review. */
+    buyer_tax_id: string;
   };
 }
 
@@ -101,6 +106,10 @@ export function checkConfig(config: unknown): Config {
   requireFiniteAtLeast('config.validation.totals_tolerance', validation.totals_tolerance, 0);
   requireNumberInRange('config.validation.min_confidence', validation.min_confidence, 0, 1);
 
+  if (typeof validation.buyer_tax_id !== 'string' || normalizeTaxId(validation.buyer_tax_id) === null) {
+    throw new Error("config.validation.buyer_tax_id must be the buyer's tax ID, such as 901.555.210-1");
+  }
+
   const extraction = asObject(root.extraction, 'config.extraction');
   for (const key of EXTRACTION_KEYS) {
     // eslint-disable-next-line security/detect-object-injection -- key is one of this module's own fixed keys, not user input
@@ -114,6 +123,12 @@ export function checkConfig(config: unknown): Config {
   }
   if (ai.retry_model !== undefined && typeof ai.retry_model !== 'string') {
     throw new Error("config.ai.retry_model must be a string ('' turns the retry off)");
+  }
+
+  if (ai.retry_effort === undefined) {
+    ai.retry_effort = 'medium';
+  } else if (typeof ai.retry_effort !== 'string' || !EFFORT_VALUES.includes(ai.retry_effort as (typeof EFFORT_VALUES)[number])) {
+    throw new Error(`config.ai.retry_effort must be one of ${EFFORT_VALUES.join(', ')}`);
   }
 
   const gmail = asObject(root.gmail, 'config.gmail');

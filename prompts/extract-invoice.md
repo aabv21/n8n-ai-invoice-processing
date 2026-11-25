@@ -19,6 +19,8 @@
 
 **Tax** is all taxes together (IVA and others).
 
+**Withholdings and discounts.** total is the invoice total before any withholding (ReteFuente, ReteIVA, ReteICA), never the net amount to pay. subtotal is the amount after discounts.
+
 **Line items:** one entry per printed line, in order.
 
-**Confidence:** 0 to 1, below 0.8 when any value was hard to read or ambiguous.
+**Confidence:** 0 to 1, lower when any value was hard to read or ambiguous.

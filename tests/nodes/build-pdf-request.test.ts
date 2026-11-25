@@ -27,6 +27,16 @@ test('a PDF exactly at the budget fits, and the next base64 block over it throws
   expect(() => { assertPdfFits(127_000_000); }).not.toThrow();
   expect(() => { assertPdfFits(127_000_004); }).toThrow('PDF too large for the Messages API');
 });
+test('assertPdfFits subtracts the base64 padding at the limit', () => {
+  // floor(127_000_002 * 3 / 4) = 95_250_001, one byte over the budget, so only the padding brings it under.
+  expect(() => { assertPdfFits(127_000_002, 0); }).toThrow();
+  expect(() => { assertPdfFits(127_000_002, 1); }).not.toThrow();
+  expect(() => { assertPdfFits(127_000_002, 2); }).not.toThrow();
+});
+test('run() reads a short base64 ending in == as two padding bytes', () => {
+  const out = run({ model: 'claude-haiku-5-5', effort: 'low', pdf_base64: 'QQ==', system, schema_json });
+  expect(JSON.stringify(out.body.messages)).toContain('"data":"QQ=="');
+});
 test('the error names the PDF size and the limit in MB', () =>
   expect(() => { assertPdfFits(128_000_000); })
     .toThrow('PDF too large for the Messages API: 96.0 MB PDF; the limit is about 95.3 MB of PDF'));

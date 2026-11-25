@@ -173,7 +173,7 @@
       "from": "process",
       "to": "extract",
       "y": 500,
-      "label": "review: Sonnet 5.5, same path",
+      "label": "model-dependent review: Sonnet 5.5, effort medium",
       "variant": "dashed"
     },
     {

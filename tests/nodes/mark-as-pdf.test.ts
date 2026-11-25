@@ -39,6 +39,12 @@ describe.each(variants)('Mark as PDF (%s)', (_label, mark) => {
     item.binary.attachment_0!.mimeType = 'application/pdf';
     expect(mark(structuredClone(item))).toEqual(item);
   });
+  test.each(['text/html', 'image/png'])('a %s attachment named .pdf keeps its own type', (mimeType) => {
+    const item = octetItem();
+    item.json.mime_type = mimeType;
+    item.binary.attachment_0!.mimeType = mimeType;
+    expect(mark(structuredClone(item))).toEqual(item);
+  });
   test('a missing binary fails loudly', () => {
     const item = octetItem();
     item.json.binary_key = 'attachment_9';

@@ -148,6 +148,23 @@ test('the skip reason names which limit was exceeded', () => {
   expect(skipReason).toContain('too_many_pages');
   expect(skipReason).toContain('too_much_text');
 });
+describe('Needs retry?', () => {
+  const left = () => (nodeOf(wf, 'Needs retry?').parameters.conditions as { conditions: { leftValue: string }[] }).conditions[0]!.leftValue;
+  const when = (json: Record<string, unknown>, ai: Record<string, unknown> = { retry_model: 'claude-sonnet-5-5' }) =>
+    evaluateExpression(left(), { json, nodes: { 'When called': { config: { ai } } } });
+  test("Needs retry? is false for a review the model can't change", () =>
+    expect(when({ status: 'review', retry: false })).toBe(false));
+  test('Needs retry? is true for a retryable review', () =>
+    expect(when({ status: 'review', retry: true })).toBe(true));
+  test('Needs retry? is false when the retry model is empty or missing', () => {
+    expect(when({ status: 'review', retry: true }, { retry_model: '' })).toBe(false);
+    expect(when({ status: 'review', retry: true }, {})).toBe(false);
+  });
+});
+test('the retry runs at retry_effort', () => {
+  const effort = (nodeOf(wf, 'Retry with stronger model').parameters.workflowInputs as { value: Record<string, string> }).value.effort;
+  expect(effort).toBe("={{ $('When called').first().json.config.ai.retry_effort }}");
+});
 test('a missing retry model is treated the same as an empty one', () => {
   // config.ai.retry_model turning the retry off is documented for an *empty* string; a config
   // that omits the key entirely must not read as "a retry model is configured".

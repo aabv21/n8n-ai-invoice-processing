@@ -186,10 +186,12 @@ export async function buildWorkflows(opts: {
       }
       const jsCode = wrapBundle(await bundleSource(entry.source), entry);
       const label = `${file} › ${entry.node}`;
-      if (node.parameters.jsCode === jsCode) continue;
+      const notes = `Why Code: ${entry.why}`;
+      if (node.parameters.jsCode === jsCode && node.notes === notes) continue;
 
       if (opts.write) {
         node.parameters.jsCode = jsCode;
+        node.notes = notes;
         dirty = true;
         updated.push(label);
       } else {

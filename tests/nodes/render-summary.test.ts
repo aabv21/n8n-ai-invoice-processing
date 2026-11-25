@@ -57,11 +57,9 @@ test('still sends a summary on an empty day', () => {
   // The window is the rolling 24 hours ending at the run, so the empty-day line must not claim "today".
   expect(out.html).toContain('No invoices arrived in the last 24 hours.');
 });
-// n8n prunes executions after 168 h, and a lost Record event response leaves no failed execution
-// at all, so the warning also points at AGENTS.md's recovery steps.
 test.each([[1, '1 invoice did not finish processing.'], [2, '2 invoices did not finish processing.']])(
   'warns about %i unfinished', (n, line) => expect(run({ ...day, unfinished: n }).html).toContain(
-    `${line} See n8n's failed executions, or the steps under "Recovering stuck events" in AGENTS.md.`));
+    `${line} Open n8n's failed executions, fix the cause, and retry them.`));
 
 const stuck = (i: number, fileName: string | null = `stuck-${String(i)}.pdf`) =>
   ({ event_id: `stuck-${String(i)}:attachment_0`, file_name: fileName, received_at: '2026-10-30 16:00' });
@@ -71,7 +69,7 @@ test('lists unfinished events with their file and Bogota time', () => {
   expect(html).toContain('<tr><th>File</th><th>Received (Bogota)</th><th>Event ID</th></tr>');
   expect(html).toContain('<tr><td>stuck-1.pdf</td><td>2026-10-30 16:00</td><td>stuck-1:attachment_0</td></tr>');
   // The table sits directly under the unfinished line.
-  expect(html).toMatch(/in AGENTS\.md\.<\/p>\n<table><thead><tr><th>File<\/th>/);
+  expect(html).toMatch(/retry them\.<\/p>\n<table><thead><tr><th>File<\/th>/);
 });
 test("escapes an unfinished event's file name", () => {
   const html = run({ ...day, unfinished: 1, unfinished_events: [stuck(1, '<img src=x>.pdf')] }).html;
@@ -89,10 +87,13 @@ test('caps the unfinished list at 20 and says how many more', () => {
 });
 test('says nothing more when the whole unfinished list is shown', () =>
   expect(run({ ...day, unfinished: 1, unfinished_events: [stuck(1)] }).html).not.toContain('more not shown'));
-test("points at AGENTS.md's recovery steps, in both languages", () => {
-  expect(run({ ...day, unfinished: 1, unfinished_events: [stuck(1)] }).html).toContain('"Recovering stuck events" in AGENTS.md');
+test("tells the reader to retry n8n's failed executions, in both languages", () => {
+  const en = run({ ...day, unfinished: 1, unfinished_events: [stuck(1)] }).html;
+  expect(en).toContain("1 invoice did not finish processing. Open n8n's failed executions, fix the cause, and retry them.");
+  expect(en).not.toContain('AGENTS.md');
   const es = run({ ...day, team_locale: 'es', unfinished: 1, unfinished_events: [stuck(1)] }).html;
-  expect(es).toContain('"Recovering stuck events" en AGENTS.md');
+  expect(es).toContain('Una factura no terminó de procesarse. Abra las ejecuciones fallidas en n8n, corrija la causa y reinténtelas.');
+  expect(es).not.toContain('AGENTS.md');
   expect(es).toContain('<tr><th>Archivo</th><th>Recibido (Bogotá)</th><th>ID del evento</th></tr>');
   expect(es).not.toContain('README');
 });
@@ -150,7 +151,7 @@ test.each([
   [2, '2 facturas no terminaron de procesarse.'],
 ])('renders the Spanish unfinished line for %i', (n, line) =>
   expect(run({ ...day, team_locale: 'es', unfinished: n }).html).toContain(
-    `${line} Consulte las ejecuciones fallidas de n8n o los pasos de "Recovering stuck events" en AGENTS.md.`));
+    `${line} Abra las ejecuciones fallidas en n8n, corrija la causa y reinténtelas.`));
 
 test('formats COP and USD totals with Spanish (es-CO) separators', () => {
   const html = run({ ...day, team_locale: 'es' }).html;

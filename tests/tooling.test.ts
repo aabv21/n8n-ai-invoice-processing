@@ -6,7 +6,7 @@ import { buildWorkflows, hardenAgainstFrozenDefineProperty, wrapBundle } from '.
 import { checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows.ts';
 import { normalizeWorkflow } from '../scripts/export-workflows.ts';
 import { missingTriggerCredentials } from '../scripts/import-workflows.ts';
-import { listJsonFiles, readWorkflow, type Workflow, type WorkflowNode } from '../scripts/lib/workflow.ts';
+import { listJsonFiles, readWorkflow, writeWorkflow, type Workflow, type WorkflowNode } from '../scripts/lib/workflow.ts';
 import { CONFIG_LOADER_ID, CREDENTIALS } from '../scripts/manifest.ts';
 import { buildCredentials, buildImportCall, EXPORT_SCRIPT, existingCredentialIds, IMPORT_SCRIPT, skipExisting } from '../scripts/setup-credentials.ts';
 import { runGenerated } from './helpers/run-generated.ts';
@@ -49,6 +49,11 @@ test('literal email, phone, long id and secret are rejected', () => {
   for (const m of [/literal email/, /literal phone/, /literal long id/, /secret-like value/]) expect(errors(fx('leaky'))).toMatch(m);
 });
 test('unknown credential is rejected', () => expect(errors(fx('bad-credential'))).toMatch(/credential nope not in manifest/));
+test('check flags a Code node without a Why Code note', () => {
+  const clean = fx('clean');
+  const wf = { ...clean, nodes: clean.nodes.map((n) => (n.name === 'Double value' ? { ...n, notes: undefined } : n)) };
+  expect(checkWorkflow(wf, opts)).toEqual(['code node Double value must have a notes field starting with Why Code:']);
+});
 test('code node needs a Why Code line', () => expect(errors(fx('no-why'))).toMatch(/must start with \/\/ Why Code:/));
 test('hand-written code node is rejected', () =>
   expect(checkWorkflow(fx('clean'), { ...opts, generatedNodes: new Set() }).join('\n'))
@@ -156,6 +161,15 @@ test('generated code still exports run when Object.defineProperty is frozen, lik
 });
 test('hardenAgainstFrozenDefineProperty rejects a bundle without the expected esbuild helper', () =>
   expect(() => hardenAgainstFrozenDefineProperty('var x = 1;')).toThrow(/esbuild output didn't contain/));
+test("the build writes each Code node's note from its manifest reason", async () => {
+  const dir = tempCopy();
+  const before = nodeIn(dir, 'Double value');
+  before.notes = 'stale';
+  writeWorkflow(join(dir, 'clean.json'), { ...readWorkflow(join(dir, 'clean.json')), nodes: readWorkflow(join(dir, 'clean.json')).nodes.map((n) => (n.name === 'Double value' ? before : n)) });
+  expect((await buildWorkflows({ dir, entries: [entry], write: false })).stale).toEqual(['clean.json › Double value']);
+  await buildWorkflows({ dir, entries: [entry], write: true });
+  expect(nodeIn(dir, 'Double value').notes).toBe('Why Code: fixture');
+});
 test('generated code carries the header and footer', async () => {
   const lines = (await built()).trimEnd().split('\n');
   expect(lines[0]).toBe('// Why Code: fixture. Generated from tests/fixtures/nodes/double-value.ts by pnpm run build:workflows; edit the source.');
