@@ -10,6 +10,10 @@ interface SampleLine {
   description: string;
   quantity: number;
   unit_price: number;
+  /** Overrides the invoice's `tax_rate` for this line (mixed IVA rates). */
+  tax_rate?: number;
+  /** A discount rate printed on the line; the line's total is after it. */
+  discount?: number;
 }
 
 export interface SampleInvoice {
@@ -28,6 +32,13 @@ export interface SampleInvoice {
   lines_per_page: number;
   printed_total?: number;
   scanned?: boolean;
+  /** What the page is; a quote is not an invoice, so the model must leave its number null. */
+  kind?: 'invoice' | 'credit_note' | 'quote';
+  /** Who the page is billed to; defaults to `BUYER`. */
+  bill_to?: { name: string; tax_id_printed: string; address: string };
+  /** A withholding printed after the total; the total itself stays the pre-withholding amount. */
+  withholding?: { label: string; rate: number };
+  expected_reasons?: ReviewReason[];
 }
 
 export interface SampleExpectation {
@@ -152,18 +163,148 @@ export const SAMPLES: readonly SampleInvoice[] = [
   },
 ];
 
+const EVAL_DEFAULTS = {
+  currency: 'COP',
+  date_style: 'iso',
+  lines_per_page: 10,
+  issue_offset_days: -20,
+  due_offset_days: 10,
+} as const;
+
+/** Harder Colombian invoices for `pnpm run eval`; see the README's evaluation set. */
+export const EVAL_SAMPLES: readonly SampleInvoice[] = [
+  {
+    ...EVAL_DEFAULTS,
+    file: 'eval-01-credit-note.pdf',
+    supplier: 'Bolsamar Empaques S.A.S.',
+    supplier_tax_id_printed: '901.384.552-2',
+    supplier_address: 'Carrera 51B # 72-29, Barranquilla',
+    invoice_number: 'NC-0312',
+    kind: 'credit_note',
+    tax_label: 'IVA 19%',
+    tax_rate: 0.19,
+    lines: [{ description: 'Return: Corrugated box 40x30x30 cm', quantity: -100, unit_price: 1800 }],
+    expected_reasons: ['non_positive_total'],
+  },
+  {
+    ...EVAL_DEFAULTS,
+    file: 'eval-02-mixed-iva.pdf',
+    supplier: 'Pradomar Alimentos S.A.S.',
+    supplier_tax_id_printed: '900.418.226-9',
+    supplier_address: 'Calle 72 # 54-30, Barranquilla',
+    invoice_number: 'PA-7781',
+    tax_label: 'IVA',
+    tax_rate: 0.19,
+    lines: [
+      { description: 'White rice 25 kg bag', quantity: 10, unit_price: 98000, tax_rate: 0.05 },
+      { description: 'Sunflower oil 3 L', quantity: 20, unit_price: 31500, tax_rate: 0.19 },
+    ],
+  },
+  {
+    ...EVAL_DEFAULTS,
+    file: 'eval-03-withholding.pdf',
+    supplier: 'Transribera Carga S.A.S.',
+    supplier_tax_id_printed: '901.263.407-1',
+    supplier_address: 'Vía 40 # 85-12, Barranquilla',
+    invoice_number: 'TR-1205',
+    tax_label: 'IVA 19%',
+    tax_rate: 0.19,
+    lines: [{ description: 'Freight Barranquilla–Cartagena', quantity: 2, unit_price: 850000 }],
+    withholding: { label: 'ReteFuente 3.5%', rate: 0.035 },
+  },
+  {
+    ...EVAL_DEFAULTS,
+    file: 'eval-04-quotation.pdf',
+    supplier: 'Marbetaria S.A.S.',
+    supplier_tax_id_printed: '900.612.498-6',
+    supplier_address: 'Calle 17 # 41-26, Barranquilla',
+    invoice_number: 'COT-2290',
+    kind: 'quote',
+    tax_label: 'IVA 19%',
+    tax_rate: 0.19,
+    lines: [{ description: 'Thermal labels 100x150 mm (roll)', quantity: 30, unit_price: 18000 }],
+    expected_reasons: ['missing_invoice_number'],
+  },
+  {
+    ...EVAL_DEFAULTS,
+    file: 'eval-05-accented-scan.pdf',
+    supplier: 'Distribuidora Cañaveral – Café Ñandú S.A.S.',
+    supplier_tax_id_printed: '900.581.034-8',
+    supplier_address: 'Calle 30 # 8-45, Santa Marta',
+    invoice_number: 'DC-0448',
+    tax_label: 'IVA 5%',
+    tax_rate: 0.05,
+    lines: [
+      { description: 'Café tostado 500 g', quantity: 40, unit_price: 16900 },
+      { description: 'Panela orgánica 1 kg', quantity: 25, unit_price: 5200 },
+    ],
+    scanned: true,
+  },
+  {
+    ...EVAL_DEFAULTS,
+    file: 'eval-06-magdaport-as-supplier.pdf',
+    supplier: BUYER.name,
+    supplier_tax_id_printed: BUYER.tax_id_printed,
+    supplier_address: BUYER.address,
+    invoice_number: 'MG-0091',
+    tax_label: 'IVA 19%',
+    tax_rate: 0.19,
+    lines: [{ description: 'Pallet storage, monthly', quantity: 1, unit_price: 450000 }],
+    bill_to: { name: 'Tiendas La Ribera S.A.S.', tax_id_printed: '900.733.418-6', address: 'Carrera 46 # 70-15, Barranquilla' },
+    expected_reasons: ['supplier_is_buyer'],
+  },
+  {
+    ...EVAL_DEFAULTS,
+    file: 'eval-07-line-discount.pdf',
+    supplier: 'Aceros del Caribe S.A.S.',
+    supplier_tax_id_printed: '900.274.835-5',
+    supplier_address: 'Zona Franca, Bodega 14, Barranquilla',
+    invoice_number: 'AC-3310',
+    tax_label: 'IVA 19%',
+    tax_rate: 0.19,
+    lines: [
+      { description: 'Steel rebar 12 mm', quantity: 50, unit_price: 38000, discount: 0.1 },
+      { description: 'Welding wire spool', quantity: 10, unit_price: 64000 },
+    ],
+  },
+];
+
 export const COPY_OF_FIRST = 'invoice-06-copy-of-01.pdf';
 
 function round2(amount: number): number {
   return Math.round(amount * 100) / 100;
 }
 
+/** A line's amount as the page prints it: after the line's own discount. */
+export function lineTotalOf(line: SampleLine): number {
+  return round2(line.quantity * line.unit_price * (1 - (line.discount ?? 0)));
+}
+
 export function subtotalOf(sample: SampleInvoice): number {
-  return round2(sample.lines.reduce((sum, line) => sum + line.quantity * line.unit_price, 0));
+  return round2(sample.lines.reduce((sum, line) => sum + (line.discount === undefined ? line.quantity * line.unit_price : lineTotalOf(line)), 0));
 }
 
 export function taxOf(sample: SampleInvoice): number {
-  return round2(subtotalOf(sample) * sample.tax_rate);
+  if (!sample.lines.some((line) => line.tax_rate !== undefined)) return round2(subtotalOf(sample) * sample.tax_rate);
+  return round2(sample.lines.reduce((sum, line) => sum + round2(lineTotalOf(line) * (line.tax_rate ?? sample.tax_rate)), 0));
+}
+
+/** The tax rows the page prints: one for a single rate, one per distinct line rate (ascending) otherwise. */
+export function taxLinesOf(sample: SampleInvoice): { label: string; amount: number }[] {
+  if (!sample.lines.some((line) => line.tax_rate !== undefined)) return [{ label: sample.tax_label, amount: taxOf(sample) }];
+  const byRate = new Map<number, number>();
+  for (const line of sample.lines) {
+    const rate = line.tax_rate ?? sample.tax_rate;
+    byRate.set(rate, (byRate.get(rate) ?? 0) + round2(lineTotalOf(line) * rate));
+  }
+  return [...byRate.entries()]
+    .sort(([a], [b]) => a - b)
+    .map(([rate, amount]) => ({ label: `IVA ${String(Math.round(rate * 100))}%`, amount: round2(amount) }));
+}
+
+/** The withholding printed after the total, 0 when there is none. */
+export function withholdingOf(sample: SampleInvoice): number {
+  return sample.withholding === undefined ? 0 : round2(subtotalOf(sample) * sample.withholding.rate);
 }
 
 /** The arithmetically correct total, regardless of what the page prints. */
@@ -195,9 +336,11 @@ function rawExtraction(sample: SampleInvoice, baseDate: string): unknown {
   return {
     supplier: sample.supplier,
     supplier_tax_id: `${taxIdLabel(sample.currency)} ${sample.supplier_tax_id_printed}`,
-    invoice_number: sample.invoice_number,
+    // A quotation is not an invoice: the prompt tells the model to leave its number null, and a quote
+    // prints "Valid until" instead of a due date, so there is no due date to read.
+    invoice_number: sample.kind === 'quote' ? null : sample.invoice_number,
     issue_date: offsetDate(baseDate, sample.issue_offset_days),
-    due_date: offsetDate(baseDate, sample.due_offset_days),
+    due_date: sample.kind === 'quote' ? null : offsetDate(baseDate, sample.due_offset_days),
     currency: sample.currency,
     subtotal: subtotalOf(sample),
     tax: taxOf(sample),
@@ -206,7 +349,7 @@ function rawExtraction(sample: SampleInvoice, baseDate: string): unknown {
       description: line.description,
       quantity: line.quantity,
       unit_price: line.unit_price,
-      line_total: round2(line.quantity * line.unit_price),
+      line_total: lineTotalOf(line),
     })),
   };
 }
@@ -220,16 +363,21 @@ function expectationFor(sample: SampleInvoice, baseDate: string): SampleExpectat
     received_at: `${baseDate}T12:00:00Z`,
     event_id: 'unused',
   });
-  const reviewing = sample.printed_total !== undefined;
+  const reasons: ReviewReason[] | undefined =
+    sample.expected_reasons ?? (sample.printed_total === undefined ? undefined : ['totals_mismatch']);
 
   const base: SampleExpectation = {
     file: sample.file,
-    outcome: reviewing ? 'review' : 'ok',
+    outcome: reasons === undefined ? 'ok' : 'review',
     path: sample.scanned ? 'vision' : 'text',
     invoice,
     drive_file_name: name,
   };
-  return reviewing ? { ...base, review_reasons_include: ['totals_mismatch'] } : base;
+  return reasons === undefined ? base : { ...base, review_reasons_include: reasons };
+}
+
+export function evalExpectations(baseDate: string): SampleExpectation[] {
+  return EVAL_SAMPLES.map((sample) => expectationFor(sample, baseDate));
 }
 
 export function expectations(baseDate: string): SampleExpectation[] {

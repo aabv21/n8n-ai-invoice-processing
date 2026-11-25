@@ -49,3 +49,7 @@ test('prompt contains no braces', () => expect(prompt).not.toMatch(/[{}]/));
 test('schema text passes the hygiene scan too', () => {
   expect(schemaText).not.toMatch(/\d{10}|@/);
 });
+
+test('the prompt nulls the number of a document that is not an invoice', () => {
+  expect(prompt).toContain('set invoice_number to null');
+});
