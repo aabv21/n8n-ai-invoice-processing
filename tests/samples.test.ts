@@ -3,18 +3,14 @@ import { readFileSync } from 'node:fs';
 import { getDocument, OPS } from 'pdfjs-dist/legacy/build/pdf.mjs';
 import { expect, test } from 'vitest';
 import { invoiceFileName } from '../src/lib/file-name.ts';
+import { pdfText } from '../scripts/lib/pdf-text.ts';
 import { renderInvoicePdf, renderPage } from '../scripts/lib/invoice-pdf.ts';
 import { BUYER, COPY_OF_FIRST, EVAL_SAMPLES, SAMPLES, evalExpectations, type SampleExpectation } from '../scripts/lib/sample-invoices.ts';
 
 const expected = JSON.parse(readFileSync('samples/expected.json', 'utf8')) as { base_date: string; samples: SampleExpectation[] };
 const bytes = (file: string) => new Uint8Array(readFileSync(`samples/${file}`));
 const open = (file: string) => getDocument({ data: bytes(file) }).promise;
-const textOf = async (file: string) => {
-  const doc = await open(file);
-  const pages = await Promise.all(Array.from({ length: doc.numPages }, async (_, i) =>
-    (await (await doc.getPage(i + 1)).getTextContent()).items.map((x) => ('str' in x ? x.str : '')).join(' ')));
-  return pages.join('\n');
-};
+const textOf = async (file: string) => pdfText(bytes(file));
 const sha = (file: string) => createHash('sha256').update(bytes(file)).digest('hex');
 const dianCheckDigit = (digits: string): number => {
   const weights = [3, 7, 13, 17, 19, 23, 29, 37, 41, 43, 47, 53, 59, 67, 71];
@@ -92,12 +88,7 @@ test('accented supplier names survive the text layer', async () => {
 const evalExpected = JSON.parse(readFileSync('samples/eval/expected.json', 'utf8')) as { base_date: string; samples: SampleExpectation[] };
 const dots = (n: number) => String(n).split('').reverse().map((d, i) => (i > 0 && i % 3 === 0 ? `${d}.` : d)).reverse().join('');
 const evalSample = (n: number) => evalExpected.samples[n - 1]!;
-const evalText = async (file: string) => {
-  const doc = await getDocument({ data: new Uint8Array(readFileSync(`samples/eval/${file}`)) }).promise;
-  const pages = await Promise.all(Array.from({ length: doc.numPages }, async (_, i) =>
-    (await (await doc.getPage(i + 1)).getTextContent()).items.map((x) => ('str' in x ? x.str : '')).join(' ')));
-  return pages.join('\n');
-};
+const evalText = async (file: string) => pdfText(new Uint8Array(readFileSync(`samples/eval/${file}`)));
 
 const money = (n: number) => `${n < 0 ? '-' : ''}$ ${dots(Math.abs(n))}`;
 test('each evaluation sample reads back its printed fields', async () => {
