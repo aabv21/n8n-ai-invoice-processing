@@ -32,6 +32,7 @@ export const REASON_LABELS: Record<'en' | 'es', Record<ReviewReason, string>> = 
     low_confidence: 'Low reading confidence',
     too_many_pages: 'Too many pages',
     too_much_text: 'Too much text',
+    ai_budget_exceeded: 'Daily AI budget reached',
     unreadable_pdf: "The PDF can't be read",
   },
   es: {
@@ -60,6 +61,7 @@ export const REASON_LABELS: Record<'en' | 'es', Record<ReviewReason, string>> = 
     low_confidence: 'Lectura poco confiable',
     too_many_pages: 'Demasiadas páginas',
     too_much_text: 'Demasiado texto',
+    ai_budget_exceeded: 'Se alcanzó el presupuesto diario de IA',
     unreadable_pdf: 'PDF ilegible',
   },
 };

@@ -140,6 +140,7 @@ export const PROBES: readonly Probe[] = [
   { file: 'process-invoice.json', node: 'Look up the original', params: ['9999999999', 'CHECK-DB-PROBE'] },
   { file: 'process-invoice.json', node: 'Record duplicate', params: [PROBE_EVENT, 'duplicate', ref('probe_invoice_id')] },
   { file: 'process-invoice.json', node: 'Save Drive link', params: [ref('probe_invoice_id'), 'check-db-probe-file-id', 'https://drive.google.com/file/d/check-db-probe/view'] },
+  { file: 'process-invoice.json', node: 'Record AI cost', params: [PROBE_EVENT, '0.004'] },
   { file: 'process-invoice.json', node: 'Record outcome', params: [PROBE_EVENT, 'ok', ref('probe_invoice_id')] },
   { file: 'daily-summary.json', node: 'Query summary', params: ['2026-01-01T00:00:00Z'] },
 ];

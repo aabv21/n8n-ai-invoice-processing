@@ -19,6 +19,11 @@ test('one failing invoice does not stop the others', () => expect(nodeOf(wf, 'Pr
   onError: 'continueErrorOutput',
   parameters: { mode: 'each', workflowId: { value: 'mgpProcessInv001' }, options: { waitForSubWorkflow: true } } }));
 
+test("Process invoice passes the day's AI spend from Record event", () => {
+  const value = (nodeOf(wf, 'Process invoice').parameters.workflowInputs as { value: Record<string, string> }).value.ai_spent_usd;
+  expect(evaluateExpression(value!, { json: { ai_spent_usd: 1.25 } })).toBe(1.25);
+});
+
 // Gmail can send a PDF as application/octet-stream; Keep PDFs lets it through by its .pdf name,
 // and Mark as PDF relabels it so Drive stores it as a PDF.
 test('every new attachment is marked as a PDF before Process invoice', () => {

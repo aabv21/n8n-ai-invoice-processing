@@ -282,7 +282,8 @@
             "message_id": "={{ $json.message_id }}",
             "binary_key": "={{ $json.binary_key }}",
             "file_name": "={{ $json.file_name }}",
-            "received_at": "={{ $json.received_at }}"
+            "received_at": "={{ $json.received_at }}",
+            "ai_spent_usd": "={{ $json.ai_spent_usd }}"
           },
           "schema": [
             {
@@ -337,6 +338,15 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_spent_usd",
+              "displayName": "ai_spent_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
               "canBeUsedToMatch": true
             }
           ],

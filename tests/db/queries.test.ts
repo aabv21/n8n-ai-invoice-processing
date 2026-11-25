@@ -88,6 +88,20 @@ test("a duplicate's extraction cost counts toward today's spend", async () => {
   const [row] = await db.run<{ ai_spent_usd: number }>('record-event.sql', ['m3:attachment_0', 'c.pdf']);
   expect(row?.ai_spent_usd).toBe(0.5);
 });
+test('a record-cost with no saved invoice still counts toward today\'s spend, and never lowers a higher figure', async () => {
+  await db.run('record-event.sql', ['m1:attachment_0', 'a.pdf']);
+  await db.run('record-cost.sql', ['m1:attachment_0', 0.004]);
+  await db.run('record-cost.sql', ['m1:attachment_0', 0.001]);
+  const [row] = await db.run<{ ai_spent_usd: number }>('record-event.sql', ['m2:attachment_0', 'b.pdf']);
+  expect(row?.ai_spent_usd).toBe(0.004);
+});
+test("record-event returns today's Bogota-day AI spend as a number", async () => {
+  await save('m1:attachment_0', VALID_INVOICE, 'ok', 0.5);
+  await save('m2:attachment_0', { ...VALID_INVOICE, invoice_number: 'BE-9' }, 'ok', 1);
+  await db.sql("UPDATE processed_events SET received_at = now() - interval '2 days' WHERE event_id = 'm2:attachment_0'");
+  const [row] = await db.run<{ ai_spent_usd: unknown }>('record-event.sql', ['m3:attachment_0', 'c.pdf']);
+  expect(row?.ai_spent_usd).toBe(0.5);
+});
 test('a second event with the same supplier tax ID and number is a duplicate', async () => {
   const first = await save('m1:attachment_0');
   const row = await save('m2:attachment_0');

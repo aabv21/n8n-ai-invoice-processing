@@ -168,6 +168,7 @@ export const TEXT_PARAMS: readonly TextParamEntry[] = [
   { file: 'process-invoice.json', node: 'Record duplicate', parameter: 'query', source: 'db/queries/record-outcome.sql' },
   { file: 'process-invoice.json', node: 'Save Drive link', parameter: 'query', source: 'db/queries/save-drive-link.sql' },
   { file: 'process-invoice.json', node: 'Record outcome', parameter: 'query', source: 'db/queries/record-outcome.sql' },
+  { file: 'process-invoice.json', node: 'Record AI cost', parameter: 'query', source: 'db/queries/record-cost.sql' },
   { file: 'intake-email.json', node: 'Record event', parameter: 'query', source: 'db/queries/record-event.sql' },
   { file: 'daily-summary.json', node: 'Query summary', parameter: 'query', source: 'db/queries/daily-summary.sql' },
 ];

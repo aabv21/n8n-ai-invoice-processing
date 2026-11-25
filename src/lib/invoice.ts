@@ -27,9 +27,10 @@ export type ReviewReason =
   | 'low_confidence'
   | 'too_many_pages'
   | 'too_much_text'
-  | 'unreadable_pdf';
+  | 'unreadable_pdf'
+  | 'ai_budget_exceeded';
 
-export type SkipReason = Extract<ReviewReason, 'too_many_pages' | 'too_much_text' | 'unreadable_pdf'>;
+export type SkipReason = Extract<ReviewReason, 'too_many_pages' | 'too_much_text' | 'unreadable_pdf' | 'ai_budget_exceeded'>;
 
 export interface LineItem {
   line_no: number;

@@ -39,6 +39,10 @@
             {
               "name": "received_at",
               "type": "string"
+            },
+            {
+              "name": "ai_spent_usd",
+              "type": "number"
             }
           ]
         }
@@ -140,7 +144,7 @@
       "type": "n8n-nodes-base.set",
       "typeVersion": 3.5,
       "position": [
-        520,
+        800,
         700
       ],
       "parameters": {
@@ -176,7 +180,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        520,
+        800,
         300
       ],
       "parameters": {
@@ -199,7 +203,8 @@
             "binary_key": "={{ $json.binary_key }}",
             "rules": "={{ $('When called').first().json.config.validation }}",
             "today": "={{ $now.toISODate() }}",
-            "attempt": 1
+            "attempt": 1,
+            "prior_cost_usd": 0
           },
           "schema": [
             {
@@ -291,6 +296,15 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "prior_cost_usd",
+              "displayName": "prior_cost_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
             }
           ],
           "matchingColumns": [],
@@ -308,7 +322,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        800,
+        1080,
         300
       ],
       "parameters": {
@@ -328,7 +342,7 @@
                 "operation": "true",
                 "singleValue": true
               },
-              "leftValue": "={{ $json.retry === true && ($('When called').first().json.config.ai.retry_model ?? '') !== '' }}",
+              "leftValue": "={{ $json.retry === true && ($('When called').first().json.config.ai.retry_model ?? '') !== '' && $('When called').first().json.ai_spent_usd + $json.cost_usd < $('When called').first().json.config.ai.daily_budget_usd }}",
               "rightValue": ""
             }
           ]
@@ -342,7 +356,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        1080,
+        1360,
         620
       ],
       "parameters": {
@@ -366,7 +380,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        1360,
+        1640,
         620
       ],
       "parameters": {
@@ -389,7 +403,8 @@
             "binary_key": "={{ $json.binary_key }}",
             "rules": "={{ $('When called').first().json.config.validation }}",
             "today": "={{ $now.toISODate() }}",
-            "attempt": 2
+            "attempt": 2,
+            "prior_cost_usd": "={{ $json.cost_usd }}"
           },
           "schema": [
             {
@@ -481,6 +496,15 @@
               "display": true,
               "type": "number",
               "canBeUsedToMatch": true
+            },
+            {
+              "id": "prior_cost_usd",
+              "displayName": "prior_cost_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
             }
           ],
           "matchingColumns": [],
@@ -498,7 +522,7 @@
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "position": [
-        1640,
+        1920,
         460
       ],
       "notes": "Why Code: turns every extraction outcome into one record and builds the Drive file name",
@@ -514,7 +538,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        1920,
+        2200,
         460
       ],
       "retryOnFail": true,
@@ -541,7 +565,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        2200,
+        2480,
         460
       ],
       "parameters": {
@@ -575,7 +599,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        2340,
+        2620,
         280
       ],
       "retryOnFail": true,
@@ -602,7 +626,7 @@
       "type": "n8n-nodes-base.if",
       "typeVersion": 2.4,
       "position": [
-        2480,
+        2760,
         280
       ],
       "parameters": {
@@ -656,7 +680,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2620,
+        2900,
         160
       ],
       "retryOnFail": true,
@@ -681,7 +705,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        2620,
+        2900,
         280
       ],
       "retryOnFail": true,
@@ -706,7 +730,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        2900,
+        3180,
         280
       ],
       "retryOnFail": true,
@@ -733,7 +757,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        2480,
+        2760,
         620
       ],
       "parameters": {
@@ -785,7 +809,7 @@
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        2760,
+        3040,
         620
       ],
       "parameters": {
@@ -837,7 +861,7 @@
       "type": "n8n-nodes-base.merge",
       "typeVersion": 3.2,
       "position": [
-        3040,
+        3320,
         620
       ],
       "parameters": {
@@ -861,7 +885,7 @@
       "type": "n8n-nodes-base.googleDrive",
       "typeVersion": 3,
       "position": [
-        3320,
+        3600,
         620
       ],
       "retryOnFail": true,
@@ -897,7 +921,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        3600,
+        3880,
         620
       ],
       "retryOnFail": true,
@@ -924,7 +948,7 @@
       "type": "n8n-nodes-base.splitOut",
       "typeVersion": 1.1,
       "position": [
-        3880,
+        4160,
         480
       ],
       "parameters": {
@@ -938,7 +962,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        4160,
+        4440,
         480
       ],
       "retryOnFail": true,
@@ -1066,7 +1090,7 @@
       "type": "n8n-nodes-base.googleSheets",
       "typeVersion": 4.7,
       "position": [
-        3880,
+        4160,
         760
       ],
       "retryOnFail": true,
@@ -1264,7 +1288,7 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 2.2,
       "position": [
-        4160,
+        4440,
         760
       ],
       "retryOnFail": true,
@@ -1289,7 +1313,7 @@
       "type": "n8n-nodes-base.postgres",
       "typeVersion": 2.8,
       "position": [
-        4440,
+        4720,
         760
       ],
       "retryOnFail": true,
@@ -1331,7 +1355,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        520,
+        800,
         100
       ],
       "parameters": {
@@ -1346,7 +1370,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        1640,
+        1920,
         100
       ],
       "parameters": {
@@ -1361,7 +1385,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2480,
+        2760,
         820
       ],
       "parameters": {
@@ -1376,7 +1400,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        2480,
+        2760,
         1000
       ],
       "parameters": {
@@ -1391,7 +1415,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        3880,
+        4160,
         300
       ],
       "parameters": {
@@ -1406,7 +1430,7 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        4160,
+        4440,
         940
       ],
       "parameters": {
@@ -1421,13 +1445,125 @@
       "type": "n8n-nodes-base.stickyNote",
       "typeVersion": 1,
       "position": [
-        800,
+        1080,
         820
       ],
       "parameters": {
         "width": 760,
         "height": 220,
         "content": "NOTE: an extraction failure - the sub-workflow's own API or parse error - fails this execution outright, so the triggering Gmail event is left unfinished: no invoices row, no recorded outcome. Recovery: fix whatever caused the failure (credentials, prompt, schema, or similar) - rebuild and publish first if it was the prompt or schema - then retry the failed execution from n8n; it resumes at the failed node instead of starting over."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000041",
+      "name": "Over AI budget?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        520,
+        460
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "60000000-0020-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ !(typeof $('When called').first().json.ai_spent_usd === 'number' && $('When called').first().json.ai_spent_usd < $('When called').first().json.config.ai.daily_budget_usd) }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000042",
+      "name": "Skip: over AI budget",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        800,
+        700
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "60000000-0021-4000-8000-0000000a0001",
+              "name": "skip_reason",
+              "type": "string",
+              "value": "ai_budget_exceeded"
+            },
+            {
+              "id": "60000000-0021-4000-8000-0000000a0002",
+              "name": "event_id",
+              "type": "string",
+              "value": "={{ $('When called').first().json.event_id }}"
+            },
+            {
+              "id": "60000000-0021-4000-8000-0000000a0003",
+              "name": "received_at",
+              "type": "string",
+              "value": "={{ $('When called').first().json.received_at }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000043",
+      "name": "Sticky Note8",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        520,
+        880
+      ],
+      "parameters": {
+        "width": 520,
+        "height": 160,
+        "content": "## Daily AI budget\nOnce the day's saved AI cost (estimated, Bogota day) reaches `ai.daily_budget_usd`, or the spend is missing, the invoice skips extraction and goes to review as ai_budget_exceeded. The retry also stays off when it would cross the budget. Each extraction's cost is kept on its event, even for a duplicate."
+      }
+    },
+    {
+      "id": "60000000-0000-4000-8000-000000000044",
+      "name": "Record AI cost",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        1080,
+        480
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Keeps the estimated AI cost of an attachment's extraction on its event, so the daily budget counts\n-- it even when the run later dies or the invoice turns out to be a duplicate. GREATEST means a\n-- lower figure never replaces a higher one already saved (Save invoice stores the final total,\n-- the retry included, and this statement stores the first pass beside it).\n-- Parameters, in order:\n-- first: event_id (text)\n-- second: ai_cost_usd (numeric, USD)\nUPDATE processed_events\nSET ai_cost_usd = GREATEST(ai_cost_usd, $2::numeric)\nWHERE source = 'gmail' AND event_id = $1\nRETURNING event_id, ai_cost_usd::float8 AS ai_cost_usd;\n",
+        "options": {
+          "queryReplacement": "={{ $json.event_id }},{{ $json.cost_usd }}"
+        }
+      },
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
       }
     }
   ],
@@ -1493,7 +1629,7 @@
         ],
         [
           {
-            "node": "Extract with default model",
+            "node": "Over AI budget?",
             "type": "main",
             "index": 0
           }
@@ -1516,6 +1652,11 @@
         [
           {
             "node": "Needs retry?",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Record AI cost",
             "type": "main",
             "index": 0
           }
@@ -1740,6 +1881,35 @@
         [
           {
             "node": "Is duplicate conflicting?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Over AI budget?": {
+      "main": [
+        [
+          {
+            "node": "Skip: over AI budget",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Extract with default model",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Skip: over AI budget": {
+      "main": [
+        [
+          {
+            "node": "Prepare record",
             "type": "main",
             "index": 0
           }

@@ -248,7 +248,8 @@
             "binary_key": "={{ $json.body.input.binary_key }}",
             "rules": "={{ $json.body.input.rules }}",
             "today": "={{ $json.body.input.today }}",
-            "attempt": "={{ $json.body.input.attempt }}"
+            "attempt": "={{ $json.body.input.attempt }}",
+            "prior_cost_usd": "={{ $json.body.input.prior_cost_usd ?? 0 }}"
           },
           "schema": [
             {
@@ -335,6 +336,15 @@
             {
               "id": "attempt",
               "displayName": "attempt",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "prior_cost_usd",
+              "displayName": "prior_cost_usd",
               "required": false,
               "defaultMatch": false,
               "display": true,
@@ -501,7 +511,8 @@
             "message_id": "={{ $('Receive dev call').first().json.body.input.message_id }}",
             "binary_key": "attachment_0",
             "file_name": "={{ $('Receive dev call').first().json.body.input.file_name }}",
-            "received_at": "={{ $('Receive dev call').first().json.body.input.received_at }}"
+            "received_at": "={{ $('Receive dev call').first().json.body.input.received_at }}",
+            "ai_spent_usd": "={{ $('Receive dev call').first().json.body.input.ai_spent_usd ?? 0 }}"
           },
           "schema": [
             {
@@ -556,6 +567,15 @@
               "defaultMatch": false,
               "display": true,
               "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "ai_spent_usd",
+              "displayName": "ai_spent_usd",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "number",
               "canBeUsedToMatch": true
             }
           ],

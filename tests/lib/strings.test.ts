@@ -54,6 +54,7 @@ const ALL_REASONS: Record<ReviewReason, true> = {
   due_before_issue: true, issue_date_in_future: true, totals_mismatch: true, line_items_mismatch: true,
   line_items_incomplete: true, non_positive_total: true, amount_out_of_range: true, supplier_is_buyer: true,
   low_confidence: true, too_many_pages: true, too_much_text: true, unreadable_pdf: true,
+  ai_budget_exceeded: true,
 };
 
 test.each(LOCALES)('every review reason has a non-empty label in %s', (locale) => {
