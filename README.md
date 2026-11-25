@@ -150,6 +150,10 @@ The text path's model is one Anthropic Chat Model sub-node under the Information
 
 The adversarial fixtures in `samples/adversarial/` (`pnpm run adversarial -- --base-date …`) aren't part of `pnpm run scenarios`. Each one is compared by hand against its safe labels and outcomes in `samples/adversarial/expected.json`, through the procedure in [docs/red-team.md](docs/red-team.md).
 
+### Evaluation set
+
+`samples/eval/` holds seven harder invoices and `samples/eval/expected.json`: a credit note, mixed IVA rates, a withholding, a quotation (not an invoice, so its number must come back null), an accented supplier on a scan, Magdaport itself as the supplier, and a line discount. `pnpm run eval` scores the model's reading of them and of the five non-duplicate samples above. It spends real money and is never run by CI; [docs/operations.md](docs/operations.md#scenario-and-cost-reports) has what it needs, its output and its exit code, and the live run is [row 32](#live-checks).
+
 ### Verified offline
 
 - **Code nodes, queries, and workflows:** every generated Code node, run as n8n's sandbox runs it; every workflow's wiring and settings, read from the committed JSON; and every query in `db/queries/` against a disposable Postgres as the runtime role, including a racing duplicate and the daily summary's window. [docs/testing.md](docs/testing.md) lists each suite.
@@ -194,6 +198,8 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 29 | Summary in mail clients | Open the 18:00 summary in Gmail web, Gmail on a phone, and Outlook on the web; in Gmail, use "Show original" | The layout holds at phone width, with no sideways scroll of the page, in all three. Record whether the message has a `text/plain` part; if not, add it to Limitations |
 | 30 | AI budget | Commands: row 30 below | Full expectation: row 30 below |
 | 31 | Approve from Sheets | Commands: row 31 below | Full expectation: row 31 below |
+| 32 | Evaluation run | Commands: row 32 below | Exit 0, every status and reason matches; record the field accuracy and the run cost |
+| 33 | Magdaport as supplier | Email `samples/eval/eval-06-magdaport-as-supplier.pdf` to the demo account | `Review`, and row 6's query shows `review_reasons` `{supplier_is_buyer}` |
 
 #### Live-check commands
 
@@ -328,6 +334,14 @@ docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "S
 
 Expected, in full: the row shows `status ok` and an empty `approval_note`; #5's email carries `Processed`, not `Review`; the query prints `ok|{}|<your name>|1356600.00|ok`; a summary generated within 24 hours of #5's arrival lists it under the totals and not under review (past that window it no longer appears at all). Also confirm that approving one of two review invoices in the same email leaves `Review` on the email. The second row stays in `review` and its `approval_note` reads `Not approved: Invalid issue date. Fix the cells and keep your name in approved_by.` Leaving `approved_by` filled after a refusal makes the next poll repeat the note, harmlessly.
 
+**Row 32.**
+
+```bash
+pnpm run samples -- --base-date $(TZ=America/Bogota date +%F) && pnpm run eval
+```
+
+Expected, in full: twelve rows and exit code 0. Eight samples are `ok` (`invoice-01` to `invoice-04`, `eval-02`, `eval-03`, `eval-05`, `eval-07`); four are `review` with their reasons (`invoice-05` `totals_mismatch`, `eval-01` `non_positive_total`, `eval-04` `missing_invoice_number`, `eval-06` `supplier_is_buyer`); the duplicate copy isn't run. It exits 1 on a wrong status, a missing reason or a failed call. For `eval-07`, check that its `subtotal` is 2350000, the amount after the line discount. Record the field accuracy and the run cost in the pull request that closes the live checks. A field below its total is a finding about the prompt or the model, not a failure of the run.
+
 **Row 28.**
 
 Clear the Sheets rows (keep the headers), trash `Invoices/<yyyy>`, and run the commands below. Then follow the [Quick start](#quick-start) exactly in the clone.
@@ -376,7 +390,7 @@ Each item links to its row in the [failure table](docs/architecture.md#failure-m
 
 - **New mail only:** the Gmail trigger sees mail that arrives after its last poll; a label added by hand to older mail is never picked up.
 - **No DIAN electronic invoice:** the ZIP and XML a Colombian e-invoice carries aren't read; only the PDF is.
-- **Credit notes go to review:** a credit note's negative total is `non_positive_total`; there's no credit-note outcome yet.
+- **Credit notes go to review:** a credit note's negative total is `non_positive_total`; there's no credit-note outcome yet (`eval-01` tracks it).
 - **Global discounts and withholdings depend on the reading:** the prompt asks for the total before withholdings and the subtotal after discounts; an invoice printed another way goes to review as `totals_mismatch`.
 - **Duplicate detection depends on the model's reading** of the supplier tax ID and invoice number; a misread number makes a re-sent invoice look new.
 - **The AI budget is an estimate, checked once per attachment:** the text path's cost is estimated from its length (the PDF path uses the API's real token usage), each attachment's cost is kept on its event (a duplicate counts too), the dev harness's `extract-invoice` target isn't counted, and the check reads the spend already saved, so one email's attachments and executions in flight can pass it, and a retried execution ("Retry with original workflow") reuses the spend read when it first ran, which may be from an earlier day. `pnpm run cost` stays the measured figure, and the console limit the hard stop.

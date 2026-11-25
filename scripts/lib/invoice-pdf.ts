@@ -5,7 +5,7 @@ import path from 'node:path';
 import { createCanvas, type Canvas } from '@napi-rs/canvas';
 import { PDFDocument, PageSizes, StandardFonts, rgb, type PDFFont, type PDFPage } from 'pdf-lib';
 import { getDocument } from 'pdfjs-dist/legacy/build/pdf.mjs';
-import { BUYER, offsetDate, printedTotalOf, subtotalOf, taxIdLabel, taxOf, type SampleInvoice } from './sample-invoices.ts';
+import { BUYER, lineTotalOf, offsetDate, printedTotalOf, subtotalOf, taxIdLabel, taxLinesOf, withholdingOf, type SampleInvoice } from './sample-invoices.ts';
 
 const PRODUCER = 'Magdaport demo sample generator';
 const [PAGE_WIDTH, PAGE_HEIGHT] = PageSizes.A4;
@@ -61,29 +61,33 @@ interface Row {
   total: string;
 }
 
+const TITLES = { invoice: 'INVOICE', credit_note: 'CREDIT NOTE', quote: 'QUOTATION' } as const;
+
 /** The supplier and buyer blocks on the first page; returns the next `y`. */
 function drawHeader(page: PDFPage, font: PDFFont, sample: SampleInvoice, dates: { issue: string; due: string }): number {
   let y = PAGE_TOP_Y;
   page.drawText(sample.supplier, { x: MARGIN_LEFT, y, size: 16, font });
-  drawRight(page, font, 'INVOICE', 20, RIGHT_EDGE, y + 4);
+  drawRight(page, font, TITLES[sample.kind ?? 'invoice'], 20, RIGHT_EDGE, y + 4);
   y -= 18;
   page.drawText(`${taxIdLabel(sample.currency)} ${sample.supplier_tax_id_printed}`, { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
-  drawRight(page, font, `Number: ${sample.invoice_number}`, BODY_SIZE, RIGHT_EDGE, y);
+  const quote = sample.kind === 'quote';
+  drawRight(page, font, `${quote ? 'Quote no.:' : 'Number:'} ${sample.invoice_number}`, BODY_SIZE, RIGHT_EDGE, y);
   y -= 16;
   page.drawText(sample.supplier_address, { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
   drawRight(page, font, `Issue date: ${dates.issue}`, BODY_SIZE, RIGHT_EDGE, y);
   y -= 16;
-  drawRight(page, font, `Due date: ${dates.due}`, BODY_SIZE, RIGHT_EDGE, y);
+  drawRight(page, font, `${quote ? 'Valid until:' : 'Due date:'} ${dates.due}`, BODY_SIZE, RIGHT_EDGE, y);
   y -= 22;
   page.drawLine({ start: { x: MARGIN_LEFT, y }, end: { x: RIGHT_EDGE, y }, thickness: 1 });
   y -= 20;
   page.drawText('Bill to:', { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
   y -= 16;
-  page.drawText(BUYER.name, { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
+  const billTo = sample.bill_to ?? BUYER;
+  page.drawText(billTo.name, { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
   y -= 16;
-  page.drawText(`NIT ${BUYER.tax_id_printed}`, { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
+  page.drawText(`NIT ${billTo.tax_id_printed}`, { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
   y -= 16;
-  page.drawText(BUYER.address, { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
+  page.drawText(billTo.address, { x: MARGIN_LEFT, y, size: BODY_SIZE, font });
   y -= 22;
   page.drawLine({ start: { x: MARGIN_LEFT, y }, end: { x: RIGHT_EDGE, y }, thickness: 1 });
   return y - 18;
@@ -113,21 +117,33 @@ function drawRows(page: PDFPage, font: PDFFont, rows: readonly Row[], y: number)
   return rowY;
 }
 
-/** Subtotal, tax and total on the last page. */
+/** Subtotal, tax rows, total and, when set, the withholding and the net payable, on the last page. */
 function drawTotals(page: PDFPage, font: PDFFont, sample: SampleInvoice, y: number): void {
+  const taxLines = taxLinesOf(sample);
   let totalsY = y - 8;
   page.drawLine({ start: { x: PRICE_RIGHT - 80, y: totalsY }, end: { x: RIGHT_EDGE, y: totalsY }, thickness: 1 });
   totalsY -= 20;
   drawRight(page, font, 'Subtotal', BODY_SIZE, PRICE_RIGHT, totalsY);
   drawRight(page, font, formatMoney(subtotalOf(sample), sample.currency), BODY_SIZE, RIGHT_EDGE, totalsY);
   totalsY -= 16;
-  drawRight(page, font, sample.tax_label, BODY_SIZE, PRICE_RIGHT, totalsY);
-  drawRight(page, font, formatMoney(taxOf(sample), sample.currency), BODY_SIZE, RIGHT_EDGE, totalsY);
+  for (const [index, taxLine] of taxLines.entries()) {
+    if (index > 0) totalsY -= 16;
+    drawRight(page, font, taxLine.label, BODY_SIZE, PRICE_RIGHT, totalsY);
+    drawRight(page, font, formatMoney(taxLine.amount, sample.currency), BODY_SIZE, RIGHT_EDGE, totalsY);
+  }
   totalsY -= 14;
   page.drawLine({ start: { x: PRICE_RIGHT - 80, y: totalsY }, end: { x: RIGHT_EDGE, y: totalsY }, thickness: 1 });
   totalsY -= 20;
   drawRight(page, font, 'Total', 13, PRICE_RIGHT, totalsY);
   drawRight(page, font, formatMoney(printedTotalOf(sample), sample.currency), 13, RIGHT_EDGE, totalsY);
+  if (sample.withholding === undefined) return;
+  const withheld = withholdingOf(sample);
+  totalsY -= 20;
+  drawRight(page, font, sample.withholding.label, BODY_SIZE, PRICE_RIGHT, totalsY);
+  drawRight(page, font, `-${formatMoney(withheld, sample.currency)}`, BODY_SIZE, RIGHT_EDGE, totalsY);
+  totalsY -= 18;
+  drawRight(page, font, 'Net payable', 13, PRICE_RIGHT, totalsY);
+  drawRight(page, font, formatMoney(printedTotalOf(sample) - withheld, sample.currency), 13, RIGHT_EDGE, totalsY);
 }
 
 export async function renderInvoicePdf(sample: SampleInvoice, baseDate: string): Promise<Uint8Array> {
@@ -137,10 +153,10 @@ export async function renderInvoicePdf(sample: SampleInvoice, baseDate: string):
   };
 
   const rows: Row[] = sample.lines.map((line) => ({
-    description: line.description,
+    description: line.discount === undefined ? line.description : `${line.description} (${String(Math.round(line.discount * 100))}% discount)`,
     quantity: String(line.quantity),
     unitPrice: formatMoney(line.unit_price, sample.currency),
-    total: formatMoney(line.quantity * line.unit_price, sample.currency),
+    total: formatMoney(lineTotalOf(line), sample.currency),
   }));
   const pages = chunk(rows, sample.lines_per_page);
 

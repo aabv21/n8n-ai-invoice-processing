@@ -14,4 +14,6 @@
 
 **Withholdings and discounts.** total is the invoice total before any withholding (ReteFuente, ReteIVA, ReteICA), never the net amount to pay. subtotal is the amount after discounts.
 
+**Not an invoice.** If the document is a quotation, an order, a receipt, or a delivery note rather than an invoice or a credit note, set invoice_number to null.
+
 **Confidence.** Lower it when any value was hard to read or ambiguous.

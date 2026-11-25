@@ -156,3 +156,41 @@ test('the approve-invoice target loads config and passes the row', () => {
   const branches = connections['Route by target']!.main;
   expect(branches[branches.length - 1]!.map((c) => c.node)).toEqual(['Respond unknown target']);
 });
+
+test('the extract-invoice target converts pdf_base64 to attachment_0 when present', () => {
+  const wf = workflowFile('dev-harness.json');
+  const connections = wf.connections as Record<string, { main: { node: string }[][] }>;
+  const rules = (nodeOf(wf, 'Route by target').parameters.rules as { values: { outputKey: string }[] }).values;
+  const index = rules.findIndex((r) => r.outputKey === 'extract-invoice');
+  expect(connections['Route by target']!.main[index]!.map((c) => c.node)).toEqual(['Has PDF for extract-invoice?']);
+
+  const check = nodeOf(wf, 'Has PDF for extract-invoice?');
+  expect(check.type).toBe('n8n-nodes-base.if');
+  const [condition] = (check.parameters.conditions as { conditions: { leftValue: string }[] }).conditions;
+  expect(condition!.leftValue).toBe("={{ ($json.body.input.pdf_base64 ?? '') !== '' }}");
+  expect(connections['Has PDF for extract-invoice?']!.main[0]!.map((c) => c.node)).toEqual(['Convert PDF for extract-invoice']);
+  expect(nodeOf(wf, 'Convert PDF for extract-invoice').parameters).toMatchObject({
+    operation: 'toBinary', sourceProperty: 'body.input.pdf_base64', binaryPropertyName: 'attachment_0' });
+  expect(connections['Convert PDF for extract-invoice']!.main[0]!.map((c) => c.node)).toEqual(['Call extract-invoice']);
+});
+
+test('without pdf_base64 it calls extract-invoice directly', () => {
+  const wf = workflowFile('dev-harness.json');
+  const connections = wf.connections as Record<string, { main: { node: string }[][] }>;
+  expect(connections['Has PDF for extract-invoice?']!.main[1]!.map((c) => c.node)).toEqual(['Call extract-invoice']);
+  const input = (body: Record<string, unknown>) => ({ json: { body: { input: body } } });
+  const left = (nodeOf(wf, 'Has PDF for extract-invoice?').parameters.conditions as { conditions: { leftValue: string }[] }).conditions[0]!.leftValue;
+  expect(evaluateExpression(left, input({ path: 'bogus' }))).toBe(false);
+  expect(evaluateExpression(left, input({ pdf_base64: '' }))).toBe(false);
+  expect(evaluateExpression(left, input({ pdf_base64: 'JVBERi0=' }))).toBe(true);
+});
+
+test('Call extract-invoice reads its inputs from the dev call, not the converted item', () => {
+  const wf = workflowFile('dev-harness.json');
+  const mapped = (nodeOf(wf, 'Call extract-invoice').parameters.workflowInputs as { value: Record<string, string> }).value;
+  for (const [name, expression] of Object.entries(mapped)) {
+    expect(expression, name).toContain("$('Receive dev call').first().json.body.input.");
+    expect(expression, name).not.toContain('$json');
+  }
+  expect(mapped.binary_key).toBe("={{ $('Receive dev call').first().json.body.input.binary_key ?? 'attachment_0' }}");
+});

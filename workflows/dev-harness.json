@@ -244,12 +244,62 @@
       }
     },
     {
+      "id": "40000000-0000-4000-8000-000000000020",
+      "name": "Has PDF for extract-invoice?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        400,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "40000000-0020-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ ($json.body.input.pdf_base64 ?? '') !== '' }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "40000000-0000-4000-8000-000000000021",
+      "name": "Convert PDF for extract-invoice",
+      "type": "n8n-nodes-base.convertToFile",
+      "typeVersion": 1.1,
+      "position": [
+        660,
+        360
+      ],
+      "parameters": {
+        "operation": "toBinary",
+        "sourceProperty": "body.input.pdf_base64",
+        "binaryPropertyName": "attachment_0",
+        "options": {}
+      }
+    },
+    {
       "id": "40000000-0000-4000-8000-000000000007",
       "name": "Call extract-invoice",
       "type": "n8n-nodes-base.executeWorkflow",
       "typeVersion": 1.4,
       "position": [
-        400,
+        920,
         300
       ],
       "parameters": {
@@ -263,17 +313,17 @@
         "workflowInputs": {
           "mappingMode": "defineBelow",
           "value": {
-            "event_id": "={{ $json.body.input.event_id }}",
-            "received_at": "={{ $json.body.input.received_at }}",
-            "path": "={{ $json.body.input.path }}",
-            "model": "={{ $json.body.input.model }}",
-            "effort": "={{ $json.body.input.effort }}",
-            "text": "={{ $json.body.input.text }}",
-            "binary_key": "={{ $json.body.input.binary_key }}",
-            "rules": "={{ $json.body.input.rules }}",
-            "today": "={{ $json.body.input.today }}",
-            "attempt": "={{ $json.body.input.attempt }}",
-            "prior_cost_usd": "={{ $json.body.input.prior_cost_usd ?? 0 }}"
+            "event_id": "={{ $('Receive dev call').first().json.body.input.event_id }}",
+            "received_at": "={{ $('Receive dev call').first().json.body.input.received_at }}",
+            "path": "={{ $('Receive dev call').first().json.body.input.path }}",
+            "model": "={{ $('Receive dev call').first().json.body.input.model }}",
+            "effort": "={{ $('Receive dev call').first().json.body.input.effort }}",
+            "text": "={{ $('Receive dev call').first().json.body.input.text }}",
+            "binary_key": "={{ $('Receive dev call').first().json.body.input.binary_key ?? 'attachment_0' }}",
+            "rules": "={{ $('Receive dev call').first().json.body.input.rules }}",
+            "today": "={{ $('Receive dev call').first().json.body.input.today }}",
+            "attempt": "={{ $('Receive dev call').first().json.body.input.attempt }}",
+            "prior_cost_usd": "={{ $('Receive dev call').first().json.body.input.prior_cost_usd ?? 0 }}"
           },
           "schema": [
             {
@@ -894,7 +944,7 @@
         ],
         [
           {
-            "node": "Call extract-invoice",
+            "node": "Has PDF for extract-invoice?",
             "type": "main",
             "index": 0
           }
@@ -1096,6 +1146,35 @@
         [
           {
             "node": "Respond with result",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Has PDF for extract-invoice?": {
+      "main": [
+        [
+          {
+            "node": "Convert PDF for extract-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Call extract-invoice",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert PDF for extract-invoice": {
+      "main": [
+        [
+          {
+            "node": "Call extract-invoice",
             "type": "main",
             "index": 0
           }

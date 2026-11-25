@@ -5,7 +5,7 @@ import { join } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { DateTime } from 'luxon';
 import { renderInvoicePdf, rasterizeToScan } from './lib/invoice-pdf.ts';
-import { COPY_OF_FIRST, SAMPLES, expectations } from './lib/sample-invoices.ts';
+import { COPY_OF_FIRST, EVAL_SAMPLES, SAMPLES, evalExpectations, expectations, type SampleInvoice } from './lib/sample-invoices.ts';
 
 export async function generateSamples(opts: { baseDate: string; outDir: string }): Promise<void> {
   // `expectations` reads Luxon's `DateTime` off the global, as in the Code-node sandbox; outside n8n only these scripts and tests/setup.ts set it.
@@ -16,13 +16,18 @@ export async function generateSamples(opts: { baseDate: string; outDir: string }
   const pdfPaths: string[] = [];
   let firstInvoiceBytes: Uint8Array | null = null;
 
-  for (const sample of SAMPLES) {
+  const writeSample = async (sample: SampleInvoice, dir: string): Promise<Uint8Array> => {
     const textPdf = await renderInvoicePdf(sample, opts.baseDate);
     const bytes = sample.scanned ? await rasterizeToScan(textPdf) : textPdf;
-    const filePath = join(opts.outDir, sample.file);
+    const filePath = join(dir, sample.file);
     // eslint-disable-next-line security/detect-non-literal-fs-filename -- filePath is built from this script's own fixed sample file names, not user input
     writeFileSync(filePath, bytes);
     pdfPaths.push(filePath);
+    return bytes;
+  };
+
+  for (const sample of SAMPLES) {
+    const bytes = await writeSample(sample, opts.outDir);
     firstInvoiceBytes ??= bytes; // the first sample in file order is always invoice 1, and it's never scanned
   }
 
@@ -36,6 +41,14 @@ export async function generateSamples(opts: { baseDate: string; outDir: string }
   const payload = { base_date: opts.baseDate, samples: expectations(opts.baseDate) };
   // eslint-disable-next-line security/detect-non-literal-fs-filename -- expectedPath is this script's own fixed output file name, not user input
   writeFileSync(expectedPath, `${JSON.stringify(payload, null, 2)}\n`);
+
+  const evalDir = join(opts.outDir, 'eval');
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- evalDir is this script's own fixed samples/eval directory, not user input
+  mkdirSync(evalDir, { recursive: true });
+  for (const sample of EVAL_SAMPLES) await writeSample(sample, evalDir);
+  const evalPayload = { base_date: opts.baseDate, samples: evalExpectations(opts.baseDate) };
+  // eslint-disable-next-line security/detect-non-literal-fs-filename -- the path is this script's own fixed output file name, not user input
+  writeFileSync(join(evalDir, 'expected.json'), `${JSON.stringify(evalPayload, null, 2)}\n`);
 
   for (const filePath of pdfPaths) console.log(filePath);
 }

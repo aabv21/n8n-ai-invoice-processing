@@ -27,7 +27,7 @@ An AI invoice-processing pipeline for Magdaport S.A.S., a fictional wholesale di
 - `db/queries/*.sql`: the parameterized queries the Postgres nodes run verbatim, tested by `tests/db/queries.test.ts`.
 - `config/config.example.json`: the config template; `config/config.json` is gitignored. `team_locale` sets the team emails' language.
 - `scripts/manifest.ts`: the single source of truth for workflow and credential IDs and the `CODE_NODES` and `TEXT_PARAMS` tables. `scripts/lib/` holds shared helpers, `scripts/*.ts` the CLIs, `scripts/sql/scenario-report.sql` the read-only scenario report.
-- `samples/`: the six generated sample PDFs and `expected.json`; `samples/adversarial/` holds the red-team fixtures.
+- `samples/`: the six generated sample PDFs and `expected.json`, `samples/eval/` the seven evaluation samples scored by `pnpm run eval`; `samples/adversarial/` holds the red-team fixtures.
 - `schemas/invoice.schema.json`, `prompts/extract-invoice.md`: the extraction contract, copied into workflow JSON by the build.
 - `src/nodes/`: one `run()` per Code node; `src/lib/` holds the pure logic and the `{ en, es }` message tables; `src/globals.d.ts` declares `DateTime`.
 - `tests/`: the Vitest suites (`tests/helpers/` runs generated Code nodes like n8n's sandbox; `tests/db/` runs apart from `pnpm test`).
@@ -47,6 +47,7 @@ An AI invoice-processing pipeline for Magdaport S.A.S., a fictional wholesale di
 - `docker compose up -d --wait testdb`, then `TEST_DATABASE_URL=postgres://postgres@127.0.0.1:55432/postgres pnpm run test:db`: the database tests.
 - `pnpm run db:migrate`: apply pending migrations. `node scripts/check-db.ts`: prove the runtime role's grants. See [`docs/operations.md`](docs/operations.md#database-commands).
 - `pnpm run samples`, `pnpm run adversarial`: regenerate the sample and red-team PDFs (`-- --base-date YYYY-MM-DD` pins the date; the default is today in `America/Bogota`). Run `samples` with today's date before a demo so the summary's "due in the next 7 days" section has entries, and commit the regenerated files whenever the sample data or PDF layout changes.
+- `pnpm run eval`: runs every extractable sample through the dev harness's `extract-invoice` and prints a scored report. It calls the model and spends money, so run it only by hand against a running stack, never in CI or the gate.
 - `node scripts/dev-call.ts <target> '<json>'`: run a sub-workflow through the dev harness; the targets are in [Dev harness API](docs/architecture.md#dev-harness-api).
 - `node scripts/check-dev-response.ts`: assert the harness's empty-database summary; CI's `n8n` job runs it.
 - `pnpm run scenarios -- --since <ISO>`, `pnpm run cost -- --since <ISO>`: grade the samples and price the extractions; see [`docs/operations.md`](docs/operations.md#scenario-and-cost-reports).
