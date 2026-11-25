@@ -25,9 +25,11 @@ export function run(input: ErrorAlertInput): ErrorAlertOutput {
 
   const subject = `${t.subjectPrefix} ${input.workflow_name}`;
   const message = [
+    `${t.execution}: ${input.execution_url}`,
+    t.action,
+    '',
     `${t.failedNode}: ${input.failed_node}`,
     `${t.error}: ${input.error_message}`,
-    `${t.execution}: ${input.execution_url}`,
     `${t.time}: ${input.time}`,
   ].join('\n');
 

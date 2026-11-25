@@ -172,6 +172,8 @@ export const SUMMARY_STRINGS: Record<'en' | 'es', SummaryStrings> = {
 
 interface ErrorAlertStrings {
   subjectPrefix: string;
+  /** The next step, on line 2 right under the execution link. */
+  action: string;
   failedNode: string;
   error: string;
   execution: string;
@@ -180,14 +182,16 @@ interface ErrorAlertStrings {
 
 export const ERROR_ALERT_STRINGS: Record<'en' | 'es', ErrorAlertStrings> = {
   en: {
-    subjectPrefix: '[Magdaport demo] Workflow failed:',
+    subjectPrefix: '[Magdaport] Workflow failed:',
+    action: 'Open the execution, fix the cause, then retry it.',
     failedNode: 'Failed node',
     error: 'Error',
     execution: 'Execution',
     time: 'Time',
   },
   es: {
-    subjectPrefix: '[Demo Magdaport] Falló el flujo:',
+    subjectPrefix: '[Magdaport] Falló el flujo:',
+    action: 'Abra la ejecución, corrija la causa y reinténtela.',
     failedNode: 'Nodo fallido',
     error: 'Error',
     execution: 'Ejecución',
