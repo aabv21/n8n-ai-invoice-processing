@@ -68,6 +68,8 @@ Create a spreadsheet with two tabs, named as `google.invoices_tab` and `google.i
 
 Both tabs are written by key (`invoice_id` and `item_key`), so a retried run updates its rows instead of adding new ones.
 
+The headers are the database's column names on purpose: both tabs are written by matching these names, so renaming a header breaks the write. `review_reasons` holds the reason codes; the daily summary shows each one in words.
+
 ### Anthropic
 
 Put the API key in `.env` as `ANTHROPIC_API_KEY`, then set a monthly spend limit in the Anthropic console. Nothing in this repo caps total spend.
@@ -104,7 +106,7 @@ Put the API key in `.env` as `ANTHROPIC_API_KEY`, then set a monthly spend limit
 
 The daily summary and the error alert render in the language `team_locale` names: `en`, the default when the key is missing, or `es` (neutral Latin American Spanish, Colombian business register). `checkConfig` (`src/lib/config.ts`) rejects any other value. Each email's strings live in a `{ en, es }` table in `src/lib/strings.ts`; dates use Luxon's `setLocale`, and money uses `en-US` or `es-CO` separators through `formatMoney` (`src/lib/format.ts`). Escaping is the same in both languages.
 
-**Adding a language:** add its key to both tables in `src/lib/strings.ts` (`tests/lib/strings.test.ts` checks that every key has a non-empty value), add it to `TEAM_LOCALE_VALUES` and the `Config['team_locale']` union in `src/lib/config.ts` and to `NUMBER_LOCALE` in `src/lib/format.ts`, then run `pnpm run build:workflows` and `pnpm test`.
+**Adding a language:** add its key to all four tables in `src/lib/strings.ts`, `SUMMARY_STRINGS`, `ERROR_ALERT_STRINGS`, `REASON_LABELS` and `STATUS_LABELS` (`tests/lib/strings.test.ts` checks that every key has a non-empty value and that every review reason has a label), add it to `TEAM_LOCALE_VALUES` and the `Config['team_locale']` union in `src/lib/config.ts` and to `NUMBER_LOCALE` in `src/lib/format.ts`, then run `pnpm run build:workflows` and `pnpm test`.
 
 ### Upgrading an existing config
 
@@ -170,10 +172,10 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 12 | Octet-stream | Commands: row 12 below | The Drive file's type is PDF; the label call then fails on the fake message ID, so `intake-email` stops at `Fail the batch`, as expected |
 | 13 | Redelivery | Commands: row 13 below | The count is still 1, and no new `process-invoice` execution appears |
 | 14 | ensure-folder | `node scripts/dev-call.ts ensure-folder '{"parent_id":"<drive_root_folder_id>","name":"2099"}'`, twice | The same `folder_id` both times; trash the `2099` folder afterwards |
-| 15 | Error alert | `node scripts/dev-call.ts extract-invoice '{"event_id":"live-error","path":"bogus"}'`, then again with `team_locale: "es"` | `[Magdaport demo] Workflow failed: extract-invoice`, then `[Demo Magdaport] Falló el flujo: extract-invoice` |
+| 15 | Error alert | `node scripts/dev-call.ts extract-invoice '{"event_id":"live-error","path":"bogus"}'`, then again with `team_locale: "es"` | `[Magdaport] Workflow failed: extract-invoice`, then `[Magdaport] Falló el flujo: extract-invoice`; the body starts with the execution link |
 | 16 | Invalid Anthropic key, then replay | Commands: row 16 below | Full expectation: row 16 below |
 | 17 | too_many_pages | Commands: row 17 below | `review` with `too_many_pages` |
-| 18 | Summary content | After the samples and before the drills: `node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":false}"`, then again with `team_locale: "es"` | `Arrived: 6 \| OK: 4 \| Review: 1 \| Duplicates: 1`, in both languages; the 18:00 run arrives on its own |
+| 18 | Summary content | After the samples and before the drills: `node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":false}"`, then again with `team_locale: "es"` | The counters read Arrived 6, Processed 4, Review 1, Duplicates 1, with the Review counter highlighted; the review row shows the reason in words; the same in Spanish; the 18:00 run arrives on its own |
 | 19 | Cost | `pnpm run cost -- --since <ISO>` | The "all" total is within 5% of the Anthropic console for the same window; the table goes in [Cost per invoice](#cost-per-invoice) |
 | 20 | Queue mode | Commands: row 20 below | `no-new-privileges` everywhere, and `CapDrop [ALL]` on `n8n` and the workers |
 | 21 | Overlapping executions in queue mode | Commands: row 21 below | Full expectation: row 21 below |
@@ -184,6 +186,7 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 26 | One failed attachment in a batch | Commands: row 26 below | Full expectation: row 26 below |
 | 27 | Sonnet retry on a scan | Commands: row 27 below | #4 `attempts = 2`, `model = claude-sonnet-5-5` |
 | 28 | Clean clone | Commands: row 28 below | Six `PASS` from `pnpm run scenarios` |
+| 29 | Summary in mail clients | Open the 18:00 summary in Gmail web, Gmail on a phone, and Outlook on the web; in Gmail, use "Show original" | The layout holds at phone width, with no sideways scroll of the page, in all three. Record whether the message has a `text/plain` part; if not, add it to Limitations |
 
 #### Live-check commands
 
