@@ -1,5 +1,4 @@
 import { afterEach, expect, test, vi } from 'vitest';
-import { costUsd } from '../../scripts/lib/pricing.ts';
 import { fetchPage, parseArgs, summarizeCosts } from '../../scripts/measure-cost.ts';
 
 afterEach(() => {
@@ -13,13 +12,6 @@ const exec = (event_id: string, path: string, model: string, attempt: number, ca
     ...(calls.http ? { 'Read PDF with Claude': [{ data: { main: [[{ json: { usage: { input_tokens: calls.http[0], output_tokens: calls.http[1] } } }]] } }] } : {}),
   } } } });
 
-test.each([
-  ['claude-haiku-5-5', 2000, 1000, 0.0007],
-  ['claude-haiku-5-5', 100000, 1000, 0.0105],
-  ['claude-haiku-5-5', 150000, 1000, 0.0775],
-  ['claude-sonnet-5-5', 5000, 1500, 0.025],
-])('%s %i in / %i out costs %f', (model, i, o, usd) => expect(costUsd(model, i, o)).toBeCloseTo(usd, 10));
-test('an unknown model is an error', () => expect(() => costUsd('claude-opus-5', 1, 1)).toThrow('no price for model claude-opus-5'));
 test('costs are summed per invoice and averaged per path', () => {
   const rows = summarizeCosts([
     exec('a', 'text', 'claude-haiku-5-5', 1, { chat: [[2000, 600], [2400, 300]] }),

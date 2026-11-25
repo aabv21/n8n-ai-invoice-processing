@@ -1,10 +1,11 @@
 // Parses the model reply and applies ordered invoice rules that must yield one verdict. Pure: no
 // I/O, no clock - `rules` and `today` arrive from the caller, never read ambiently.
+import { callCostUsd, type CallUsage } from '../lib/ai-cost.ts';
 import type { CheckOutput, ReviewReason, ValidationRules } from '../lib/invoice.ts';
 import { normalizeInvoice } from '../lib/normalize-invoice.ts';
 import { parseReply } from '../lib/parse-reply.ts';
-import { emptyInvoice } from '../lib/util.ts';
 import { shouldRetry } from '../lib/retry-policy.ts';
+import { emptyInvoice, roundTo } from '../lib/util.ts';
 import { validateInvoice } from '../lib/validate-invoice.ts';
 
 export interface CheckInput {
@@ -18,10 +19,17 @@ export interface CheckInput {
   path: 'text' | 'vision';
   model: string;
   attempt: 1 | 2;
+  /** The text path's input length, which prices it. */
+  text_chars?: number;
+  /** The PDF path's token usage from the Messages API reply. */
+  usage?: CallUsage | null;
+  /** What the earlier attempt on this invoice cost, in USD. */
+  prior_cost_usd?: number;
 }
 
-function echoOf(input: CheckInput): Pick<CheckInput, 'event_id' | 'received_at' | 'path' | 'model' | 'attempt'> {
-  return { event_id: input.event_id, received_at: input.received_at, path: input.path, model: input.model, attempt: input.attempt };
+function echoOf(input: CheckInput): Pick<CheckOutput, 'event_id' | 'received_at' | 'path' | 'model' | 'attempt' | 'cost_usd'> {
+  const cost_usd = roundTo((input.prior_cost_usd ?? 0) + callCostUsd(input), 6);
+  return { event_id: input.event_id, received_at: input.received_at, path: input.path, model: input.model, attempt: input.attempt, cost_usd };
 }
 
 export function run(input: CheckInput): CheckOutput {

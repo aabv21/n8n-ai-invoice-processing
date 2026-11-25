@@ -118,6 +118,10 @@ describe('workflow statements', () => {
     }
   });
 
+  it('binds the Save invoice probe\'s thirteenth value, the AI cost', () => {
+    expect(PROBES.find((p) => p.node === 'Save invoice')?.params[12]).toBe('0');
+  });
+
   it('runs every probe as the workflow wrote it, inside one transaction it rolls back, in dependency order', () => {
     const script = probeScript(statements, PROBES);
     const lines = script.trimEnd().split('\n');

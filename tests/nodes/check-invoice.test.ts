@@ -9,9 +9,15 @@ import { INVOICE_1_RAW, RULES, TODAY } from '../fixtures/invoice-1.ts';
 const echo = { event_id: 'm1:attachment_0', received_at: '2026-10-30T15:00:00.000Z', path: 'vision', model: 'claude-haiku-5-5', attempt: 1 } as const;
 const input = (patch: Partial<CheckInput>): CheckInput => ({ rules: RULES, today: TODAY, ...echo, ...patch });
 const reply = (raw: unknown) => ({ content: [{ type: 'text', text: JSON.stringify(raw) }], stop_reason: 'end_turn' });
+test('adds this call\'s cost to the prior cost', () =>
+  expect(run(input({ reply: INVOICE_1_RAW, path: 'text', text_chars: 3000, prior_cost_usd: 0.01 })).cost_usd).toBe(0.01125));
+test('prices a PDF reply from its usage', () =>
+  expect(run(input({ ...reply(INVOICE_1_RAW), usage: { input_tokens: 3000, output_tokens: 700 } })).cost_usd).toBe(0.00065));
+test('a reply that fails to parse still costs the call', () =>
+  expect(run(input({ content: [{ type: 'text', text: 'sorry' }], stop_reason: 'end_turn', usage: { input_tokens: 3000, output_tokens: 700 } })).cost_usd).toBe(0.00065));
 
 test('passes a valid PDF reply', () => expect(run(input(reply(INVOICE_1_RAW)))).toEqual({
-  status: 'ok', reasons: [], retry: false, invoice: normalizeInvoice(INVOICE_1_RAW).invoice, raw: INVOICE_1_RAW, ...echo }));
+  status: 'ok', reasons: [], retry: false, invoice: normalizeInvoice(INVOICE_1_RAW).invoice, raw: INVOICE_1_RAW, cost_usd: 0.003, ...echo }));
 const generated = String(nodeOf(workflowFile('extract-invoice.json'), 'Check invoice').parameters.jsCode);
 test.each([
   ['source', run],
@@ -36,4 +42,4 @@ test('an out-of-range total is reported once, not also as missing', () =>
   expect(run(input({ reply: { ...INVOICE_1_RAW, total: 1e16 } })).reasons).toEqual(['amount_out_of_range']));
 test('an unparseable reply is a review with an empty invoice', () =>
   expect(run(input({ content: [{ type: 'text', text: 'sorry' }], stop_reason: 'end_turn' })))
-    .toEqual({ status: 'review', reasons: ['unparseable_reply'], retry: true, invoice: EMPTY_INVOICE, raw: null, ...echo }));
+    .toEqual({ status: 'review', reasons: ['unparseable_reply'], retry: true, invoice: EMPTY_INVOICE, raw: null, cost_usd: 0.003, ...echo }));

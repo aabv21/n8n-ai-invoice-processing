@@ -148,6 +148,15 @@ test('the skip reason names which limit was exceeded', () => {
   expect(skipReason).toContain('too_many_pages');
   expect(skipReason).toContain('too_much_text');
 });
+test('Save invoice binds the record\'s cost as the thirteenth value', () => {
+  const queryReplacement = (nodeOf(wf, 'Save invoice').parameters.options as { queryReplacement: string }).queryReplacement;
+  const values = evaluateSegments(queryReplacement, {
+    json: { event_id: 'm1:attachment_0', received_at: 't', status: 'ok', reasons: [], path: 'text', model: 'm', attempt: 1, invoice: {}, raw: {}, file: { name: 'f', folder: 'g' }, cost_usd: 0.0125 },
+    nodes: { 'When called': { message_id: 'm1' } },
+  });
+  expect(values).toHaveLength(13);
+  expect(values[12]).toBe(0.0125);
+});
 describe('Needs retry?', () => {
   const left = () => (nodeOf(wf, 'Needs retry?').parameters.conditions as { conditions: { leftValue: string }[] }).conditions[0]!.leftValue;
   const when = (json: Record<string, unknown>, ai: Record<string, unknown> = { retry_model: 'claude-sonnet-5-5' }) =>

@@ -1,5 +1,5 @@
 import { expect, test } from 'vitest';
-import { escapeHtml, formatMoney } from '../../src/lib/format.ts';
+import { escapeHtml, formatAiCost, formatMoney } from '../../src/lib/format.ts';
 
 test('escapes the five HTML-significant characters', () => {
   expect(escapeHtml(`<b>&'"</b>`)).toBe('&lt;b&gt;&amp;&#39;&quot;&lt;/b&gt;');
@@ -12,6 +12,15 @@ test('formats COP without decimals and USD with cents in English by default', ()
 test('a null amount is an em dash, not zero', () => {
   expect(formatMoney(null, 'COP')).toBe('—');
 });
+test.each([
+  [0, 'en', '0.00'],
+  [0.04, 'en', '0.04'],
+  [0.004, 'en', '0.004'],
+  [0.0012, 'en', '0.0012'],
+  [0.00004, 'en', '0.00'],
+  [1.2345, 'en', '1.23'],
+  [0.004, 'es', '0,004'],
+] as const)('formatAiCost(%s, %s) shows %s', (usd, locale, shown) => expect(formatAiCost(usd, locale)).toBe(`USD ${shown}`));
 test('a null currency still prints the amount, with 2 decimals', () => {
   expect(formatMoney(500.5, null)).toBe('500.50');
 });

@@ -1,6 +1,7 @@
 // Validates the config just loaded from /files/config/config.json: a bad value fails loudly here,
 // before any node downstream reads it or an AI call runs. Pure: no I/O, no clock.
 import { normalizeTaxId } from './normalize-invoice.ts';
+import { hasPrice } from './pricing.ts';
 import { isPlainObject } from './util.ts';
 
 export interface Config {
@@ -26,6 +27,8 @@ export interface Config {
     effort: 'low' | 'medium' | 'high';
     /** The effort of the one retry; missing means 'medium'. */
     retry_effort: 'low' | 'medium' | 'high';
+    /** The most the saved invoices' estimated AI cost may reach in one Bogota day before new invoices skip the AI. */
+    daily_budget_usd: number;
   };
   extraction: {
     min_text_chars_per_page: number;
@@ -128,6 +131,16 @@ export function checkConfig(config: unknown): Config {
   // Missing means 'medium'; the defaults are applied to the returned copy, never the caller's object.
   if (ai.retry_effort !== undefined && (typeof ai.retry_effort !== 'string' || !EFFORT_VALUES.includes(ai.retry_effort as (typeof EFFORT_VALUES)[number]))) {
     throw new Error(`config.ai.retry_effort must be one of ${EFFORT_VALUES.join(', ')}`);
+  }
+
+  requireFiniteAtLeast('config.ai.daily_budget_usd', ai.daily_budget_usd, 0);
+  // A model with no price would make the budget silently blind to it.
+  for (const key of ['default_model', 'retry_model'] as const) {
+    // eslint-disable-next-line security/detect-object-injection -- key is one of this module's own fixed keys, not user input
+    const model = ai[key];
+    if (typeof model === 'string' && model !== '' && !hasPrice(model)) {
+      throw new Error(`config.ai.${key} (${model}) has no price in src/lib/pricing.ts; add its rates there to keep the AI budget`);
+    }
   }
 
   const gmail = asObject(root.gmail, 'config.gmail');

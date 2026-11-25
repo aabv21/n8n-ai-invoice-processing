@@ -24,3 +24,10 @@ export function formatMoney(amount: number | null, currency: string | null, loca
   const formatted = amount.toLocaleString(NUMBER_LOCALE[locale], { minimumFractionDigits: decimals, maximumFractionDigits: decimals });
   return currency === null ? formatted : `${currency} ${formatted}`;
 }
+
+/** An AI cost in USD: under one dollar it keeps up to four decimals, so a day of small calls doesn't read as "USD 0.00". */
+export function formatAiCost(usd: number, locale: 'en' | 'es' = 'en'): string {
+  // eslint-disable-next-line security/detect-object-injection -- locale is typed to this module's own two keys, not user input
+  const formatted = usd.toLocaleString(NUMBER_LOCALE[locale], { minimumFractionDigits: 2, maximumFractionDigits: usd < 1 ? 4 : 2 });
+  return `USD ${formatted}`;
+}

@@ -100,6 +100,8 @@ export interface CheckOutput {
   path: 'text' | 'vision';
   model: string;
   attempt: 1 | 2;
+  /** The estimated AI cost of this extraction in USD: every call so far, this one included. */
+  cost_usd: number;
 }
 
 export interface InvoiceRecord extends Omit<CheckOutput, 'path' | 'model' | 'attempt'> {

@@ -19,6 +19,7 @@ export const STYLE = {
   counterValue: 'font-size:22px;font-weight:600;',
   counterLabel: 'color:#52606d;',
   alertBox: 'margin:16px 0;padding:12px;border:1px solid #d64545;background:#fdecea;',
+  aiCost: 'margin:8px 0 0;color:#52606d;',
   footer: 'margin-top:24px;color:#52606d;font-size:12px;',
   // The review and due lists are two-column records: the first cell takes the width, the second hugs its amount.
   tdMain: `${TD}width:100%;`,

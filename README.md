@@ -310,7 +310,7 @@ gh repo clone aabv21/n8n-ai-invoice-processing "$(mktemp -d)/magdaport-check"
 
 ## Cost per invoice
 
-An estimate, measured in the live run with `pnpm run cost -- --since <ISO>` and priced from `scripts/lib/pricing.ts`:
+An estimate, measured in the live run with `pnpm run cost -- --since <ISO>` and priced from `src/lib/pricing.ts`:
 
 | Path | Average tokens (in / out) | Average USD | Retries |
 |---|---|---|---|

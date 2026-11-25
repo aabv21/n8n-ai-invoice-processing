@@ -2,6 +2,7 @@ import { readFileSync } from 'node:fs';
 import { expect, test } from 'vitest';
 import { listJsonFiles, readWorkflow, type WorkflowNode } from '../../scripts/lib/workflow.ts';
 import type { CheckInput } from '../../src/nodes/check-invoice.ts';
+import { evaluateExpression } from '../helpers/expression.ts';
 import { nodeOf, sourcesOf, workflowFile } from '../helpers/workflow-file.ts';
 
 interface MainConnections {
@@ -101,6 +102,22 @@ test('Collect text result covers every field check-invoice needs for the text pa
 test('Collect PDF result covers every field check-invoice needs for the PDF path', () => {
   const names = assignmentNames(nodeOf(wf, 'Collect PDF result'));
   for (const field of ['content', 'stop_reason', ...ECHO_FIELDS]) expect(names).toContain(field);
+});
+test('both collect nodes pass the prior cost through', () => {
+  for (const name of ['Collect text result', 'Collect PDF result']) {
+    expect(assignmentNames(nodeOf(wf, name))).toContain('prior_cost_usd');
+    const value = (nodeOf(wf, name).parameters.assignments as { assignments: { name: string; value: string }[] }).assignments.find((a) => a.name === 'prior_cost_usd')?.value;
+    expect(evaluateExpression(value!, { nodes: { 'When called': { prior_cost_usd: 0.012 } } })).toBe(0.012);
+  }
+  const inputs = (nodeOf(wf, 'When called').parameters.workflowInputs as { values: { name: string; type: string }[] }).values;
+  expect(inputs).toContainEqual({ name: 'prior_cost_usd', type: 'number' });
+});
+test('the text path passes the text length, the PDF path the usage', () => {
+  const value = (node: string, name: string) =>
+    (nodeOf(wf, node).parameters.assignments as { assignments: { name: string; value: string }[] }).assignments.find((a) => a.name === name)?.value;
+  expect(evaluateExpression(value('Collect text result', 'text_chars')!, { nodes: { 'When called': { text: 'x'.repeat(42) } } })).toBe(42);
+  const usage = { input_tokens: 3000, output_tokens: 700 };
+  expect(evaluateExpression(value('Collect PDF result', 'usage')!, { json: { usage } })).toEqual(usage);
 });
 test('no Execute Workflow node in any workflow retries', () => {
   // Scoped to every workflow file, not just this one: extract-invoice.json itself has no Execute

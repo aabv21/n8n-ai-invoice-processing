@@ -1,7 +1,7 @@
 // Renders the daily summary's subject and HTML body from daily-summary.sql's one row, in the
 // team_locale language. Every database value (a supplier name, a review reason, a Drive URL) is
 // escaped, URLs included. Pure: no I/O, no clock; Luxon's setLocale and Intl.NumberFormat read none.
-import { escapeHtml, formatMoney } from '../lib/format.ts';
+import { escapeHtml, formatAiCost, formatMoney } from '../lib/format.ts';
 import { STYLE } from '../lib/email-style.ts';
 import { reasonLabel, STATUS_LABELS, SUMMARY_STRINGS } from '../lib/strings.ts';
 
@@ -21,6 +21,8 @@ export interface SummaryRow {
   /** The oldest of those events, up to the query's cap; `received_at` is already Bogota time, `YYYY-MM-DD HH:MM`. */
   unfinished_events: { event_id: string; file_name: string | null; received_at: string }[];
   totals_by_supplier: { supplier: string | null; currency: string | null; invoices: number; total: number | null }[];
+  /** The estimated AI cost of every invoice received in the window, in USD. */
+  ai_cost_usd: number;
   review_items: {
     supplier: string | null;
     invoice_number: string | null;
@@ -91,7 +93,7 @@ const NOWRAP = 'white-space:nowrap;';
 
 /** Four counters in one row. The Review cell is tinted only when something needs review; its
  * label always shows, so the color is never the only cue. */
-export function countersSection(input: SummaryRow, t: Strings): string {
+export function countersSection(input: SummaryRow, t: Strings, locale: Locale): string {
   const counter = (label: string, value: number, style: string): string =>
     `<td style="${style}"><div style="${STYLE.counterValue}">${String(value)}</div><div style="${STYLE.counterLabel}">${label}</div></td>`;
   return `<table role="presentation" style="${STYLE.table}"><tr>${[
@@ -99,7 +101,8 @@ export function countersSection(input: SummaryRow, t: Strings): string {
     counter(t.ok, input.ok, STYLE.counter),
     counter(t.review, input.review, input.review > 0 ? STYLE.counterAlert : STYLE.counter),
     counter(t.duplicates, input.duplicates, STYLE.counter),
-  ].join('')}</tr></table>`;
+  ].join('')}</tr></table>
+<p style="${STYLE.aiCost}">${t.aiCost}: ${formatAiCost(input.ai_cost_usd, locale)}</p>`;
 }
 
 /** The stuck-events warning, its table, and the "more not shown" line; '' when nothing is stuck. */
@@ -200,7 +203,7 @@ export function run(input: SummaryRow): { subject: string; html: string } {
     `<div lang="${locale}" style="${STYLE.wrapper}">`,
     `<h1 style="${STYLE.h1}">${escapeHtml(t.title)}</h1>`,
     `<p style="${STYLE.dateLine}">${escapeHtml(longDate)}</p>`,
-    countersSection(input, t),
+    countersSection(input, t, locale),
     unfinishedSection(input, t),
     input.arrived === 0 ? paragraph(t.emptyDay) : '',
     reviewSection(input, t, locale),

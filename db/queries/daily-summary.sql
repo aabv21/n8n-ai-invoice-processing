@@ -46,6 +46,10 @@ unfinished_list AS (
   ) AS rows
   FROM (SELECT * FROM stuck ORDER BY received_at, event_id LIMIT 20) s
 ),
+-- The window's estimated AI cost over every event received in it, finished or not, duplicates included.
+ai_cost AS (
+  SELECT COALESCE(sum(ai_cost_usd), 0)::float8 AS usd FROM window_events
+),
 -- DISTINCT collapses an invoice two events reference (its arrival and a later duplicate) to one row.
 finished_invoices AS (
   SELECT DISTINCT i.*
@@ -101,5 +105,6 @@ SELECT
   COALESCE(unfinished_list.rows, '[]'::jsonb) AS unfinished_events,
   COALESCE(totals.rows, '[]'::jsonb) AS totals_by_supplier,
   COALESCE(review.rows, '[]'::jsonb) AS review_items,
-  COALESCE(due.rows, '[]'::jsonb) AS due_soon
-FROM bounds, counts, unfinished, unfinished_list, totals, review, due;
+  COALESCE(due.rows, '[]'::jsonb) AS due_soon,
+  ai_cost.usd AS ai_cost_usd
+FROM bounds, counts, unfinished, unfinished_list, totals, review, due, ai_cost;

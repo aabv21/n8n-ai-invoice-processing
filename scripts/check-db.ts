@@ -134,7 +134,7 @@ export const PROBES: readonly Probe[] = [
   {
     file: 'process-invoice.json',
     node: 'Save invoice',
-    params: [PROBE_EVENT, 'gm-check-db-probe', '2026-01-01T00:00:00Z', 'ok', '[]', 'text', 'claude-haiku-5-5', '1', PROBE_INVOICE, '{}', 'check-db-probe.pdf', '2026/01'],
+    params: [PROBE_EVENT, 'gm-check-db-probe', '2026-01-01T00:00:00Z', 'ok', '[]', 'text', 'claude-haiku-5-5', '1', PROBE_INVOICE, '{}', 'check-db-probe.pdf', '2026/01', '0'],
     captureAs: 'probe_',
   },
   { file: 'process-invoice.json', node: 'Look up the original', params: ['9999999999', 'CHECK-DB-PROBE'] },

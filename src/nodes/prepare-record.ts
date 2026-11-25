@@ -24,6 +24,7 @@ export function run(input: PrepareInput): InvoiceRecord {
         path: 'none',
         model: null,
         attempt: 0,
+        cost_usd: 0,
       }
     : input;
 
