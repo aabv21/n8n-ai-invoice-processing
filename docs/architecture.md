@@ -168,6 +168,7 @@ n8n’s source confirms each behavior below (checked against 2.45.6 on 2026-10-3
 - An execution started by a webhook or a trigger calls only published sub-workflows; only manual and chat runs call drafts.
 - Postgres nodes need typeVersion 2.8 or later for free-text parameters, because earlier versions split a text value on commas.
 - Google Sheets 4.7 finds a tab by name only in `name` mode, while `id` mode parses the value as a numeric sheet ID.
+- The text path's Information Extractor sends the schema's field descriptions to the model (checked against 2.45.7 on 2026-11-25): it converts the JSON schema to zod keeping each `description`, and `StructuredOutputParser.getFormatInstructions` prints them as `// <description>` comments after the system prompt. So the per-field rules in `schemas/invoice.schema.json` reach the model on both paths.
 - A retry from the executions list reuses the stored output of every node that succeeded, including the config passed down, and resumes at the failed node.
 - A sub-execution runs its own `errorWorkflow` on failure, same as a top-level run (`execution-lifecycle-hooks.ts`, mode `integrated`). Its only loop guard is a workflow that names itself as its own error workflow, which is why `load-config` names none: `error-handler` calls it, and naming the handler there would have the two retrigger each other for as long as the failure persists.
 

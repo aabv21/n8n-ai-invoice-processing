@@ -141,13 +141,14 @@ export function isWebhookLive(status: number): boolean {
  * `isWebhookLive` or `budgetMs` elapses. The publication reconciler registers the route on its own
  * schedule (10 s by default), so a call right after `/healthz` turns healthy can still 404. The dev
  * harness checks `X-Dev-Token` first, so a live route answers 403: proof the publish took effect,
- * with no credential. `fetchImpl` is injectable for tests.
+ * with no credential. `fetchImpl` and `intervalMs` (the sleep between polls) are injectable for tests.
  */
 export async function waitForWebhookLive(
   baseUrl: string,
   path: string,
   budgetMs: number,
   fetchImpl: typeof fetch = fetch,
+  intervalMs = 1000,
 ): Promise<boolean> {
   const deadline = Date.now() + budgetMs;
   for (;;) {
@@ -158,6 +159,6 @@ export async function waitForWebhookLive(
       // not registered yet, or n8n isn't reachable for a moment; retry below until the budget runs out
     }
     if (Date.now() >= deadline) return false;
-    await new Promise<void>((resolve) => setTimeout(resolve, 1000));
+    await new Promise<void>((resolve) => setTimeout(resolve, intervalMs));
   }
 }

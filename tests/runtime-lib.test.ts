@@ -76,7 +76,9 @@ test('waitForWebhookLive returns true right away when the first poll is already 
   expect(await waitForWebhookLive('http://n8n.test', 'dev', 5000, fakeFetch([403]))).toBe(true);
 });
 test('waitForWebhookLive returns true once a run of 404s turns live within the budget', async () => {
-  expect(await waitForWebhookLive('http://n8n.test', 'dev', 5000, fakeFetch([404, 404, 403]))).toBe(true);
+  const started = performance.now();
+  expect(await waitForWebhookLive('http://n8n.test', 'dev', 5000, fakeFetch([404, 404, 403]), 0)).toBe(true);
+  expect(performance.now() - started).toBeLessThan(200);
 });
 test('waitForWebhookLive returns false when the budget elapses while every poll still answers 404', async () => {
   expect(await waitForWebhookLive('http://n8n.test', 'dev', 0, fakeFetch([404]))).toBe(false);
