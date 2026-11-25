@@ -1320,7 +1320,7 @@
         180
       ],
       "parameters": {
-        "width": 900,
+        "width": 860,
         "height": 160,
         "content": "## Read the PDF\nExtracts text locally and screens the page count and the extracted text length before any AI call runs. A page-count, text-length, or read failure becomes a review record without touching the model."
       }
@@ -1350,7 +1350,7 @@
         100
       ],
       "parameters": {
-        "width": 1180,
+        "width": 980,
         "height": 180,
         "content": "## Save (Postgres is the system of record)\nSaves the checked record once per event. A second save for the same supplier and invoice number comes back as a duplicate instead of a new row. Look up the original then reads that original back in a new statement (the save's own snapshot can miss a copy committed at the same moment), and the duplicate gets the Duplicate label when its total and issue date agree - or Review when either doesn't, or when no original is found."
       }

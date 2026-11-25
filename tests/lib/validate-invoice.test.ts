@@ -36,6 +36,9 @@ test.each([
   ['due before issue', { due_date: '2026-10-01' }, ['due_before_issue']],
   ['issued today', { issue_date: '2026-10-30', due_date: null }, []],
   ['issued in the future', { issue_date: '2026-10-31', due_date: null }, ['issue_date_in_future']],
+  ['due on the issue date', { due_date: '2026-10-02' }, []],
+  ['lines off the subtotal by exactly the tolerance', { line_items: [{ ...valid.line_items[0]!, line_total: 900_001 }, valid.line_items[1]!] }, []],
+  ['lines off the subtotal by more than the tolerance', { line_items: [{ ...valid.line_items[0]!, line_total: 900_001.01 }, valid.line_items[1]!] }, ['line_items_mismatch']],
   ['missing total skips the totals check', { total: null, confidence: 0.5 }, ['missing_total', 'low_confidence']],
 ])('%s', (_name, patch, expected) =>
   expect(validateInvoice({ ...valid, ...patch }, rules, today)).toEqual(expected));

@@ -4,6 +4,7 @@
   "nodes": [
     {
       "name": "Double value",
+      "notes": "Why Code: fixture",
       "type": "n8n-nodes-base.code",
       "typeVersion": 2,
       "parameters": {

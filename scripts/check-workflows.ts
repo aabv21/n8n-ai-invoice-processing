@@ -113,6 +113,9 @@ export function checkWorkflow(
     if (node.type === 'n8n-nodes-base.code') {
       const jsCode = typeof node.parameters.jsCode === 'string' ? node.parameters.jsCode : '';
       if (!jsCode.startsWith('// Why Code:')) errors.push(`code node ${node.name} must start with // Why Code:`);
+      if (typeof node.notes !== 'string' || !node.notes.startsWith('Why Code: ')) {
+        errors.push(`code node ${node.name} must have a notes field starting with Why Code:`);
+      }
       if (!opts.generatedNodes.has(node.name)) errors.push(`code node ${node.name} is not generated from src/nodes`);
     }
 
