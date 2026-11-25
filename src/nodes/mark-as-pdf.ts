@@ -9,7 +9,7 @@
 const PDF = 'application/pdf';
 const GENERIC = 'application/octet-stream';
 
-export interface BinaryEntry {
+interface BinaryEntry {
   mimeType: string;
   fileName?: string;
   [key: string]: unknown;

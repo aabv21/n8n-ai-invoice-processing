@@ -3,7 +3,7 @@
 // in a Colombian business register (usted, correct accents and ¿/¡). To add a language, see the
 // README's "Team email language".
 
-export interface SummaryStrings {
+interface SummaryStrings {
   title: string;
   /** "{title} {date}: {n} {subjectArrived}, {m} {subjectReview}": lowercase nouns, unlike the section labels. */
   subjectArrived: string;
@@ -75,7 +75,7 @@ export const SUMMARY_STRINGS: Record<'en' | 'es', SummaryStrings> = {
   },
 };
 
-export interface ErrorAlertStrings {
+interface ErrorAlertStrings {
   subjectPrefix: string;
   failedNode: string;
   error: string;

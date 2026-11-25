@@ -3,11 +3,11 @@
 // downstream. Pure: no I/O, no clock.
 import { checkConfig, type Config } from '../lib/config.ts';
 
-export interface CheckConfigInput {
+interface CheckConfigInput {
   config: unknown;
 }
 
-export interface CheckConfigOutput {
+interface CheckConfigOutput {
   config: Config;
 }
 

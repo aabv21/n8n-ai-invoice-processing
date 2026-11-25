@@ -3,7 +3,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { afterEach, expect, test, vi } from 'vitest';
 import { buildWorkflows, hardenAgainstFrozenDefineProperty, wrapBundle } from '../scripts/build-workflows.ts';
-import { checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows.ts';
+import { checkNode, checkSettings, checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows.ts';
 import { normalizeWorkflow } from '../scripts/export-workflows.ts';
 import { missingTriggerCredentials } from '../scripts/import-workflows.ts';
 import { listJsonFiles, readWorkflow, writeWorkflow, type Workflow, type WorkflowNode } from '../scripts/lib/workflow.ts';
@@ -43,6 +43,20 @@ const built = async (): Promise<string> => {
   return String(readWorkflow(join(dir, 'clean.json')).nodes.find((n) => n.name === 'Double value')?.parameters.jsCode);
 };
 
+test('checkSettings reports a missing errorWorkflow', () => {
+  const clean = fx('clean');
+  const wf = { ...clean, settings: { ...clean.settings, errorWorkflow: undefined } };
+  expect(checkSettings(wf)).toEqual(['settings.errorWorkflow must be mgpErrorHandler1']);
+});
+test('checkNode reports a Postgres query built from an expression', () => {
+  const node: WorkflowNode = {
+    name: 'Read rows',
+    type: 'n8n-nodes-base.postgres',
+    retryOnFail: true,
+    parameters: { operation: 'executeQuery', query: 'SELECT {{ $json.id }}' },
+  } as unknown as WorkflowNode;
+  expect(checkNode(node, opts)).toEqual(['query in node Read rows must use $n parameters, not expressions']);
+});
 test('clean workflow passes', () => expect(checkWorkflow(fx('clean'), opts)).toEqual([]));
 test('pinned data is rejected', () => expect(errors(fx('pinned'))).toMatch(/pinData present/));
 test('literal email, phone, long id and secret are rejected', () => {

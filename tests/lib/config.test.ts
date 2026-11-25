@@ -181,3 +181,13 @@ test('a missing team_locale defaults to en, so an existing config without it sti
   delete config.team_locale;
   expect(checkConfig(config).team_locale).toBe('en');
 });
+test("checkConfig leaves the caller's object unchanged", () => {
+  const input = clone() as unknown as Record<string, unknown>;
+  delete input.team_locale;
+  delete (input.ai as Record<string, unknown>).retry_effort;
+  const result = checkConfig(input);
+  expect(input).not.toHaveProperty('team_locale');
+  expect(input.ai).not.toHaveProperty('retry_effort');
+  expect(result.team_locale).toBe('en');
+  expect(result.ai.retry_effort).toBe('medium');
+});

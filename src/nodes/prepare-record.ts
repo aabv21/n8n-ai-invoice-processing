@@ -1,12 +1,13 @@
 // Turns every extraction outcome - a real check result, or a skip taken before any AI call ran -
 // into one InvoiceRecord and builds the Drive file name for it. Pure: no I/O, no clock.
 import { invoiceFileName } from '../lib/file-name.ts';
-import type { CheckOutput, InvoiceRecord } from '../lib/invoice.ts';
+import type { CheckOutput, InvoiceRecord, SkipReason } from '../lib/invoice.ts';
 import { emptyInvoice } from '../lib/util.ts';
 
-export type PrepareInput = CheckOutput | { skip_reason: 'too_many_pages' | 'too_much_text' | 'unreadable_pdf'; event_id: string; received_at: string };
+type SkipInput = { skip_reason: SkipReason; event_id: string; received_at: string };
+type PrepareInput = CheckOutput | SkipInput;
 
-function isSkip(input: PrepareInput): input is { skip_reason: 'too_many_pages' | 'too_much_text' | 'unreadable_pdf'; event_id: string; received_at: string } {
+function isSkip(input: PrepareInput): input is SkipInput {
   return 'skip_reason' in input;
 }
 

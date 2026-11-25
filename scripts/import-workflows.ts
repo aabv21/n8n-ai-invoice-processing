@@ -38,18 +38,9 @@ function errorDetail(err: unknown): string {
   return typeof stdout === 'string' && stdout.trim() !== '' ? `${err.message}\n${stdout.trim()}` : err.message;
 }
 
-async function main(): Promise<void> {
-  loadDotEnv();
-
-  const hasFiles = listJsonFiles(WORKFLOWS_DIR).length > 0;
-  if (hasFiles) {
-    await compose(['exec', '-T', 'n8n', 'n8n', 'import:workflow', '--separate', '--input=/workflows']);
-  }
-
-  const { credentials } = buildCredentials(process.env);
-  const available = new Set(credentials.map((c) => c.id));
+/** Publishes every workflow whose trigger credentials are available; a failed publish is reported, not thrown. */
+async function publishWorkflows(available: ReadonlySet<string>): Promise<{ published: WorkflowEntry[]; failures: string[] }> {
   const credentialNames = new Map(CREDENTIALS.map((c) => [c.id, c.name]));
-
   const published: WorkflowEntry[] = [];
   const failures: string[] = [];
   for (const entry of WORKFLOWS) {
@@ -75,30 +66,45 @@ async function main(): Promise<void> {
       failures.push(`publish failed for ${entry.file}: ${errorDetail(err)}`);
     }
   }
+  return { published, failures };
+}
 
-  if (published.length > 0) {
-    await compose(['restart', 'n8n']);
-    const n8nUrl = process.env.N8N_URL;
-    const healthy = n8nUrl ? await waitForHealthy(n8nUrl, 90_000) : false;
-    if (!healthy) {
-      failures.push('n8n did not become healthy after restart');
-    } else {
-      // NOTE: /healthz reports healthy before the publication reconciler (every 10 s by default)
-      // registers the new version's webhook. This wait outlasts the default, not a slower
-      // interval: the poll below is the real proof; this wait keeps the common case from spending
-      // its whole budget on it. Upgrade: wait past N8N_WORKFLOW_PUBLICATION_RECONCILE_INTERVAL_SECONDS
-      // instead of a fixed 15 s.
-      await new Promise<void>((resolve) => setTimeout(resolve, 15_000));
+/** Restarts n8n, waits for it to be healthy, then for each published webhook to answer; returns the failures. */
+async function restartAndConfirm(published: readonly WorkflowEntry[]): Promise<string[]> {
+  await compose(['restart', 'n8n']);
+  const n8nUrl = process.env.N8N_URL;
+  const healthy = n8nUrl ? await waitForHealthy(n8nUrl, 90_000) : false;
+  if (!healthy) return ['n8n did not become healthy after restart'];
 
-      if (n8nUrl) {
-        for (const entry of published) {
-          if (!entry.webhookPath) continue;
-          const live = await waitForWebhookLive(n8nUrl, entry.webhookPath, 60_000);
-          if (!live) failures.push(`webhook for ${entry.file} never came up (still 404 after the wait)`);
-        }
-      }
+  // NOTE: /healthz reports healthy before the publication reconciler (every 10 s by default)
+  // registers the new version's webhook. This wait outlasts the default, not a slower
+  // interval: the poll below is the real proof; this wait keeps the common case from spending
+  // its whole budget on it. Upgrade: wait past N8N_WORKFLOW_PUBLICATION_RECONCILE_INTERVAL_SECONDS
+  // instead of a fixed 15 s.
+  await new Promise<void>((resolve) => setTimeout(resolve, 15_000));
+
+  const failures: string[] = [];
+  if (n8nUrl) {
+    for (const entry of published) {
+      if (!entry.webhookPath) continue;
+      const live = await waitForWebhookLive(n8nUrl, entry.webhookPath, 60_000);
+      if (!live) failures.push(`webhook for ${entry.file} never came up (still 404 after the wait)`);
     }
   }
+  return failures;
+}
+
+async function main(): Promise<void> {
+  loadDotEnv();
+
+  const hasFiles = listJsonFiles(WORKFLOWS_DIR).length > 0;
+  if (hasFiles) {
+    await compose(['exec', '-T', 'n8n', 'n8n', 'import:workflow', '--separate', '--input=/workflows']);
+  }
+
+  const { credentials } = buildCredentials(process.env);
+  const { published, failures } = await publishWorkflows(new Set(credentials.map((c) => c.id)));
+  if (published.length > 0) failures.push(...(await restartAndConfirm(published)));
 
   for (const failure of failures) console.error(failure);
   if (failures.length > 0) process.exitCode = 1;
