@@ -6,10 +6,6 @@ An n8n workflow that reads supplier invoices from Gmail, extracts them with Clau
 
 **Status:** complete and verified offline, through the unit, workflow, and database suites and the local stack. The [live checks](#live-checks) below run once the Google and Anthropic accounts are connected.
 
-## Video
-
-Added after recording.
-
 ![Architecture: Gmail feeds gmail-entry and intake-email; process-invoice saves each invoice to Postgres, files the PDF in Google Drive, lists it in Google Sheets, and labels the email; extract-invoice calls Anthropic](docs/diagrams/architecture.svg)
 
 ## What it does

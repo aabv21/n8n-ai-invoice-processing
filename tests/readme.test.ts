@@ -16,7 +16,7 @@ function section(title: string): string {
 test("README sections follow the repo standard's order", () => {
   const headings = [...readme.matchAll(/^## (.+)$/gm)].map((m) => m[1]);
   expect(headings).toEqual([
-    'Video', 'What it does', 'Quick start', 'Configuration', 'Test scenarios', 'Cost per invoice',
+    'What it does', 'Quick start', 'Configuration', 'Test scenarios', 'Cost per invoice',
     'Design decisions and production notes', 'Limitations', 'License',
   ]);
 });
