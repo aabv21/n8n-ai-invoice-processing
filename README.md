@@ -1,12 +1,12 @@
 # Magdaport AI Invoice Processing
 
-**Demo**
-
-An n8n workflow that reads supplier invoices from Gmail, extracts them with Claude, files each PDF in Google Drive, lists it in Google Sheets, and flags doubtful ones for review.
+A demo n8n workflow that reads supplier invoices from Gmail, extracts them with Claude, files each PDF in Google Drive, lists it in Google Sheets, and flags doubtful ones for review.
 
 **Status:** complete and verified offline, through the unit, workflow, and database suites and the local stack. The [live checks](#live-checks) below run once the Google and Anthropic accounts are connected.
 
 ![Architecture: Gmail feeds gmail-entry and intake-email; process-invoice saves each invoice to Postgres, files the PDF in Google Drive, lists it in Google Sheets, and labels the email; extract-invoice calls Anthropic](docs/diagrams/architecture.svg)
+
+More views: the [invoice sequence](docs/diagrams/invoice-sequence.svg), the [lifecycle](docs/diagrams/invoice-lifecycle.svg) and [where the data goes](docs/diagrams/data-flow.svg). Each has an interactive page next to it (`.html`).
 
 ## What it does
 
@@ -21,6 +21,8 @@ An n8n workflow that reads supplier invoices from Gmail, extracts them with Clau
 
 ## Quick start
 
+**Prerequisites:** Node 24 LTS, pnpm 11 (`corepack enable` installs the pinned version), Docker with Docker Compose v2, a Google account for Gmail, Drive and Sheets, and an Anthropic API key.
+
 ```bash
 pnpm install --frozen-lockfile
 node scripts/init-env.ts
@@ -31,10 +33,11 @@ pnpm run setup
 
 `init-env.ts` writes `.env` with fresh local secrets and leaves the Anthropic, Google, and n8n API values blank. `pnpm run setup` applies the database migrations, imports the credentials whose `.env` values are set, and publishes every workflow whose trigger has its credential. Then, once:
 
-1. Fill in `config/config.json` (see [Configuration](#configuration)), including `team_email`, which ships as a placeholder too. `Check config` rejects it while any `REPLACE_ME` placeholder remains, naming the key.
-2. Fill in `ANTHROPIC_API_KEY`, `GOOGLE_OAUTH_CLIENT_ID`, and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`, and run `pnpm run setup` again to import them.
-3. In n8n (`http://localhost:5678`), open the Gmail, Google Drive, and Google Sheets credentials and sign in with the demo Google account.
-4. Run `pnpm run setup` once more. It publishes `gmail-entry`, which it held back until the Gmail credential existed.
+1. Fill in `ANTHROPIC_API_KEY`, `GOOGLE_OAUTH_CLIENT_ID`, and `GOOGLE_OAUTH_CLIENT_SECRET` in `.env`, and run `pnpm run setup` again to import them.
+2. In n8n (`http://localhost:5678`), open the Gmail, Google Drive, and Google Sheets credentials and sign in with the demo Google account.
+3. [Read the Gmail label IDs](#reading-the-label-ids), then create the [Drive root folder](#drive-root-folder) and the [spreadsheet](#the-spreadsheet).
+4. Fill in `config/config.json` (see [Configuration](#configuration)) with those IDs, `team_email`, and `validation.buyer_tax_id`. `Check config` rejects it while any `REPLACE_ME` placeholder remains, naming the key.
+5. Run `pnpm run setup` once more. It publishes `gmail-entry`, which it held back until the Gmail credential existed.
 
 ## Configuration
 
@@ -157,30 +160,150 @@ These need the connected Google and Anthropic accounts. Each row is one check, i
 | 2 | Publish after sign-in | `pnpm run setup` again, after signing in to Gmail, Drive, and Sheets | No `hold gmail-entry.json` line |
 | 3 | Gmail filter | Email a PDF to the demo account | It arrives labeled `Invoices` |
 | 4 | OAuth Production | The Google Cloud consent screen | "In production"; seven days later, `daily-summary` still sends |
-| 5 | Samples | `pnpm run samples -- --base-date $(TZ=America/Bogota date +%F)` and `pnpm run adversarial -- --base-date $(TZ=America/Bogota date +%F)`; send the six samples, then `pnpm run scenarios -- --since <ISO>` | Six `PASS` |
+| 5 | Samples | Commands: row 5 below | Six `PASS` |
 | 6 | Paths | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -c "SELECT drive_file_name, extraction_path, model, attempts, status, review_reasons FROM invoices ORDER BY id"'` | #4 `vision`, the rest `text` |
-| 7 | Request shape | #4's `extract-invoice` execution in n8n, and the text path's `Claude` sub-node | The PDF request sends `thinking: {type: adaptive}` and `output_config`, with no `temperature`, `top_p`, or `top_k`; the `Claude` sub-node shows no sampling options; the schema's type arrays and `format: date` raise no 400 or parse error on either path |
-| 8 | No retry on a printed mismatch | The query from row 6, for #5 | `attempts = 1`, `model = claude-haiku-5-5`, `status = review`; a printed totals mismatch isn't retried. If `review_reasons` also holds `low_confidence`, Haiku found #5 ambiguous and the retry is legitimate (`attempts = 2`, Sonnet); that isn't a regression, but `totals_mismatch` alone must never retry |
+| 7 | Request shape | #4's `extract-invoice` execution in n8n, and the text path's `Claude` sub-node | Full expectation: row 7 below |
+| 8 | No retry on a printed mismatch | The query from row 6, for #5 | Full expectation: row 8 below |
 | 9 | Drive and Sheets | The Drive root folder and the spreadsheet | 5 files under `Invoices/<yyyy>/<mm>`, named as in `samples/expected.json`; 5 `Invoices` rows and 19 `Items` rows; each `pdf_link` opens |
 | 10 | Labels | The six sample emails | #1–#4 `Processed`, #5 `Review`, #6 `Duplicate` |
 | 11 | Two PDFs in one email | Send `adv-usd-restatement.pdf` and `adv-implausible-line.pdf` in one email | Two events (`:attachment_0` and `:attachment_1`) and two rows |
-| 12 | Octet-stream | Delete #2: `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name = 'invoice-02-ten-items.pdf'; DELETE FROM invoices WHERE invoice_number = 'SA-77812';"`, and trash its Drive file and its Sheets rows. Then `node scripts/dev-call.ts intake-email "{\"message_id\":\"live-octet\",\"file_name\":\"invoice-02-ten-items.pdf\",\"mime_type\":\"application/octet-stream\",\"pdf_base64\":\"$(base64 -i samples/invoice-02-ten-items.pdf)\"}"`. Clean up with `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE event_id = 'live-octet:attachment_0'; DELETE FROM invoices WHERE source_event_id = 'live-octet:attachment_0';"`, and trash the new Drive file and its Sheets rows | The Drive file's type is PDF; the label call then fails on the fake message ID, so `intake-email` stops at `Fail the batch`, as expected |
-| 13 | Redelivery | `MSG1=$(docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT split_part(event_id, ':', 1) FROM processed_events WHERE file_name = 'invoice-01-two-items.pdf' ORDER BY received_at LIMIT 1;")`, then `node scripts/dev-call.ts intake-email "{\"message_id\":\"$MSG1\",\"file_name\":\"invoice-01-two-items.pdf\",\"mime_type\":\"application/pdf\",\"pdf_base64\":\"$(base64 -i samples/invoice-01-two-items.pdf)\"}"`, then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT count(*) FROM processed_events WHERE file_name = 'invoice-01-two-items.pdf';"` | The count is still 1, and no new `process-invoice` execution appears |
+| 12 | Octet-stream | Commands: row 12 below | The Drive file's type is PDF; the label call then fails on the fake message ID, so `intake-email` stops at `Fail the batch`, as expected |
+| 13 | Redelivery | Commands: row 13 below | The count is still 1, and no new `process-invoice` execution appears |
 | 14 | ensure-folder | `node scripts/dev-call.ts ensure-folder '{"parent_id":"<drive_root_folder_id>","name":"2099"}'`, twice | The same `folder_id` both times; trash the `2099` folder afterwards |
 | 15 | Error alert | `node scripts/dev-call.ts extract-invoice '{"event_id":"live-error","path":"bogus"}'`, then again with `team_locale: "es"` | `[Magdaport demo] Workflow failed: extract-invoice`, then `[Demo Magdaport] Falló el flujo: extract-invoice` |
-| 16 | Invalid Anthropic key, then replay | In n8n, set the Anthropic credential's API key to `invalid`, and email `samples/adversarial/adv-implausible-line.pdf` to the demo account. 30 minutes later, `node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":true}"`. Restore the key, open the failed `Process invoice` execution in n8n's executions list and choose **Retry with original workflow**, then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT event_id, outcome FROM processed_events WHERE file_name = 'adv-implausible-line.pdf' ORDER BY received_at;"` | Alerts arrive and `intake-email` stops at `Fail the batch`; the preview lists `adv-implausible-line.pdf` under the unfinished line; after the retry, the newest row's outcome is `duplicate`, since row 11 saved the same invoice |
-| 17 | too_many_pages | Set `extraction.max_pages: 1` in `config/config.json`; `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812');"`, and trash #2's Drive file and its Sheets rows; resend #2 by email; then restore `20` and clean up the same way | `review` with `too_many_pages` |
+| 16 | Invalid Anthropic key, then replay | Commands: row 16 below | Full expectation: row 16 below |
+| 17 | too_many_pages | Commands: row 17 below | `review` with `too_many_pages` |
 | 18 | Summary content | After the samples and before the drills: `node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":false}"`, then again with `team_locale: "es"` | `Arrived: 6 \| OK: 4 \| Review: 1 \| Duplicates: 1`, in both languages; the 18:00 run arrives on its own |
 | 19 | Cost | `pnpm run cost -- --since <ISO>` | The "all" total is within 5% of the Anthropic console for the same window; the table goes in [Cost per invoice](#cost-per-invoice) |
-| 20 | Queue mode | `docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2`, wait 15 s, then `docker inspect --format '{{.Name}} {{.HostConfig.SecurityOpt}} {{.HostConfig.CapDrop}}' $(docker compose -f compose.yaml -f compose.queue.yaml ps -q)` | `no-new-privileges` everywhere, and `CapDrop [ALL]` on `n8n` and the workers |
-| 21 | Overlapping executions in queue mode | With the queue stack from row 20: `MSG3=$(docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT split_part(event_id, ':', 1) FROM processed_events WHERE file_name = 'invoice-03-usd.pdf' ORDER BY received_at LIMIT 1;")`; delete #3 with `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name = 'invoice-03-usd.pdf'; DELETE FROM invoices WHERE invoice_number = 'INV-3307';"`, and trash #3's Drive file and its 1 `Invoices` and 3 `Items` rows; record two events with `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "INSERT INTO processed_events (source, event_id, file_name) VALUES ('gmail', 'race-a:attachment_0', 'invoice-03-usd.pdf'), ('gmail', 'race-b:attachment_0', 'invoice-03-usd.pdf');"`; run both calls at once with `for e in race-a race-b; do node scripts/dev-call.ts process-invoice "{\"event_id\":\"${e}:attachment_0\",\"message_id\":\"$MSG3\",\"file_name\":\"invoice-03-usd.pdf\",\"received_at\":\"$(date -u +%FT%TZ)\",\"pdf_base64\":\"$(base64 -i samples/invoice-03-usd.pdf)\"}" & done; wait`; then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT pe.event_id, pe.outcome, pe.invoice_id, (SELECT count(*) FROM invoices WHERE invoice_number = 'INV-3307') AS invoice_rows FROM processed_events pe WHERE pe.event_id LIKE 'race-%' ORDER BY 1;"` | `invoice_rows` is 1; one event is `ok` and the other `duplicate`, both with the same `invoice_id`; #3's email carries `Processed` and `Duplicate`, never `Review`; the executions show in `docker compose -f compose.yaml -f compose.queue.yaml logs n8n-worker`. The two saves overlap only when both extractions finish within milliseconds of each other; `tests/db/queries.test.ts` pins that exact interleaving |
-| 22 | Restart mid-execution | `docker compose restart n8n` while an extraction runs | The event shows as unfinished; recover it with AGENTS.md's "Recovering stuck events" |
+| 20 | Queue mode | Commands: row 20 below | `no-new-privileges` everywhere, and `CapDrop [ALL]` on `n8n` and the workers |
+| 21 | Overlapping executions in queue mode | Commands: row 21 below | Full expectation: row 21 below |
+| 22 | Restart mid-execution | `docker compose restart n8n` while an extraction runs | The event shows as unfinished; recover it with [Recovering stuck events](docs/operations.md#recovering-stuck-events) |
 | 23 | Red team | Each `samples/adversarial/` PDF, one per email, the duplicate pair in order | Each label and saved row falls in its safe set in `samples/adversarial/expected.json`; the genuine re-send is labeled `Duplicate` |
 | 24 | Red team, parked | A long-text fixture under `max_text_chars`, and the off-schema phishing fixture | The Sheets write succeeds or fails loudly (the 50,000-character cell limit); the phishing fixture's error email echoes nothing harmful |
 | 25 | Spend limit | The Anthropic console | A monthly limit is set; the amount is the account owner's decision |
-| 26 | One failed attachment in a batch | `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812', 'NL-0938');"`, and trash #2's and #4's Drive files and Sheets rows; in `config/config.json` set `extraction.max_pages: 1` (so #2 is skipped with no AI call) and `ai.default_model: claude-no-such-model` (so #4's first extraction fails); email `invoice-02-ten-items.pdf` and `invoice-04-scanned.pdf` together in one email; then `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT file_name, outcome, invoice_id IS NOT NULL FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf');"`; restore `20` and `claude-haiku-5-5`, then clean up with `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812', 'NL-0938');"`, trash both files' Drive files and Sheets rows, and resend #4 | #2 is labeled `Review` with outcome `review` and an invoice (`too_many_pages`); #4's extraction fails on the unknown model, so its outcome stays empty with no invoice; the `intake-email` alert names `Fail the batch` with "process-invoice failed for 1 attachment(s) in this batch"; after the restore, the resent #4 is labeled `Processed` |
-| 27 | Sonnet retry on a scan | Set `validation.min_confidence: 1` in `config/config.json`, and delete #4 as row 17 does (file `invoice-04-scanned.pdf`, number `NL-0938`), trashing its Drive file and Sheets rows. Resend #4, run row 6's query, then restore `0.8` | #4 `attempts = 2`, `model = claude-sonnet-5-5` |
-| 28 | Clean clone | Clear the Sheets rows (keep the headers), trash `Invoices/<yyyy>`, run `docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events; DELETE FROM invoices;"`, then `gh repo clone aabv21/n8n-ai-invoice-processing "$(mktemp -d)/magdaport-check"` and follow [Quick start](#quick-start) exactly | Six `PASS` from `pnpm run scenarios` |
+| 26 | One failed attachment in a batch | Commands: row 26 below | Full expectation: row 26 below |
+| 27 | Sonnet retry on a scan | Commands: row 27 below | #4 `attempts = 2`, `model = claude-sonnet-5-5` |
+| 28 | Clean clone | Commands: row 28 below | Six `PASS` from `pnpm run scenarios` |
+
+#### Live-check commands
+
+Each block is for the row it names, run from the repo root with the stack up. A line starting with `#` is a manual step.
+
+**Row 5.**
+
+```bash
+pnpm run samples -- --base-date $(TZ=America/Bogota date +%F)
+# and
+pnpm run adversarial -- --base-date $(TZ=America/Bogota date +%F)
+# send the six samples, then
+pnpm run scenarios -- --since <ISO>
+```
+
+**Row 7.**
+
+Expected, in full: The PDF request sends `thinking: {type: adaptive}` and `output_config`, with no `temperature`, `top_p`, or `top_k`; the `Claude` sub-node shows no sampling options; the schema's type arrays and `format: date` raise no 400 or parse error on either path
+
+**Row 8.**
+
+Expected, in full: `attempts = 1`, `model = claude-haiku-5-5`, `status = review`; a printed totals mismatch isn't retried. If `review_reasons` also holds `low_confidence`, Haiku found #5 ambiguous and the retry is legitimate (`attempts = 2`, Sonnet); that isn't a regression, but `totals_mismatch` alone must never retry
+
+**Row 12.**
+
+```bash
+# Delete #2:
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name = 'invoice-02-ten-items.pdf'; DELETE FROM invoices WHERE invoice_number = 'SA-77812';"
+# trash its Drive file and its Sheets rows. Then
+node scripts/dev-call.ts intake-email "{\"message_id\":\"live-octet\",\"file_name\":\"invoice-02-ten-items.pdf\",\"mime_type\":\"application/octet-stream\",\"pdf_base64\":\"$(base64 -i samples/invoice-02-ten-items.pdf)\"}"
+# Clean up with
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE event_id = 'live-octet:attachment_0'; DELETE FROM invoices WHERE source_event_id = 'live-octet:attachment_0';"
+# trash the new Drive file and its Sheets rows
+```
+
+**Row 13.**
+
+```bash
+MSG1=$(docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT split_part(event_id, ':', 1) FROM processed_events WHERE file_name = 'invoice-01-two-items.pdf' ORDER BY received_at LIMIT 1;")
+# then
+node scripts/dev-call.ts intake-email "{\"message_id\":\"$MSG1\",\"file_name\":\"invoice-01-two-items.pdf\",\"mime_type\":\"application/pdf\",\"pdf_base64\":\"$(base64 -i samples/invoice-01-two-items.pdf)\"}"
+# then
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT count(*) FROM processed_events WHERE file_name = 'invoice-01-two-items.pdf';"
+```
+
+**Row 16.**
+
+```bash
+# In n8n, set the Anthropic credential's API key to `invalid`, and email `samples/adversarial/adv-implausible-line.pdf` to the demo account. 30 minutes later
+node scripts/dev-call.ts summary-preview "{\"run_at\":\"$(date -u +%FT%TZ)\",\"dry_run\":true}"
+# Restore the key, open the failed `Process invoice` execution in n8n's executions list and choose **Retry with original workflow**, then
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT event_id, outcome FROM processed_events WHERE file_name = 'adv-implausible-line.pdf' ORDER BY received_at;"
+```
+
+Expected, in full: Alerts arrive and `intake-email` stops at `Fail the batch`; the preview lists `adv-implausible-line.pdf` under the unfinished line; after the retry, the newest row's outcome is `duplicate`, since row 11 saved the same invoice
+
+**Row 17.**
+
+```bash
+# Set `extraction.max_pages: 1` in `config/config.json`
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812');"
+# trash #2's Drive file and its Sheets rows; resend #2 by email; then restore `20` and clean up the same way
+```
+
+**Row 20.**
+
+```bash
+docker compose -f compose.yaml -f compose.queue.yaml up -d --wait --scale n8n-worker=2
+# wait 15 s, then
+docker inspect --format '{{.Name}} {{.HostConfig.SecurityOpt}} {{.HostConfig.CapDrop}}' $(docker compose -f compose.yaml -f compose.queue.yaml ps -q)
+```
+
+**Row 21.**
+
+```bash
+# With the queue stack from row 20:
+MSG3=$(docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT split_part(event_id, ':', 1) FROM processed_events WHERE file_name = 'invoice-03-usd.pdf' ORDER BY received_at LIMIT 1;")
+# delete #3 with
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events WHERE file_name = 'invoice-03-usd.pdf'; DELETE FROM invoices WHERE invoice_number = 'INV-3307';"
+# trash #3's Drive file and its 1 `Invoices` and 3 `Items` rows; record two events with
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "INSERT INTO processed_events (source, event_id, file_name) VALUES ('gmail', 'race-a:attachment_0', 'invoice-03-usd.pdf'), ('gmail', 'race-b:attachment_0', 'invoice-03-usd.pdf');"
+# run both calls at once with
+for e in race-a race-b; do node scripts/dev-call.ts process-invoice "{\"event_id\":\"${e}:attachment_0\",\"message_id\":\"$MSG3\",\"file_name\":\"invoice-03-usd.pdf\",\"received_at\":\"$(date -u +%FT%TZ)\",\"pdf_base64\":\"$(base64 -i samples/invoice-03-usd.pdf)\"}" & done; wait
+# then
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT pe.event_id, pe.outcome, pe.invoice_id, (SELECT count(*) FROM invoices WHERE invoice_number = 'INV-3307') AS invoice_rows FROM processed_events pe WHERE pe.event_id LIKE 'race-%' ORDER BY 1;"
+```
+
+Expected, in full: `invoice_rows` is 1; one event is `ok` and the other `duplicate`, both with the same `invoice_id`; #3's email carries `Processed` and `Duplicate`, never `Review`; the executions show in `docker compose -f compose.yaml -f compose.queue.yaml logs n8n-worker`. The two saves overlap only when both extractions finish within milliseconds of each other; `tests/db/queries.test.ts` pins that exact interleaving
+
+**Row 26.**
+
+```bash
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812', 'NL-0938');"
+# trash #2's and #4's Drive files and Sheets rows; in `config/config.json` set `extraction.max_pages: 1` (so #2 is skipped with no AI call) and `ai.default_model: claude-no-such-model` (so #4's first extraction fails); email `invoice-02-ten-items.pdf` and `invoice-04-scanned.pdf` together in one email; then
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "SELECT file_name, outcome, invoice_id IS NOT NULL FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf');"
+# restore `20` and `claude-haiku-5-5`, then clean up with
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-02-ten-items.pdf', 'invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('SA-77812', 'NL-0938');"
+# trash both files' Drive files and Sheets rows, and resend #4
+```
+
+Expected, in full: #2 is labeled `Review` with outcome `review` and an invoice (`too_many_pages`); #4's extraction fails on the unknown model, so its outcome stays empty with no invoice; the `intake-email` alert names `Fail the batch` with "process-invoice failed for 1 attachment(s) in this batch"; after the restore, the resent #4 is labeled `Processed`
+
+**Row 27.**
+
+```bash
+# Set validation.min_confidence: 1 in config/config.json
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "WITH e AS (DELETE FROM processed_events WHERE file_name IN ('invoice-04-scanned.pdf') RETURNING event_id) DELETE FROM invoices WHERE source_event_id IN (SELECT event_id FROM e) OR invoice_number IN ('NL-0938');"
+# trash #4's Drive file and its Sheets rows, then resend #4 by email
+# run row 6's query
+# restore validation.min_confidence to 0.8
+```
+
+**Row 28.**
+
+Clear the Sheets rows (keep the headers), trash `Invoices/<yyyy>`, and run the commands below. Then follow the [Quick start](#quick-start) exactly in the clone.
+
+```bash
+docker compose exec -T postgres sh -c 'psql -U "$APP_DB_USER" -d app -At' <<< "DELETE FROM processed_events; DELETE FROM invoices;"
+gh repo clone aabv21/n8n-ai-invoice-processing "$(mktemp -d)/magdaport-check"
+```
 
 ## Cost per invoice
 
@@ -217,7 +340,7 @@ The cost is a Redis container and the workers to run and monitor. Start it with 
 
 ## Limitations
 
-Each item links to its row in the [failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery) where it has one, with the behavior, detection, and recovery. [AGENTS.md](AGENTS.md#recovering-stuck-events) has the commands for a stuck event.
+Each item links to its row in the [failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery) where it has one, with the behavior, detection, and recovery. [docs/operations.md](docs/operations.md#recovering-stuck-events) has the commands for a stuck event.
 
 - **New mail only:** the Gmail trigger sees mail that arrives after its last poll; a label added by hand to older mail is never picked up.
 - **No DIAN electronic invoice:** the ZIP and XML a Colombian e-invoice carries aren't read; only the PDF is.
@@ -236,9 +359,11 @@ Each item links to its row in the [failure table](docs/architecture.md#failure-m
 - **One failure sends one alert per failed execution in the chain:** an extraction failure from a live poll alerts from `extract-invoice`, `process-invoice`, `intake-email` (at `Fail the batch`, once every attachment had its call), and `gmail-entry`. Count incidents by execution.
 - **The 18:00 cron fails every day until a Gmail credential exists**, since `Email summary` and the error alert both need Gmail.
 - **A missed 18:00 run is skipped**, not caught up, so its 24 hours never appear in a report.
-- **A call right after n8n restarts can run the previous published version**; wait 15 s past `/healthz`.
+- **The cost table is still pending:** the figures come from the first live run (`pnpm run cost`), so the status line's "complete" covers the code, not measured costs.
+- **The dev harness is published:** it's token-protected and localhost-only, but unpublish it before production use.
+- **A call right after n8n restarts can run the previous published version**; wait 15 s past `/healthz` (see the [failure table](docs/architecture.md#failure-modes-behavior-detection-and-recovery)).
 - **The Code-node build patches esbuild's `__defProp` helper**, because n8n's Task Runner replaces `Object.defineProperty`; an esbuild update that changes that helper fails the build until the patch is updated.
-- **Migration `002` builds its index with a plain `CREATE INDEX`**, which blocks writes while it runs; brief at this volume, but a large table needs `CONCURRENTLY`.
+- **Migration `002` builds its index with a plain `CREATE INDEX`**, which blocks writes while the index builds; that grows with the table, so a large table needs `CONCURRENTLY`.
 - **`testdb` uses trust auth**: it's opt-in, bound to `127.0.0.1`, tmpfs-backed, and never holds real data.
 - **`load-config` returns only `{ config }`**, so each caller merges it back onto its own item.
 - **Sample PDFs use Helvetica**, a WinAnsi standard font, so sample text is limited to WinAnsi characters.
@@ -246,4 +371,4 @@ Each item links to its row in the [failure table](docs/architecture.md#failure-m
 
 ## License
 
-MIT — see [LICENSE](./LICENSE).
+MIT: see [LICENSE](./LICENSE).

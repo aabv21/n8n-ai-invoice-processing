@@ -45,3 +45,31 @@ test('the live checks cover the setup, pipeline, drills, queue mode and clean cl
     expect(rows.some((row) => row.includes(check)), check).toBe(true);
   }
 });
+
+test('the quick start states its prerequisites', () => {
+  const quickStart = section('Quick start');
+  for (const needle of ['Node 24', 'pnpm 11', 'corepack enable', 'Docker Compose', 'Anthropic API key']) {
+    expect(quickStart, needle).toContain(needle);
+  }
+});
+
+test('no live-check table cell is longer than 200 characters', () => {
+  const rows = readme.split('\n').filter((line) => /^\| \d+ \|/.test(line));
+  for (const row of rows) {
+    for (const cell of row.split(/(?<!\\)\|/).slice(1, -1)) expect(cell.trim().length, row.slice(0, 40)).toBeLessThanOrEqual(200);
+  }
+});
+
+test('the README has no bare bold label line', () => {
+  expect(readme.split('\n').filter((line) => /^\*\*[A-Za-z ]+\*\*$/.test(line))).toEqual([]);
+});
+
+test('every live-check row that points below has its block', () => {
+  const rows = readme.split('\n').filter((line) => /^\| \d+ \|/.test(line) && /row \d+ below/.test(line));
+  expect(rows.length).toBeGreaterThan(0);
+  for (const row of rows) {
+    const n = /^\| (\d+) \|/.exec(row)![1] as string;
+    expect(row, `row ${n} names its own number`).toContain(`row ${n} below`);
+    expect(readme, `a block for row ${n}`).toContain(`\n**Row ${n}.**\n`);
+  }
+});

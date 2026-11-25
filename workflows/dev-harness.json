@@ -394,7 +394,7 @@
       "parameters": {
         "width": 1200,
         "height": 160,
-        "content": "## Dev harness\nToken-protected test RPC: POST /webhook/dev with { target, input } runs a fixed sub-workflow and responds with its result; an unknown target answers 404. Localhost only (no tunnel in this demo); unpublish before any production use. Targets: load-config, extract-invoice, process-invoice, intake-email, summary-preview, and ensure-folder."
+        "content": "## Dev harness\nToken-protected test RPC; docs/architecture.md, Dev harness API, lists every target. Localhost only (no tunnel in this demo); unpublish before any production use."
       }
     },
     {

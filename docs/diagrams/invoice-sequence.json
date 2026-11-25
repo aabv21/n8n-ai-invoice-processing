@@ -8,7 +8,7 @@
     "column_fit": "spread",
     "viewBox": [
       1700,
-      1016
+      1094
     ],
     "legend": {
       "entries": {
@@ -69,6 +69,11 @@
       "id": "google",
       "type": "external",
       "label": "Drive · Sheets"
+    },
+    {
+      "id": "errors",
+      "type": "backend",
+      "label": "error-handler"
     }
   ],
   "segments": [
@@ -84,28 +89,33 @@
     },
     {
       "from": 316,
-      "to": 458,
+      "to": 486,
       "label": "3 Screens, extraction, check"
     },
     {
-      "from": 482,
-      "to": 512,
+      "from": 510,
+      "to": 540,
       "label": "4 Sonnet retry"
     },
     {
-      "from": 536,
-      "to": 594,
+      "from": 564,
+      "to": 622,
       "label": "5 Save (replay-safe)"
     },
     {
-      "from": 618,
-      "to": 732,
+      "from": 646,
+      "to": 760,
       "label": "6 Duplicate: read back, compare, label"
     },
     {
-      "from": 756,
-      "to": 898,
+      "from": 784,
+      "to": 926,
       "label": "7 Drive, Sheets, label, outcome"
+    },
+    {
+      "from": 950,
+      "to": 996,
+      "label": "8 Failure alert"
     }
   ],
   "messages": [
@@ -171,83 +181,97 @@
     },
     {
       "from": "process",
+      "to": "db",
+      "y": 474,
+      "label": "unreadable or too many pages: skip extraction",
+      "variant": "dashed"
+    },
+    {
+      "from": "process",
       "to": "extract",
-      "y": 500,
+      "y": 528,
       "label": "model-dependent review: Sonnet 5.5, effort medium",
       "variant": "dashed"
     },
     {
       "from": "process",
       "to": "db",
-      "y": 554,
+      "y": 582,
       "label": "save once per event",
       "variant": "emphasis"
     },
     {
       "from": "db",
       "to": "process",
-      "y": 582,
+      "y": 610,
       "label": "invoice_id, or saved: false",
       "variant": "return"
     },
     {
       "from": "process",
       "to": "db",
-      "y": 636,
+      "y": 664,
       "label": "read back the original",
       "variant": "dashed"
     },
     {
       "from": "db",
       "to": "process",
-      "y": 664,
+      "y": 692,
       "label": "id, total, issue date",
       "variant": "return"
     },
     {
       "from": "process",
       "to": "gmail",
-      "y": 692,
+      "y": 720,
       "label": "Duplicate or Review label",
       "variant": "dashed"
     },
     {
       "from": "process",
       "to": "db",
-      "y": 720,
+      "y": 748,
       "label": "outcome: duplicate",
       "variant": "dashed"
     },
     {
       "from": "process",
       "to": "google",
-      "y": 774,
+      "y": 802,
       "label": "upload PDF to yyyy/mm"
     },
     {
       "from": "process",
       "to": "db",
-      "y": 802,
+      "y": 830,
       "label": "save Drive link, read row"
     },
     {
       "from": "process",
       "to": "google",
-      "y": 830,
+      "y": 858,
       "label": "Sheets rows by key"
     },
     {
       "from": "process",
       "to": "gmail",
-      "y": 858,
+      "y": 886,
       "label": "Processed or Review label",
       "variant": "emphasis"
     },
     {
       "from": "process",
       "to": "db",
-      "y": 886,
+      "y": 914,
       "label": "record outcome"
+    },
+    {
+      "from": "intake",
+      "to": "errors",
+      "y": 972,
+      "label": "a failed call: one batch alert",
+      "variant": "dashed"
     }
   ]
 }

@@ -1,5 +1,5 @@
 <?xml version="1.0" encoding="UTF-8"?>
-<svg viewBox="0 0 1230 640" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase" data-node-ui="" data-diagram-type="architecture" data-reader-fit="authored-height" style="--flow-cycle: 4.411s; width: 1230px; height: 640px; min-width: 0px;" width="1230" height="640" xmlns="http://www.w3.org/2000/svg"><style>
+<svg viewBox="0 0 1230 780" role="img" lang="en" aria-labelledby="archify-diagram-title archify-diagram-description" data-animation="trace" data-preset="classic" data-quality-profile="showcase" data-node-ui="" data-diagram-type="architecture" data-reader-fit="authored-height" style="--flow-cycle: 6.115s; width: 1230px; height: 780px; min-width: 0px;" width="1230" height="780" xmlns="http://www.w3.org/2000/svg"><style>
 /*
 JetBrains Mono variable WOFF2 subsets from Google Fonts service revision v24.
 These fixed bytes are shared by the viewer and its SVG/raster exports.
@@ -399,244 +399,333 @@ svg[data-preset="editorial"] { --flow-halo-peak: 0.07; --flow-glow-peak: 0.28; -
 }
 @keyframes archify-relay-ripple { 
   0% { r: 2px; opacity: var(--flow-peak, 0.6); }
-  17.001%, 100% { r: 20px; opacity: 0; }
+  12.265%, 100% { r: 20px; opacity: 0; }
 }
 @keyframes archify-relay-comet-0 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.904% { opacity: var(--flow-peak, 0.9); }
-  9.521% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  13.148%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.374% { opacity: var(--flow-peak, 0.9); }
+  6.868% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.485%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-0 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  9.521% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  29.922%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.868% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.587%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-1 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.904% { opacity: var(--flow-peak, 0.9); }
-  9.521% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  13.148%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.374% { opacity: var(--flow-peak, 0.9); }
+  6.868% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.485%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-1 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  9.521% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  29.922%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.868% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.587%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-2 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.904% { opacity: var(--flow-peak, 0.9); }
-  9.521% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  13.148%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.374% { opacity: var(--flow-peak, 0.9); }
+  6.868% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.485%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-2 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  9.521% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  29.922%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.868% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.587%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-3 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.904% { opacity: var(--flow-peak, 0.9); }
-  9.521% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  13.148%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.374% { opacity: var(--flow-peak, 0.9); }
+  6.868% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.485%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-3 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  9.521% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  29.922%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.868% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.587%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-4 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.904% { opacity: var(--flow-peak, 0.9); }
-  9.521% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  13.148%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.374% { opacity: var(--flow-peak, 0.9); }
+  6.868% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.485%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-4 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  9.521% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  29.922%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.868% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.587%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-5 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.72% { opacity: var(--flow-peak, 0.9); }
-  20.075% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  23.702%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  14.483% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  17.099%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-5 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  20.075% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  40.477%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  14.483% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  29.201%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-6 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.72% { opacity: var(--flow-peak, 0.9); }
-  34.003% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  37.63%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  24.53% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  27.147%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-6 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  34.003% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  54.404%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  24.53% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  39.248%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-7 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.202% { opacity: var(--flow-peak, 0.9); }
-  11.01% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  14.637%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  9.926% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  12.542%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-7 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  11.01% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  31.412%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  9.926% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  24.644%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-8 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.72% { opacity: var(--flow-peak, 0.9); }
-  26.066% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  29.693%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  19.214% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  21.83%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-8 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  26.066% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  46.468%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  19.214% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  33.932%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-9 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.202% { opacity: var(--flow-peak, 0.9); }
-  11.01% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  14.637%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.589% { opacity: var(--flow-peak, 0.9); }
+  7.943% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  10.56%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-9 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  11.01% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  31.412%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  7.943% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  22.661%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-10 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.72% { opacity: var(--flow-peak, 0.9); }
-  26.066% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  29.693%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  18.396% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  21.013%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-10 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  26.066% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  46.468%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  18.396% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  33.114%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-11 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  1.904% { opacity: var(--flow-peak, 0.9); }
-  9.521% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  13.148%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.374% { opacity: var(--flow-peak, 0.9); }
+  6.868% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.485%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-11 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  9.521% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  29.922%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  6.868% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.587%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-12 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.202% { opacity: var(--flow-peak, 0.9); }
-  11.01% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  14.637%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.589% { opacity: var(--flow-peak, 0.9); }
+  7.943% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  10.56%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-12 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  11.01% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  31.412%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  7.943% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  22.661%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-13 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.72% { opacity: var(--flow-peak, 0.9); }
-  26.633% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  30.26%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  19.214% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  21.83%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-13 { 
   0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  26.633% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
-  47.035%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  19.214% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  33.932%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-comet-14 { 
   0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
-  2.202% { opacity: var(--flow-peak, 0.9); }
-  11.01% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
-  14.637%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  19.214% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  21.83%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
 }
 @keyframes archify-relay-wake-14 { 
-  0%, 3.303% { opacity: 0; }
-  11.01% { opacity: var(--flow-peak, 0.3); }
-  31.412%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+  0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  19.214% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  33.932%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+}
+@keyframes archify-relay-comet-15 { 
+  0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  1.374% { opacity: var(--flow-peak, 0.9); }
+  6.868% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.485%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+}
+@keyframes archify-relay-wake-15 { 
+  0% { stroke-dashoffset: var(--flow-len, 0px); opacity: var(--flow-peak, 0.3); animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  6.868% { stroke-dashoffset: 0px; opacity: var(--flow-peak, 0.3); }
+  21.587%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+}
+@keyframes archify-relay-comet-16 { 
+  0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  24.53% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  27.147%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+}
+@keyframes archify-relay-wake-16 { 
+  0%, 7.359% { opacity: 0; }
+  24.53% { opacity: var(--flow-peak, 0.3); }
+  39.248%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+}
+@keyframes archify-relay-comet-17 { 
+  0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  1.374% { opacity: var(--flow-peak, 0.9); }
+  6.868% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  9.485%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+}
+@keyframes archify-relay-wake-17 { 
+  0%, 2.061% { opacity: 0; }
+  6.868% { opacity: var(--flow-peak, 0.3); }
+  21.587%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+}
+@keyframes archify-relay-comet-18 { 
+  0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  16.995% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  19.612%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+}
+@keyframes archify-relay-wake-18 { 
+  0%, 5.099% { opacity: 0; }
+  16.995% { opacity: var(--flow-peak, 0.3); }
+  31.713%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+}
+@keyframes archify-relay-comet-19 { 
+  0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  24.53% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  27.147%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+}
+@keyframes archify-relay-wake-19 { 
+  0%, 7.359% { opacity: 0; }
+  24.53% { opacity: var(--flow-peak, 0.3); }
+  39.248%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+}
+@keyframes archify-relay-comet-20 { 
+  0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  1.962% { opacity: var(--flow-peak, 0.9); }
+  24.53% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  27.147%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+}
+@keyframes archify-relay-wake-20 { 
+  0%, 7.359% { opacity: 0; }
+  24.53% { opacity: var(--flow-peak, 0.3); }
+  39.248%, 100% { stroke-dashoffset: 0px; opacity: 0; }
+}
+@keyframes archify-relay-comet-21 { 
+  0% { stroke-dashoffset: calc(var(--flow-len, 0px) + var(--flow-shift, 0px)); opacity: 0; animation-timing-function: cubic-bezier(0.45, 0.05, 0.35, 1); }
+  1.589% { opacity: var(--flow-peak, 0.9); }
+  7.943% { stroke-dashoffset: var(--flow-shift, 0px); opacity: var(--flow-peak, 0.9); }
+  10.56%, 100% { stroke-dashoffset: var(--flow-shift, 0px); opacity: 0; }
+}
+@keyframes archify-relay-wake-21 { 
+  0%, 2.383% { opacity: 0; }
+  7.943% { opacity: var(--flow-peak, 0.3); }
+  22.661%, 100% { stroke-dashoffset: 0px; opacity: 0; }
 }
 @keyframes archify-relay-node-0 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
   0% { filter: var(--ambient-node-base-filter, none); }
-  2.72%, 9.521% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  27.202% { filter: var(--ambient-node-base-filter, none); }
+  1.962%, 6.868% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  19.624% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-1 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
   0% { filter: var(--ambient-node-base-filter, none); }
-  2.72%, 9.521% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  27.202% { filter: var(--ambient-node-base-filter, none); }
+  1.962%, 6.868% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  19.624% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-2 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  0% { filter: var(--ambient-node-base-filter, none); }
-  2.72%, 9.521% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  27.202% { filter: var(--ambient-node-base-filter, none); }
+  6.868% { filter: var(--ambient-node-base-filter, none); }
+  8.831%, 13.737% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  26.493% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-3 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  9.521% { filter: var(--ambient-node-base-filter, none); }
-  12.241%, 19.041% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  36.723% { filter: var(--ambient-node-base-filter, none); }
+  19.214% { filter: var(--ambient-node-base-filter, none); }
+  21.176%, 26.082% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  38.838% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-4 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  11.01% { filter: var(--ambient-node-base-filter, none); }
-  13.731%, 20.531% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  38.212% { filter: var(--ambient-node-base-filter, none); }
+  6.868% { filter: var(--ambient-node-base-filter, none); }
+  8.831%, 13.737% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  26.493% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-5 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  11.01% { filter: var(--ambient-node-base-filter, none); }
-  13.731%, 20.531% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  38.212% { filter: var(--ambient-node-base-filter, none); }
+  7.943% { filter: var(--ambient-node-base-filter, none); }
+  9.906%, 14.812% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  27.567% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-6 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  22.798% { filter: var(--ambient-node-base-filter, none); }
-  25.518%, 32.319% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  50% { filter: var(--ambient-node-base-filter, none); }
+  16.447% { filter: var(--ambient-node-base-filter, none); }
+  18.409%, 23.315% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  36.071% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-7 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  22.798% { filter: var(--ambient-node-base-filter, none); }
-  25.518%, 32.319% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  50% { filter: var(--ambient-node-base-filter, none); }
+  17.522% { filter: var(--ambient-node-base-filter, none); }
+  19.484%, 24.39% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  37.146% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-8 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  24.288% { filter: var(--ambient-node-base-filter, none); }
-  27.008%, 33.808% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  51.49% { filter: var(--ambient-node-base-filter, none); }
+  27.975% { filter: var(--ambient-node-base-filter, none); }
+  29.937%, 34.843% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  47.599% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-9 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  39.344% { filter: var(--ambient-node-base-filter, none); }
-  42.064%, 48.864% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  66.546% { filter: var(--ambient-node-base-filter, none); }
+  28.792% { filter: var(--ambient-node-base-filter, none); }
+  30.755%, 35.661% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  48.416% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-10 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  34.585% { filter: var(--ambient-node-base-filter, none); }
-  37.306%, 44.106% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  61.788% { filter: var(--ambient-node-base-filter, none); }
+  34.109% { filter: var(--ambient-node-base-filter, none); }
+  36.071%, 40.977% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  53.733% { filter: var(--ambient-node-base-filter, none); }
 }
 @keyframes archify-relay-node-11 { 
   0%, 100% { filter: var(--ambient-node-base-filter, none); }
-  34.585% { filter: var(--ambient-node-base-filter, none); }
-  37.306%, 44.106% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
-  61.788% { filter: var(--ambient-node-base-filter, none); }
+  24.951% { filter: var(--ambient-node-base-filter, none); }
+  26.913%, 31.819% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  44.575% { filter: var(--ambient-node-base-filter, none); }
+}
+@keyframes archify-relay-node-12 { 
+  0%, 100% { filter: var(--ambient-node-base-filter, none); }
+  27.718% { filter: var(--ambient-node-base-filter, none); }
+  29.68%, 34.586% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  47.342% { filter: var(--ambient-node-base-filter, none); }
+}
+@keyframes archify-relay-node-13 { 
+  0%, 100% { filter: var(--ambient-node-base-filter, none); }
+  36.221% { filter: var(--ambient-node-base-filter, none); }
+  38.184%, 43.09% { filter: var(--ambient-node-base-filter,) drop-shadow(0 0 10px var(--arrow-emphasis)); }
+  55.846% { filter: var(--ambient-node-base-filter, none); }
 }
 svg[data-node-ui] [data-node-id] &gt; rect:not(.c-mask) { stroke-width: 1.25px; }
 :is([data-theme="dark"] svg[data-node-ui], svg[data-node-ui][data-theme="dark"]) [data-node-id] &gt; rect:not(.c-mask).c-frontend { fill: color-mix(in srgb, var(--frontend-stroke) 13%, var(--mask)); stroke: color-mix(in srgb, var(--frontend-stroke) 72%, var(--mask)); }
@@ -662,7 +751,7 @@ svg[data-node-ui][data-preset="editorial"] :is([data-graph-role="structural-fram
 svg[data-theme="light"] { --bg: #f4f5f7; --grid: #e9edf2; --canvas-dot: #e2e7ec; --text: #111827; --text-muted: #5b6474; --text-dim: #9aa3b2; --text-faint: #6b7280; --panel: #ffffff; --panel-border: #e5e7eb; --lane-fill: rgba(248, 250, 252, 0.65); --lane-stroke: #cbd5e1; --arrow: #64748b; --arrow-emphasis: #059669; --mask: #ffffff; --frontend-fill: rgba(34, 211, 238, 0.15); --frontend-stroke: #0891b2; --backend-fill: rgba(52, 211, 153, 0.18); --backend-stroke: #059669; --database-fill: rgba(167, 139, 250, 0.2); --database-stroke: #7c3aed; --cloud-fill: rgba(251, 191, 36, 0.18); --cloud-stroke: #d97706; --security-fill: rgba(251, 113, 133, 0.15); --security-stroke: #e11d48; --messagebus-fill: rgba(251, 146, 60, 0.15); --messagebus-stroke: #ea580c; --external-fill: rgba(148, 163, 184, 0.18); --external-stroke: #64748b; --toolbar-bg: rgba(255, 255, 255, 0.92); --toolbar-border: #cbd5e1; --toolbar-text: #334155; --toolbar-hover: #ffffff; --toolbar-menu-bg: #ffffff; --flow-cycle: ; --flow-halo-peak: ; --flow-glow-peak: ; --flow-tail-peak: ; --flow-head-peak: ; --flow-wake-peak: ; --flow-ripple-peak: ; --flow-peak: ; }
 svg[data-theme="dark"] { --bg: #020617; --grid: #1e293b; --canvas-dot: rgba(148, 163, 184, 0.16); --text: #ffffff; --text-muted: #94a3b8; --text-dim: #475569; --text-faint: #7d8da1; --panel: rgba(15, 23, 42, 0.5); --panel-border: #1e293b; --lane-fill: rgba(15, 23, 42, 0.22); --lane-stroke: #334155; --arrow: #94a3b8; --arrow-emphasis: #34d399; --mask: #0f172a; --frontend-fill: rgba(8, 51, 68, 0.4); --frontend-stroke: #22d3ee; --backend-fill: rgba(6, 78, 59, 0.4); --backend-stroke: #34d399; --database-fill: rgba(76, 29, 149, 0.4); --database-stroke: #a78bfa; --cloud-fill: rgba(120, 53, 15, 0.3); --cloud-stroke: #fbbf24; --security-fill: rgba(136, 19, 55, 0.4); --security-stroke: #fb7185; --messagebus-fill: rgba(251, 146, 60, 0.3); --messagebus-stroke: #fb923c; --external-fill: rgba(30, 41, 59, 0.5); --external-stroke: #94a3b8; --toolbar-bg: rgba(15, 23, 42, 0.8); --toolbar-border: #334155; --toolbar-text: #e2e8f0; --toolbar-hover: rgba(15, 23, 42, 0.95); --toolbar-menu-bg: #0f172a; --flow-cycle: ; --flow-halo-peak: ; --flow-glow-peak: ; --flow-tail-peak: ; --flow-head-peak: ; --flow-wake-peak: ; --flow-ripple-peak: ; --flow-peak: ; }
 rect.c-bg-rect { fill: var(--bg); }
-</style><rect x="0" y="0" width="1230" height="640" class="c-bg-rect"/>
+</style><rect x="0" y="0" width="1230" height="780" class="c-bg-rect"/>
         <title id="archify-diagram-title">Magdaport Invoice Pipeline</title>
         <desc id="archify-diagram-description">An architecture diagram generated by Archify.</desc>
         <!-- Definitions -->
@@ -737,24 +826,24 @@ rect.c-bg-rect { fill: var(--bg); }
           <path data-edge-from="extract-invoice" data-edge-to="anthropic" data-edge-label="PDF path" data-edge-key="5" data-edge-id="pdf-path" data-composition-points="924,364;924,388;1130,388;1130,364" data-composition-crossover="halo" data-composition-independent="true" d="M 924 364 L 924 380 Q 924 388 932 388 L 1122 388 Q 1130 388 1130 380 L 1130 364" class="a-default" data-animate="edge" style="--step: 5;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:6">
-          <path data-graph-role="automatic-crossover-underlay" d="M 704 300 L 704 284 Q 704 276 696 276 L 108 276 Q 100 276 100 284 L 100 300" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="process-invoice" data-edge-to="gmail" data-edge-label="add label" data-edge-key="6" data-edge-id="add-label" data-composition-points="704,300;704,276;100,276;100,300" data-composition-crossover="halo" data-composition-independent="true" d="M 704 300 L 704 284 Q 704 276 696 276 L 108 276 Q 100 276 100 284 L 100 300" class="a-default" data-animate="edge" style="--step: 6;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 697 300 L 697 284 Q 697 276 689 276 L 108 276 Q 100 276 100 284 L 100 300" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="process-invoice" data-edge-to="gmail" data-edge-label="add label" data-edge-key="6" data-edge-id="add-label" data-composition-points="697,300;697,276;100,276;100,300" data-composition-crossover="halo" data-composition-independent="true" d="M 697 300 L 697 284 Q 697 276 689 276 L 108 276 Q 100 276 100 284 L 100 300" class="a-default" data-animate="edge" style="--step: 6;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:7">
-          <path data-graph-role="automatic-crossover-underlay" d="M 505 364 L 505 500" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="intake-email" data-edge-to="postgres" data-edge-label="record event" data-edge-key="7" data-edge-id="record-event" data-composition-points="505,364;505,500" data-composition-crossover="halo" data-composition-independent="true" d="M 505 364 L 505 500" class="a-default" data-animate="edge" style="--step: 7;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 519 364 L 519 380 Q 519 388 527 388 L 527 388 Q 535 388 535 396 L 535 468 Q 535 476 527 476 L 513 476 Q 505 476 505 484 L 505 500" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="intake-email" data-edge-to="postgres" data-edge-label="record event" data-edge-key="7" data-edge-id="record-event" data-composition-points="519,364;519,388;535,388;535,476;505,476;505,500" data-composition-crossover="halo" data-composition-independent="true" d="M 519 364 L 519 380 Q 519 388 527 388 L 527 388 Q 535 388 535 396 L 535 468 Q 535 476 527 476 L 513 476 Q 505 476 505 484 L 505 500" class="a-default" data-animate="edge" style="--step: 7;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:8">
-          <path data-graph-role="automatic-crossover-underlay" d="M 711 364 L 711 380 Q 711 388 703 388 L 527 388 Q 519 388 519 396 L 519 500" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="process-invoice" data-edge-to="postgres" data-edge-label="save · outcome" data-edge-key="8" data-edge-id="save" data-composition-points="711,364;711,388;519,388;519,500" data-composition-crossover="halo" data-composition-independent="true" d="M 711 364 L 711 380 Q 711 388 703 388 L 527 388 Q 519 388 519 396 L 519 500" class="a-default" data-animate="edge" style="--step: 8;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 718 364 L 718 424 Q 718 432 710 432 L 527 432 Q 519 432 519 440 L 519 500" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="process-invoice" data-edge-to="postgres" data-edge-label="save · outcome" data-edge-key="8" data-edge-id="save" data-composition-points="718,364;718,432;519,432;519,500" data-composition-crossover="halo" data-composition-independent="true" d="M 718 364 L 718 424 Q 718 432 710 432 L 527 432 Q 519 432 519 440 L 519 500" class="a-default" data-animate="edge" style="--step: 8;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:9">
-          <path data-graph-role="automatic-crossover-underlay" d="M 718 300 L 718 164" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="process-invoice" data-edge-to="drive" data-edge-label="upload PDF" data-edge-key="9" data-edge-id="upload" data-composition-points="718,300;718,164" data-composition-crossover="halo" data-composition-independent="true" d="M 718 300 L 718 164" class="a-default" data-animate="edge" style="--step: 9;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 725 300 L 725 164" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="process-invoice" data-edge-to="drive" data-edge-label="upload PDF" data-edge-key="9" data-edge-id="upload" data-composition-points="725,300;725,164" data-composition-crossover="halo" data-composition-independent="true" d="M 725 300 L 725 164" class="a-default" data-animate="edge" style="--step: 9;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:10">
-          <path data-graph-role="automatic-crossover-underlay" d="M 732 300 L 732 240 Q 732 232 740 232 L 916 232 Q 924 232 924 224 L 924 164" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="process-invoice" data-edge-to="sheets" data-edge-label="rows by key" data-edge-key="10" data-edge-id="rows" data-composition-points="732,300;732,232;924,232;924,164" data-composition-crossover="halo" data-composition-independent="true" d="M 732 300 L 732 240 Q 732 232 740 232 L 916 232 Q 924 232 924 224 L 924 164" class="a-default" data-animate="edge" style="--step: 10;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 739 300 L 739 240 Q 739 232 747 232 L 916 232 Q 924 232 924 224 L 924 164" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="process-invoice" data-edge-to="sheets" data-edge-label="rows by key" data-edge-key="10" data-edge-id="rows" data-composition-points="739,300;739,232;924,232;924,164" data-composition-crossover="halo" data-composition-independent="true" d="M 739 300 L 739 240 Q 739 232 747 232 L 916 232 Q 924 232 924 224 L 924 164" class="a-default" data-animate="edge" style="--step: 10;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:11">
           <path data-graph-role="automatic-crossover-underlay" d="M 366 532 L 452 532" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
@@ -769,15 +858,43 @@ rect.c-bg-rect { fill: var(--bg); }
           <path data-edge-from="daily-summary" data-edge-to="gmail" data-edge-label="18:00 email" data-edge-key="13" data-edge-id="summary-email" data-composition-points="306,500;306,432;107,432;107,364" data-composition-crossover="halo" data-composition-independent="true" d="M 306 500 L 306 440 Q 306 432 298 432 L 115 432 Q 107 432 107 424 L 107 364" class="a-default" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
         </g>
         <g data-graph-role="automatic-crossover" style="--step:14">
-          <path data-graph-role="automatic-crossover-underlay" d="M 725 500 L 725 364" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
-          <path data-edge-from="dev-harness" data-edge-to="process-invoice" data-edge-label="test calls" data-edge-key="14" data-edge-id="test-calls" data-composition-points="725,500;725,364" data-composition-crossover="halo" data-composition-independent="true" d="M 725 500 L 725 364" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+          <path data-graph-role="automatic-crossover-underlay" d="M 711 300 L 711 240 Q 711 232 703 232 L 520 232 Q 512 232 512 224 L 512 164" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="process-invoice" data-edge-to="ensure-folder" data-edge-label="month folder" data-edge-key="14" data-edge-id="find-folder" data-composition-points="711,300;711,232;512,232;512,164" data-composition-crossover="halo" data-composition-independent="true" d="M 711 300 L 711 240 Q 711 232 703 232 L 520 232 Q 512 232 512 224 L 512 164" class="a-default" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:15">
+          <path data-graph-role="automatic-crossover-underlay" d="M 572 132 L 658 132" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="ensure-folder" data-edge-to="drive" data-edge-label="find or create" data-edge-key="15" data-edge-id="folder-in-drive" data-composition-points="572,132;658,132" data-composition-crossover="halo" data-composition-independent="true" d="M 572 132 L 658 132" class="a-default" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:16">
+          <path data-graph-role="automatic-crossover-underlay" d="M 452 347.05 L 436 347.05 Q 428 347.05 428 355.05 L 428 460 Q 428 468 420 468 L 240.20000000000002 468 Q 232.20000000000002 468 232.20000000000002 476 L 232.20000000000002 648 Q 232.20000000000002 656 240.20000000000002 656 L 305 656 Q 313 656 313 664 L 313 680" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="intake-email" data-edge-to="load-config" data-edge-label="config" data-edge-key="16" data-edge-id="cfg-intake" data-composition-points="452,347.05;428,347.05;428,468;232.20000000000002,468;232.20000000000002,656;313,656;313,680" data-composition-crossover="halo" data-composition-independent="true" d="M 452 347.05 L 436 347.05 Q 428 347.05 428 355.05 L 428 460 Q 428 468 420 468 L 240.20000000000002 468 Q 232.20000000000002 468 232.20000000000002 476 L 232.20000000000002 648 Q 232.20000000000002 656 240.20000000000002 656 L 305 656 Q 313 656 313 664 L 313 680" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:17">
+          <path data-graph-role="automatic-crossover-underlay" d="M 299 564 L 299 680" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="daily-summary" data-edge-to="load-config" data-edge-key="17" data-edge-id="cfg-summary" data-composition-points="299,564;299,680" data-composition-crossover="halo" data-composition-independent="true" d="M 299 564 L 299 680" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:18">
+          <path data-graph-role="automatic-crossover-underlay" d="M 100 564 L 100 704 Q 100 712 108 712 L 246 712" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="error-handler" data-edge-to="load-config" data-edge-key="18" data-edge-id="cfg-error" data-composition-points="100,564;100,712;246,712" data-composition-crossover="halo" data-composition-independent="true" d="M 100 564 L 100 704 Q 100 712 108 712 L 246 712" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:19">
+          <path data-graph-role="automatic-crossover-underlay" d="M 718 564 L 718 704 Q 718 712 710 712 L 366 712" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="dev-harness" data-edge-to="load-config" data-edge-key="19" data-edge-id="cfg-dev" data-composition-points="718,564;718,712;366,712" data-composition-crossover="halo" data-composition-independent="true" d="M 718 564 L 718 704 Q 718 712 710 712 L 366 712" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:20">
+          <path data-graph-role="automatic-crossover-underlay" d="M 778 347.05 L 794 347.05 Q 802 347.05 802 355.05 L 802 580 Q 802 588 794 588 L 122 588 Q 114 588 114 580 L 114 564" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="process-invoice" data-edge-to="error-handler" data-edge-label="on failure (7 workflows)" data-edge-key="20" data-edge-id="on-failure" data-composition-points="778,347.05;802,347.05;802,588;114,588;114,564" data-composition-crossover="halo" data-composition-independent="true" d="M 778 347.05 L 794 347.05 Q 802 347.05 802 355.05 L 802 580 Q 802 588 794 588 L 122 588 Q 114 588 114 580 L 114 564" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
+        </g>
+        <g data-graph-role="automatic-crossover" style="--step:21">
+          <path data-graph-role="automatic-crossover-underlay" d="M 732 500 L 732 364" fill="none" stroke="var(--mask)" stroke-width="5.5" stroke-linecap="round" stroke-linejoin="round" pointer-events="none"/>
+          <path data-edge-from="dev-harness" data-edge-to="process-invoice" data-edge-label="test calls (6 targets)" data-edge-key="21" data-edge-id="test-calls" data-composition-points="732,500;732,364" data-composition-crossover="halo" data-composition-independent="true" d="M 732 500 L 732 364" class="a-dashed" data-animate="edge" style="--step: 12;" stroke-width="1.5" marker-end="url(#arrowhead-dashed)"/>
         </g>
 
         <!-- Components -->
         <g id="node-gmail" data-node-id="gmail" data-node-label="Gmail" tabindex="0" role="button" aria-label="Focus Gmail, labeled PDF mail, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="labeled PDF mail" data-node-context="Architecture component">
           <title>Gmail · labeled PDF mail · Architecture component</title>
           <rect x="40" y="300" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="40" y="300" width="120" height="64" rx="8" class="c-external" data-animate="node" style="--step: 0; --flow-node-name: archify-relay-node-4;" stroke-width="1.5"/>
+          <rect x="40" y="300" width="120" height="64" rx="8" class="c-external" data-animate="node" style="--step: 0; --flow-node-name: archify-relay-node-3;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(46 306) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
@@ -789,7 +906,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <g id="node-gmail-entry" data-node-id="gmail-entry" data-node-label="gmail-entry" tabindex="0" role="button" aria-label="Focus gmail-entry, polls every minute, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="polls every minute" data-node-context="Architecture component">
           <title>gmail-entry · polls every minute · Architecture component</title>
           <rect x="246" y="300" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="246" y="300" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 1; --flow-node-name: archify-relay-node-6;" stroke-width="1.5"/>
+          <rect x="246" y="300" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 1; --flow-node-name: archify-relay-node-12;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(252 306) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
@@ -800,7 +917,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <g id="node-intake-email" data-node-id="intake-email" data-node-label="intake-email" tabindex="0" role="button" aria-label="Focus intake-email, config check · gate, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="config check · gate" data-node-context="Architecture component">
           <title>intake-email · config check · gate · Architecture component</title>
           <rect x="452" y="300" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="452" y="300" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 2; --flow-node-name: archify-relay-node-10;" stroke-width="1.5"/>
+          <rect x="452" y="300" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 2; --flow-node-name: archify-relay-node-13;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(458 306) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
@@ -822,7 +939,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <g id="node-extract-invoice" data-node-id="extract-invoice" data-node-label="extract-invoice" tabindex="0" role="button" aria-label="Focus extract-invoice, text path · PDF path, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="text path · PDF path" data-node-context="Architecture component">
           <title>extract-invoice · text path · PDF path · Architecture component</title>
           <rect x="864" y="300" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="864" y="300" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 4; --flow-node-name: archify-relay-node-7;" stroke-width="1.5"/>
+          <rect x="864" y="300" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 4; --flow-node-name: archify-relay-node-6;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(870 306) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
@@ -850,7 +967,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <g id="node-drive" data-node-id="drive" data-node-label="Google Drive" tabindex="0" role="button" aria-label="Focus Google Drive, PDF by year/month, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="PDF by year/month" data-node-context="Architecture component">
           <title>Google Drive · PDF by year/month · Architecture component</title>
           <rect x="658" y="100" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="658" y="100" width="120" height="64" rx="8" class="c-external" data-animate="node" style="--step: 10; --flow-node-name: archify-relay-node-8;" stroke-width="1.5"/>
+          <rect x="658" y="100" width="120" height="64" rx="8" class="c-external" data-animate="node" style="--step: 10; --flow-node-name: archify-relay-node-7;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(664 106) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
@@ -862,7 +979,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <g id="node-sheets" data-node-id="sheets" data-node-label="Google Sheets" tabindex="0" role="button" aria-label="Focus Google Sheets, team view, Architecture component" aria-pressed="false" data-node-kind="external" data-node-sublabel="team view" data-node-context="Architecture component">
           <title>Google Sheets · team view · Architecture component</title>
           <rect x="864" y="100" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="864" y="100" width="120" height="64" rx="8" class="c-external" data-animate="node" style="--step: 11; --flow-node-name: archify-relay-node-9;" stroke-width="1.5"/>
+          <rect x="864" y="100" width="120" height="64" rx="8" class="c-external" data-animate="node" style="--step: 11; --flow-node-name: archify-relay-node-8;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="external" class="semantic-sigil s-external" transform="translate(870 106) scale(0.6875)">
             <rect x="2.5" y="5" width="8.5" height="8" rx="1.5"/>
             <path d="M8 2.5h5.5V8M13.5 2.5 7.5 8.5"/>
@@ -874,7 +991,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <g id="node-error-handler" data-node-id="error-handler" data-node-label="error-handler" tabindex="0" role="button" aria-label="Focus error-handler, plain-text alerts, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="plain-text alerts" data-node-context="Architecture component">
           <title>error-handler · plain-text alerts · Architecture component</title>
           <rect x="40" y="500" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="40" y="500" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 12; --flow-node-name: archify-relay-node-1;" stroke-width="1.5"/>
+          <rect x="40" y="500" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 12; --flow-node-name: archify-relay-node-10;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(46 506) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
@@ -885,7 +1002,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <g id="node-dev-harness" data-node-id="dev-harness" data-node-label="dev-harness" tabindex="0" role="button" aria-label="Focus dev-harness, localhost · token, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="localhost · token" data-node-context="Architecture component">
           <title>dev-harness · localhost · token · Architecture component</title>
           <rect x="658" y="500" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="658" y="500" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 12; --flow-node-name: archify-relay-node-2;" stroke-width="1.5"/>
+          <rect x="658" y="500" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 12; --flow-node-name: archify-relay-node-1;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(664 506) scale(0.6875)">
             <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
           </g>
@@ -907,7 +1024,7 @@ rect.c-bg-rect { fill: var(--bg); }
         <g id="node-postgres" data-node-id="postgres" data-node-label="Postgres 17" tabindex="0" role="button" aria-label="Focus Postgres 17, system of record, Architecture component, PostgreSQL" aria-pressed="false" data-node-kind="database" data-node-sublabel="system of record" data-node-context="Architecture component" data-node-brand="PostgreSQL" data-node-brand-id="postgresql" data-node-brand-status="preset" data-node-brand-source="https://wiki.postgresql.org/wiki/Logo">
           <title>Postgres 17 · system of record · Architecture component · PostgreSQL</title>
           <rect x="452" y="500" width="120" height="64" rx="8" class="c-mask"/>
-          <rect x="452" y="500" width="120" height="64" rx="8" class="c-database" data-animate="node" style="--step: 8; --flow-node-name: archify-relay-node-3;" stroke-width="1.5"/>
+          <rect x="452" y="500" width="120" height="64" rx="8" class="c-database" data-animate="node" style="--step: 8; --flow-node-name: archify-relay-node-2;" stroke-width="1.5"/>
           <g aria-hidden="true" data-semantic-sigil="database" class="semantic-sigil s-database" transform="translate(458 506) scale(0.6875)">
             <ellipse cx="8" cy="4" rx="5" ry="2"/>
             <path d="M3 4v8c0 1.1 2.2 2 5 2s5-.9 5-2V4M3 8c0 1.1 2.2 2 5 2s5-.9 5-2"/>
@@ -919,6 +1036,28 @@ rect.c-bg-rect { fill: var(--bg); }
           </g>
           <text data-node-label="" x="512" y="530" class="t-primary" font-size="9.6" font-weight="600" text-anchor="middle">Postgres 17</text>
         <text x="512" y="546" class="t-muted" font-size="9" text-anchor="middle">system of record</text>
+        </g>
+
+        <g id="node-ensure-folder" data-node-id="ensure-folder" data-node-label="ensure-folder" tabindex="0" role="button" aria-label="Focus ensure-folder, year and month folders, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="year and month folders" data-node-context="Architecture component">
+          <title>ensure-folder · year and month folders · Architecture component</title>
+          <rect x="452" y="100" width="120" height="64" rx="8" class="c-mask"/>
+          <rect x="452" y="100" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 12; --flow-node-name: archify-relay-node-9;" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(458 106) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" x="512" y="130" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">ensure-folder</text>
+        <text x="512" y="146" class="t-muted" font-size="8.4" text-anchor="middle">year and month folders</text>
+        </g>
+
+        <g id="node-load-config" data-node-id="load-config" data-node-label="load-config" tabindex="0" role="button" aria-label="Focus load-config, reads config.json, Architecture component" aria-pressed="false" data-node-kind="backend" data-node-sublabel="reads config.json" data-node-context="Architecture component">
+          <title>load-config · reads config.json · Architecture component</title>
+          <rect x="246" y="680" width="120" height="64" rx="8" class="c-mask"/>
+          <rect x="246" y="680" width="120" height="64" rx="8" class="c-backend" data-animate="node" style="--step: 12; --flow-node-name: archify-relay-node-4;" stroke-width="1.5"/>
+          <g aria-hidden="true" data-semantic-sigil="backend" class="semantic-sigil s-backend" transform="translate(252 686) scale(0.6875)">
+            <path d="M6 3 3 8l3 5M10 3l3 5-3 5"/>
+          </g>
+          <text data-node-label="" x="306" y="710" class="t-primary" font-size="11" font-weight="600" text-anchor="middle">load-config</text>
+        <text x="306" y="726" class="t-muted" font-size="9" text-anchor="middle">reads config.json</text>
         </g>
 
         <!-- Connection labels -->
@@ -947,28 +1086,28 @@ rect.c-bg-rect { fill: var(--bg); }
           <text x="1027" y="378" class="t-edge-default" font-size="8" text-anchor="middle">PDF path</text>
         </g>
         <g data-edge-from="process-invoice" data-edge-to="gmail" data-edge-label="add label" data-edge-key="6" data-edge-id="add-label">
-          <rect x="375.4" y="256" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
-          <text x="402" y="266" class="t-edge-default" font-size="8" text-anchor="middle">add label</text>
+          <rect x="371.9" y="256" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="398.5" y="266" class="t-edge-default" font-size="8" text-anchor="middle">add label</text>
         </g>
         <g data-edge-from="intake-email" data-edge-to="postgres" data-edge-label="record event" data-edge-key="7" data-edge-id="record-event">
-          <rect x="471.2" y="368" width="67.6" height="14" rx="3" class="c-mask"/>
-          <text x="505" y="378" class="t-edge-default" font-size="8" text-anchor="middle">record event</text>
+          <rect x="493.2" y="392" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="527" y="402" class="t-edge-default" font-size="8" text-anchor="middle">record event</text>
         </g>
         <g data-edge-from="process-invoice" data-edge-to="postgres" data-edge-label="save · outcome" data-edge-key="8" data-edge-id="save">
-          <rect x="576.4" y="368" width="77.2" height="14" rx="3" class="c-mask"/>
-          <text x="615" y="378" class="t-edge-default" font-size="8" text-anchor="middle">save · outcome</text>
+          <rect x="579.9" y="412" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="618.5" y="422" class="t-edge-default" font-size="8" text-anchor="middle">save · outcome</text>
         </g>
         <g data-edge-from="process-invoice" data-edge-to="drive" data-edge-label="upload PDF" data-edge-key="9" data-edge-id="upload">
-          <rect x="689" y="190" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="718" y="200" class="t-edge-default" font-size="8" text-anchor="middle">upload PDF</text>
+          <rect x="696" y="190" width="58" height="14" rx="3" class="c-mask"/>
+          <text x="725" y="200" class="t-edge-default" font-size="8" text-anchor="middle">upload PDF</text>
         </g>
         <g data-edge-from="process-invoice" data-edge-to="sheets" data-edge-label="rows by key" data-edge-key="10" data-edge-id="rows">
-          <rect x="796.6" y="212" width="62.8" height="14" rx="3" class="c-mask"/>
-          <text x="828" y="222" class="t-edge-default" font-size="8" text-anchor="middle">rows by key</text>
+          <rect x="800.1" y="212" width="62.8" height="14" rx="3" class="c-mask"/>
+          <text x="831.5" y="222" class="t-edge-default" font-size="8" text-anchor="middle">rows by key</text>
         </g>
         <g data-edge-from="daily-summary" data-edge-to="postgres" data-edge-label="last 24 h" data-edge-key="11" data-edge-id="summary-query">
-          <rect x="382.4" y="512" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
-          <text x="409" y="522" class="t-edge-default" font-size="8" text-anchor="middle">last 24 h</text>
+          <rect x="382.4" y="542" width="53.199999999999996" height="14" rx="3" class="c-mask"/>
+          <text x="409" y="552" class="t-edge-default" font-size="8" text-anchor="middle">last 24 h</text>
         </g>
         <g data-edge-from="error-handler" data-edge-to="gmail" data-edge-label="alert email" data-edge-key="12" data-edge-id="alert">
           <rect x="61.6" y="480" width="62.8" height="14" rx="3" class="c-mask"/>
@@ -978,28 +1117,33 @@ rect.c-bg-rect { fill: var(--bg); }
           <rect x="175.1" y="412" width="62.8" height="14" rx="3" class="c-mask"/>
           <text x="206.5" y="422" class="t-edge-default" font-size="8" text-anchor="middle">18:00 email</text>
         </g>
-        <g data-edge-from="dev-harness" data-edge-to="process-invoice" data-edge-label="test calls" data-edge-key="14" data-edge-id="test-calls">
-          <rect x="696" y="480" width="58" height="14" rx="3" class="c-mask"/>
-          <text x="725" y="490" class="t-edge-dashed" font-size="8" text-anchor="middle">test calls</text>
+        <g data-edge-from="process-invoice" data-edge-to="ensure-folder" data-edge-label="month folder" data-edge-key="14" data-edge-id="find-folder">
+          <rect x="577.7" y="212" width="67.6" height="14" rx="3" class="c-mask"/>
+          <text x="611.5" y="222" class="t-edge-default" font-size="8" text-anchor="middle">month folder</text>
+        </g>
+        <g data-edge-from="ensure-folder" data-edge-to="drive" data-edge-label="find or create" data-edge-key="15" data-edge-id="folder-in-drive">
+          <rect x="576.4" y="112" width="77.2" height="14" rx="3" class="c-mask"/>
+          <text x="615" y="122" class="t-edge-default" font-size="8" text-anchor="middle">find or create</text>
+        </g>
+        <g data-edge-from="intake-email" data-edge-to="load-config" data-edge-label="config" data-edge-key="16" data-edge-id="cfg-intake">
+          <rect x="408.6" y="507.525" width="38.8" height="14" rx="3" class="c-mask"/>
+          <text x="428" y="517.525" class="t-edge-dashed" font-size="8" text-anchor="middle">config</text>
+        </g>
+
+
+
+        <g data-edge-from="process-invoice" data-edge-to="error-handler" data-edge-label="on failure (7 workflows)" data-edge-key="20" data-edge-id="on-failure">
+          <rect x="739.4" y="447.525" width="125.19999999999999" height="14" rx="3" class="c-mask"/>
+          <text x="802" y="457.525" class="t-edge-dashed" font-size="8" text-anchor="middle">on failure (7 workflows)</text>
+        </g>
+        <g data-edge-from="dev-harness" data-edge-to="process-invoice" data-edge-label="test calls (6 targets)" data-edge-key="21" data-edge-id="test-calls">
+          <rect x="674.2" y="480" width="115.6" height="14" rx="3" class="c-mask"/>
+          <text x="732" y="490" class="t-edge-dashed" font-size="8" text-anchor="middle">test calls (6 targets)</text>
         </g>
 
         <!-- Boundary labels (foreground masks keep routes out of titles) -->
 
 
         <!-- Legend -->
-        <g data-legend="">
-          <text x="40" y="604" class="t-primary" font-size="12" font-weight="650">Legend</text>
-          <g data-legend-semantic-kind="backend" data-legend-x="40" data-legend-baseline="624" data-legend-width="87">
-            <rect x="40" y="615" width="16" height="10" rx="2.5" class="c-backend" stroke-width="1"/>
-            <text x="62" y="624" class="t-muted" font-size="10" font-weight="500">Backend</text>
-          </g>
-          <g data-legend-semantic-kind="database" data-legend-x="149" data-legend-baseline="624" data-legend-width="93">
-            <rect x="149" y="615" width="16" height="10" rx="2.5" class="c-database" stroke-width="1"/>
-            <text x="171" y="624" class="t-muted" font-size="10" font-weight="500">Database</text>
-          </g>
-          <g data-legend-semantic-kind="external" data-legend-x="264" data-legend-baseline="624" data-legend-width="93">
-            <rect x="264" y="615" width="16" height="10" rx="2.5" class="c-external" stroke-width="1"/>
-            <text x="286" y="624" class="t-muted" font-size="10" font-weight="500">External</text>
-          </g>
-        </g>
+
       </svg>

@@ -1,0 +1,216 @@
+{
+  "schema_version": 3,
+  "diagram_type": "lifecycle",
+  "meta": {
+    "title": "Invoice lifecycle",
+    "output": "docs/diagrams/invoice-lifecycle.html",
+    "quality_profile": "showcase"
+  },
+  "mainPath": [
+    "received",
+    "recorded",
+    "extracted",
+    "saved",
+    "ok"
+  ],
+  "states": [
+    {
+      "id": "received",
+      "type": "start",
+      "label": "received",
+      "sublabel": "polled from Gmail",
+      "tag": "entry",
+      "step": "01"
+    },
+    {
+      "id": "recorded",
+      "type": "active",
+      "label": "recorded",
+      "sublabel": "event row",
+      "tag": "gate",
+      "step": "02"
+    },
+    {
+      "id": "extracted",
+      "type": "active",
+      "label": "extracted",
+      "sublabel": "AI read",
+      "tag": "AI",
+      "step": "03"
+    },
+    {
+      "id": "saved",
+      "type": "decision",
+      "label": "saved",
+      "sublabel": "outcome NULL",
+      "tag": "save",
+      "step": "04"
+    },
+    {
+      "id": "ok",
+      "type": "success",
+      "label": "ok",
+      "sublabel": "outcome ok",
+      "tag": "terminal",
+      "step": "05"
+    },
+    {
+      "id": "dropped",
+      "type": "neutral",
+      "label": "dropped",
+      "sublabel": "event already seen",
+      "tag": "terminal"
+    },
+    {
+      "id": "skipped",
+      "type": "waiting",
+      "label": "skipped",
+      "sublabel": "unreadable or too big",
+      "tag": "no AI call"
+    },
+    {
+      "id": "duplicate",
+      "type": "neutral",
+      "label": "duplicate",
+      "sublabel": "outcome duplicate",
+      "tag": "terminal"
+    },
+    {
+      "id": "review",
+      "type": "waiting",
+      "label": "review",
+      "sublabel": "outcome review",
+      "tag": "terminal"
+    },
+    {
+      "id": "unfinished",
+      "type": "failure",
+      "label": "unfinished",
+      "sublabel": "a later step failed",
+      "tag": "recoverable"
+    }
+  ],
+  "transitions": [
+    {
+      "id": "received-recorded",
+      "from": "received",
+      "to": "recorded",
+      "label": "record"
+    },
+    {
+      "id": "recorded-extracted",
+      "from": "recorded",
+      "to": "extracted",
+      "label": "new"
+    },
+    {
+      "id": "extracted-saved",
+      "from": "extracted",
+      "to": "saved",
+      "label": "save"
+    },
+    {
+      "id": "saved-ok",
+      "from": "saved",
+      "to": "ok",
+      "label": "ok"
+    },
+    {
+      "id": "recorded-dropped",
+      "from": "recorded",
+      "to": "dropped",
+      "label": "known event"
+    },
+    {
+      "id": "recorded-skipped",
+      "from": "recorded",
+      "to": "skipped",
+      "label": "screen fails"
+    },
+    {
+      "id": "saved-duplicate",
+      "from": "saved",
+      "to": "duplicate",
+      "label": "same invoice"
+    },
+    {
+      "id": "saved-review",
+      "from": "saved",
+      "to": "review",
+      "label": "check fails"
+    },
+    {
+      "id": "saved-unfinished",
+      "from": "saved",
+      "to": "unfinished",
+      "label": "later step fails",
+      "variant": "security"
+    },
+    {
+      "id": "skipped-review",
+      "from": "skipped",
+      "to": "review",
+      "label": "as review"
+    },
+    {
+      "id": "recorded-unfinished",
+      "from": "recorded",
+      "to": "unfinished",
+      "label": "lost reply",
+      "variant": "security"
+    },
+    {
+      "id": "extracted-unfinished",
+      "from": "extracted",
+      "to": "unfinished",
+      "label": "call fails",
+      "variant": "security"
+    },
+    {
+      "id": "unfinished-ok",
+      "from": "unfinished",
+      "to": "ok",
+      "label": "retry",
+      "variant": "dashed"
+    },
+    {
+      "id": "unfinished-review",
+      "from": "unfinished",
+      "to": "review",
+      "label": "retry",
+      "variant": "dashed"
+    },
+    {
+      "id": "unfinished-duplicate",
+      "from": "unfinished",
+      "to": "duplicate",
+      "label": "retry",
+      "variant": "dashed"
+    },
+    {
+      "id": "unfinished-received",
+      "from": "unfinished",
+      "to": "received",
+      "label": "resend the email",
+      "variant": "dashed"
+    }
+  ],
+  "cards": [
+    {
+      "dot": "emerald",
+      "title": "Main path",
+      "items": [
+        "Each attachment is recorded once, extracted, saved, then finished as ok",
+        "The outcome stays NULL until every later step has run"
+      ]
+    },
+    {
+      "dot": "rose",
+      "title": "Exits and recovery",
+      "items": [
+        "dropped, duplicate, review and ok are final outcomes",
+        "An unfinished event has no outcome yet; with or without an invoice row, it is recovered as docs/operations.md describes"
+      ]
+    }
+  ]
+}

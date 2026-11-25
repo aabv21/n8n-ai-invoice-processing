@@ -1,6 +1,6 @@
 # Contributing
 
-[`AGENTS.md`](AGENTS.md) is the working guide for humans and AI agents alike: the repo map, the commands, the conventions, and the Definition of done.
+[`AGENTS.md`](AGENTS.md) is the working guide for humans and AI agents alike: the documentation map, the repo map, the commands, the rules, and the Definition of done.
 
 1. Branch from `develop` (`feat/…`, `fix/…`, `docs/…`, `chore/…`).
 2. Make the change with its tests, and run the Definition of done locally.
