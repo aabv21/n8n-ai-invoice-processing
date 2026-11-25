@@ -5,9 +5,9 @@ import { afterEach, expect, test, vi } from 'vitest';
 import { buildWorkflows, hardenAgainstFrozenDefineProperty, wrapBundle } from '../scripts/build-workflows.ts';
 import { checkNode, checkSettings, checkWorkflow, hasCommentPlaceholder } from '../scripts/check-workflows.ts';
 import { normalizeWorkflow } from '../scripts/export-workflows.ts';
-import { missingTriggerCredentials } from '../scripts/import-workflows.ts';
+import { missingPublishCredentials, missingTriggerCredentials } from '../scripts/import-workflows.ts';
 import { listJsonFiles, readWorkflow, writeWorkflow, type Workflow, type WorkflowNode } from '../scripts/lib/workflow.ts';
-import { CONFIG_LOADER_ID, CREDENTIALS } from '../scripts/manifest.ts';
+import { CONFIG_LOADER_ID, CREDENTIALS, WORKFLOWS } from '../scripts/manifest.ts';
 import { buildCredentials, buildImportCall, EXPORT_SCRIPT, existingCredentialIds, IMPORT_SCRIPT, skipExisting } from '../scripts/setup-credentials.ts';
 import { runGenerated } from './helpers/run-generated.ts';
 
@@ -164,6 +164,17 @@ test('only trigger credentials hold back publishing', () => {
     credentials: { gmailOAuth2: { id: 'mgpCredGmail0001', name: 'Gmail' } } });
   expect(missingTriggerCredentials(trigger, new Set())).toEqual(['mgpCredGmail0001']);
   expect(missingTriggerCredentials(mailer, new Set())).toEqual([]);
+});
+test('a workflow can name more credentials to wait for than its trigger uses', () => {
+  const schedule = fx('clean');
+  expect(missingPublishCredentials({ id: 'x', name: 'X', file: 'clean.json' }, schedule, new Set())).toEqual([]);
+  const held = { id: 'x', name: 'X', file: 'clean.json', holdUntil: ['mgpCredGSheets01'] };
+  expect(missingPublishCredentials(held, schedule, new Set())).toEqual(['mgpCredGSheets01']);
+  expect(missingPublishCredentials(held, schedule, new Set(['mgpCredGSheets01']))).toEqual([]);
+});
+test('approve-invoices waits for the Sheets credential, since its schedule trigger needs none and every run would fail without it', () => {
+  expect(WORKFLOWS.filter((w) => w.holdUntil !== undefined).map((w) => [w.file, w.holdUntil])).toEqual([['approve-invoices.json', ['mgpCredGSheets01']]]);
+  expect(CREDENTIALS.map((c) => c.id)).toContain('mgpCredGSheets01');
 });
 test('a missing directory lists no files', () => expect(listJsonFiles('tests/fixtures/does-not-exist')).toEqual([]));
 test('generated code runs like a Code node', async () =>

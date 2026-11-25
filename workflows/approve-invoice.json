@@ -1,0 +1,794 @@
+{
+  "id": "mgpApproveOne001",
+  "name": "Approve invoice",
+  "description": null,
+  "nodes": [
+    {
+      "id": "b0000000-0000-4000-8000-000000000001",
+      "name": "When called",
+      "type": "n8n-nodes-base.executeWorkflowTrigger",
+      "typeVersion": 1.3,
+      "position": [
+        -700,
+        300
+      ],
+      "parameters": {
+        "inputSource": "workflowInputs",
+        "workflowInputs": {
+          "values": [
+            {
+              "name": "config",
+              "type": "object"
+            },
+            {
+              "name": "row",
+              "type": "object"
+            }
+          ]
+        }
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000002",
+      "name": "Shape approval input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        -440,
+        300
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b0000000-0002-4000-8000-0000000a0101",
+              "name": "row",
+              "type": "object",
+              "value": "={{ $json.row }}"
+            },
+            {
+              "id": "b0000000-0002-4000-8000-0000000a0102",
+              "name": "team_locale",
+              "type": "string",
+              "value": "={{ $json.config.team_locale }}"
+            },
+            {
+              "id": "b0000000-0002-4000-8000-0000000a0103",
+              "name": "buyer_tax_id",
+              "type": "string",
+              "value": "={{ $json.config.validation.buyer_tax_id }}"
+            },
+            {
+              "id": "b0000000-0002-4000-8000-0000000a0104",
+              "name": "today",
+              "type": "string",
+              "value": "={{ $now.toISODate() }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000003",
+      "name": "Check approval",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -180,
+        300
+      ],
+      "notes": "Why Code: normalizes a reviewer's corrected Sheets row and decides, with one tested rule set, whether it can be approved",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Why Code: normalizes a reviewer's corrected Sheets row and decides, with one tested rule set, whether it can be approved. Generated from src/nodes/check-approval.ts by pnpm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/check-approval.ts\n  var check_approval_exports = {};\n  __export(check_approval_exports, {\n    run: () => run\n  });\n\n  // src/lib/invoice.ts\n  var EMPTY_INVOICE = {\n    supplier: null,\n    supplier_tax_id: null,\n    invoice_number: null,\n    issue_date: null,\n    due_date: null,\n    currency: null,\n    subtotal: null,\n    tax: null,\n    total: null,\n    line_items: [],\n    confidence: null\n  };\n\n  // src/lib/util.ts\n  var DATE_RE = /^\\d{4}-\\d{2}-\\d{2}$/;\n  var MIN_YEAR = 1900;\n  var MAX_YEAR = 2100;\n  function isValidIsoDate(iso) {\n    if (!DATE_RE.test(iso)) return false;\n    const year = Number(iso.slice(0, 4));\n    const month = Number(iso.slice(5, 7));\n    const day = Number(iso.slice(8, 10));\n    if (year < MIN_YEAR || year > MAX_YEAR) return false;\n    return DateTime.fromObject({ year, month, day }).isValid;\n  }\n  function isPlainObject(value) {\n    return typeof value === \"object\" && value !== null && !Array.isArray(value);\n  }\n  function roundTo(value, scale) {\n    const factor = 10 ** scale;\n    return Math.round(value * factor) / factor;\n  }\n  function emptyInvoice() {\n    return { ...EMPTY_INVOICE, line_items: [] };\n  }\n\n  // src/lib/normalize-invoice.ts\n  var TAX_ID_LABEL_RE = (\n    // eslint-disable-next-line security/detect-unsafe-regex -- no nested/overlapping quantifier over the same class; a 10,000-char probe still resolves in under 1ms\n    /^\\s*(?:n\\.?\\s?i\\.?\\s?t|r\\.?\\s?u\\.?\\s?t|e\\.?\\s?i\\.?\\s?n|t\\.?\\s?i\\.?\\s?n|tax\\s*id|vat)(?![a-z])[\\s.:#]*(?:no(?![a-z])\\.?)?[\\s.:#]*/i\n  );\n  var ACCEPTED_CURRENCIES = /* @__PURE__ */ new Set([\"COP\", \"USD\"]);\n  var NO_DESCRIPTION = \"(no description)\";\n  var SUBTOTAL_TAX_TOTAL_RANGE = { max: 1e16, scale: 2 };\n  var LINE_TOTAL_RANGE = { max: 1e16, scale: 2 };\n  var QUANTITY_RANGE = { max: 1e11, scale: 3 };\n  var UNIT_PRICE_RANGE = { max: 1e14, scale: 4 };\n  function normalizeTaxId(value) {\n    if (typeof value !== \"string\") return null;\n    const withoutLabel = value.replace(TAX_ID_LABEL_RE, \"\");\n    const kept = withoutLabel.toUpperCase().replace(/[^0-9A-Z]/g, \"\");\n    return /\\d/.test(kept) ? kept : null;\n  }\n  function normalizeInvoiceNumber(value) {\n    if (typeof value !== \"string\") return null;\n    const result = value.trim().toUpperCase().replace(/\\s+/g, \"\");\n    return result === \"\" ? null : result;\n  }\n  function normalizeText(value) {\n    if (typeof value !== \"string\") return null;\n    const trimmed = value.trim();\n    return trimmed === \"\" ? null : trimmed;\n  }\n  function takeBlankAsMissing(value) {\n    if (value === null || value === void 0) return { missing: true };\n    if (typeof value !== \"string\") return { notString: true };\n    const trimmed = value.trim();\n    return trimmed === \"\" ? { missing: true } : { missing: false, text: trimmed };\n  }\n  function normalizeDate(value, reason) {\n    const text = takeBlankAsMissing(value);\n    if (\"missing\" in text && text.missing) return { value: null, reasons: [] };\n    if (\"notString\" in text) return { value: null, reasons: [reason] };\n    return isValidIsoDate(text.text) ? { value: text.text, reasons: [] } : { value: null, reasons: [reason] };\n  }\n  function normalizeCurrency(value) {\n    const text = takeBlankAsMissing(value);\n    if (\"missing\" in text && text.missing) return { value: null, reasons: [] };\n    if (\"notString\" in text) return { value: null, reasons: [\"invalid_currency\"] };\n    const upper = text.text.toUpperCase();\n    return ACCEPTED_CURRENCIES.has(upper) ? { value: upper, reasons: [] } : { value: null, reasons: [\"invalid_currency\"] };\n  }\n  function normalizeAmount(value) {\n    return typeof value === \"number\" && Number.isFinite(value) ? value : null;\n  }\n  function normalizeBoundedAmount(value, range) {\n    const amount = normalizeAmount(value);\n    if (amount === null) return { value: null, reasons: [] };\n    return Math.abs(roundTo(amount, range.scale)) < range.max ? { value: amount, reasons: [] } : { value: null, reasons: [\"amount_out_of_range\"] };\n  }\n  function normalizeConfidence(value) {\n    return typeof value === \"number\" && Number.isFinite(value) && value >= 0 && value <= 1 ? value : null;\n  }\n  function normalizeLineItems(value) {\n    const raw = Array.isArray(value) ? value : [];\n    const reasons = [];\n    const items = raw.filter(isPlainObject).map((item, index) => {\n      const quantity = normalizeBoundedAmount(item.quantity, QUANTITY_RANGE);\n      const unitPrice = normalizeBoundedAmount(item.unit_price, UNIT_PRICE_RANGE);\n      const lineTotal = normalizeBoundedAmount(item.line_total, LINE_TOTAL_RANGE);\n      reasons.push(...quantity.reasons, ...unitPrice.reasons, ...lineTotal.reasons);\n      return {\n        line_no: index + 1,\n        description: normalizeText(item.description) ?? NO_DESCRIPTION,\n        quantity: quantity.value,\n        unit_price: unitPrice.value,\n        line_total: lineTotal.value\n      };\n    });\n    return { items, reasons };\n  }\n  function normalizeInvoice(raw) {\n    if (!isPlainObject(raw)) return { invoice: emptyInvoice(), reasons: [] };\n    const issueDate = normalizeDate(raw.issue_date, \"invalid_issue_date\");\n    const dueDate = normalizeDate(raw.due_date, \"invalid_due_date\");\n    const currency = normalizeCurrency(raw.currency);\n    const subtotal = normalizeBoundedAmount(raw.subtotal, SUBTOTAL_TAX_TOTAL_RANGE);\n    const tax = normalizeBoundedAmount(raw.tax, SUBTOTAL_TAX_TOTAL_RANGE);\n    const total = normalizeBoundedAmount(raw.total, SUBTOTAL_TAX_TOTAL_RANGE);\n    const lineItems = normalizeLineItems(raw.line_items);\n    const invoice = {\n      supplier: normalizeText(raw.supplier),\n      supplier_tax_id: normalizeTaxId(raw.supplier_tax_id),\n      invoice_number: normalizeInvoiceNumber(raw.invoice_number),\n      issue_date: issueDate.value,\n      due_date: dueDate.value,\n      currency: currency.value,\n      subtotal: subtotal.value,\n      tax: tax.value,\n      total: total.value,\n      line_items: lineItems.items,\n      confidence: normalizeConfidence(raw.confidence)\n    };\n    return {\n      invoice,\n      reasons: [\n        ...issueDate.reasons,\n        ...dueDate.reasons,\n        ...currency.reasons,\n        ...subtotal.reasons,\n        ...tax.reasons,\n        ...total.reasons,\n        ...lineItems.reasons\n      ]\n    };\n  }\n\n  // src/lib/sheet-values.ts\n  var SHEETS_EPOCH_UTC = Date.UTC(1899, 11, 30);\n  var MS_PER_DAY = 864e5;\n  function sheetDate(value) {\n    if (typeof value === \"number\" && Number.isFinite(value)) {\n      return new Date(SHEETS_EPOCH_UTC + Math.floor(value) * MS_PER_DAY).toISOString().slice(0, 10);\n    }\n    return typeof value === \"string\" ? value.trim() : value;\n  }\n  function sheetText(value) {\n    const text = typeof value === \"string\" ? value : typeof value === \"number\" && Number.isFinite(value) ? String(value) : \"\";\n    const trimmed = text.trim();\n    return trimmed === \"\" ? null : trimmed;\n  }\n\n  // src/lib/strings.ts\n  var REASON_LABELS = {\n    en: {\n      unparseable_reply: \"Unreadable model reply\",\n      reply_truncated: \"Model reply cut off\",\n      model_refused: \"The model declined to read it\",\n      invalid_issue_date: \"Invalid issue date\",\n      invalid_due_date: \"Invalid due date\",\n      invalid_currency: \"Unsupported currency\",\n      missing_supplier: \"Missing supplier\",\n      missing_supplier_tax_id: \"Missing supplier NIT\",\n      missing_invoice_number: \"Missing invoice number\",\n      missing_issue_date: \"Missing issue date\",\n      missing_currency: \"Missing currency\",\n      missing_subtotal: \"Missing subtotal\",\n      missing_tax: \"Missing tax\",\n      missing_total: \"Missing total\",\n      due_before_issue: \"Due before its issue date\",\n      issue_date_in_future: \"Issue date in the future\",\n      totals_mismatch: \"Subtotal plus tax doesn't match the total\",\n      line_items_mismatch: \"Lines don't add up to the subtotal\",\n      line_items_incomplete: \"Line items incomplete\",\n      non_positive_total: \"Total is zero or negative\",\n      amount_out_of_range: \"Amount out of range\",\n      supplier_is_buyer: \"Supplier NIT is Magdaport's own\",\n      low_confidence: \"Low reading confidence\",\n      too_many_pages: \"Too many pages\",\n      too_much_text: \"Too much text\",\n      ai_budget_exceeded: \"Daily AI budget reached\",\n      unreadable_pdf: \"The PDF can't be read\"\n    },\n    es: {\n      unparseable_reply: \"Respuesta del modelo ilegible\",\n      reply_truncated: \"Respuesta del modelo incompleta\",\n      model_refused: \"El modelo se negó a leerla\",\n      invalid_issue_date: \"Fecha de emisión no válida\",\n      invalid_due_date: \"Fecha de vencimiento no válida\",\n      invalid_currency: \"Moneda no admitida\",\n      missing_supplier: \"Falta el proveedor\",\n      missing_supplier_tax_id: \"Falta el NIT del proveedor\",\n      missing_invoice_number: \"Falta el número de factura\",\n      missing_issue_date: \"Falta la fecha de emisión\",\n      missing_currency: \"Falta la moneda\",\n      missing_subtotal: \"Falta el subtotal\",\n      missing_tax: \"Falta el impuesto\",\n      missing_total: \"Falta el total\",\n      due_before_issue: \"Vence antes de su emisión\",\n      issue_date_in_future: \"Fecha de emisión futura\",\n      totals_mismatch: \"Subtotal más impuesto no coincide con el total\",\n      line_items_mismatch: \"Las líneas no suman el subtotal\",\n      line_items_incomplete: \"Líneas incompletas\",\n      non_positive_total: \"Total en cero o negativo\",\n      amount_out_of_range: \"Monto fuera de rango\",\n      supplier_is_buyer: \"El NIT del proveedor es el de Magdaport\",\n      low_confidence: \"Lectura poco confiable\",\n      too_many_pages: \"Demasiadas páginas\",\n      too_much_text: \"Demasiado texto\",\n      ai_budget_exceeded: \"Se alcanzó el presupuesto diario de IA\",\n      unreadable_pdf: \"PDF ilegible\"\n    }\n  };\n  function reasonLabel(reason, locale) {\n    const labels = REASON_LABELS[locale];\n    return Object.hasOwn(labels, reason) ? labels[reason] ?? reason : reason;\n  }\n  var APPROVAL_STRINGS = {\n    en: {\n      rejected: \"Not approved: {reasons}. Fix the cells and keep your name in approved_by.\",\n      badId: \"Not approved: invoice_id must be the number this pipeline wrote.\",\n      badApprover: \"Not approved: write your name, up to 100 characters, in approved_by.\",\n      duplicate_key: \"Not approved: another invoice already has this supplier NIT and invoice number.\",\n      not_in_review: \"Not approved: this invoice is not in review.\",\n      not_found: \"Not approved: no saved invoice has this invoice_id.\",\n      row_mismatch: \"Not approved: invoice_id and email_id don't belong to the same invoice. Don't edit those two columns.\"\n    },\n    es: {\n      rejected: \"No se aprobó: {reasons}. Corrija las celdas y deje su nombre en approved_by.\",\n      badId: \"No se aprobó: invoice_id debe ser el número que escribió el sistema.\",\n      badApprover: \"No se aprobó: escriba su nombre, de hasta 100 caracteres, en approved_by.\",\n      duplicate_key: \"No se aprobó: otra factura ya tiene este NIT de proveedor y número de factura.\",\n      not_in_review: \"No se aprobó: esta factura no está en revisión.\",\n      not_found: \"No se aprobó: ninguna factura guardada tiene este invoice_id.\",\n      row_mismatch: \"No se aprobó: invoice_id y email_id no corresponden a la misma factura. No edite esas dos columnas.\"\n    }\n  };\n\n  // src/lib/validate-invoice.ts\n  var REQUIRED_FIELDS = [\n    [\"supplier\", \"missing_supplier\"],\n    [\"supplier_tax_id\", \"missing_supplier_tax_id\"],\n    [\"invoice_number\", \"missing_invoice_number\"],\n    [\"issue_date\", \"missing_issue_date\"],\n    [\"currency\", \"missing_currency\"],\n    [\"subtotal\", \"missing_subtotal\"],\n    [\"tax\", \"missing_tax\"],\n    [\"total\", \"missing_total\"]\n  ];\n  function isBuyerTaxId(supplierTaxId, buyerTaxId) {\n    const supplier = normalizeTaxId(supplierTaxId);\n    const buyer = normalizeTaxId(buyerTaxId);\n    if (supplier === null || buyer === null) return false;\n    return supplier === buyer || supplier === buyer.slice(0, -1) || buyer === supplier.slice(0, -1);\n  }\n  function missingFieldReasons(invoice) {\n    const reasons = [];\n    for (const [field, reason] of REQUIRED_FIELDS) {\n      if (invoice[field] === null) reasons.push(reason);\n    }\n    return reasons;\n  }\n  function validateInvoice(invoice, rules, today) {\n    if (!Number.isFinite(rules.totals_tolerance) || !Number.isFinite(rules.min_confidence)) {\n      throw new Error(\"validateInvoice: rules.totals_tolerance and rules.min_confidence must be finite numbers\");\n    }\n    if (typeof rules.buyer_tax_id !== \"string\" || normalizeTaxId(rules.buyer_tax_id) === null) {\n      throw new Error(\"validateInvoice: rules.buyer_tax_id must be a tax ID with at least one digit\");\n    }\n    const reasons = missingFieldReasons(invoice);\n    if (invoice.supplier_tax_id !== null && isBuyerTaxId(invoice.supplier_tax_id, rules.buyer_tax_id)) {\n      reasons.push(\"supplier_is_buyer\");\n    }\n    if (invoice.due_date !== null && invoice.issue_date !== null && invoice.due_date < invoice.issue_date) {\n      reasons.push(\"due_before_issue\");\n    }\n    if (invoice.issue_date !== null && invoice.issue_date > today) {\n      reasons.push(\"issue_date_in_future\");\n    }\n    if (invoice.subtotal !== null && invoice.tax !== null && invoice.total !== null) {\n      const diff = Math.round(Math.abs(invoice.subtotal + invoice.tax - invoice.total) * 100) / 100;\n      if (diff > rules.totals_tolerance) reasons.push(\"totals_mismatch\");\n    }\n    if (invoice.subtotal !== null) {\n      const incomplete = invoice.line_items.length === 0 || invoice.line_items.some((item) => item.line_total === null);\n      if (incomplete) {\n        reasons.push(\"line_items_incomplete\");\n      } else {\n        const lineSum = invoice.line_items.reduce((sum, item) => sum + (item.line_total ?? 0), 0);\n        const diff = Math.round(Math.abs(lineSum - invoice.subtotal) * 100) / 100;\n        if (diff > rules.totals_tolerance) reasons.push(\"line_items_mismatch\");\n      }\n    }\n    if (invoice.total !== null && invoice.total <= 0) reasons.push(\"non_positive_total\");\n    if (invoice.confidence === null || invoice.confidence < rules.min_confidence) reasons.push(\"low_confidence\");\n    return reasons;\n  }\n\n  // src/nodes/check-approval.ts\n  var MAX_APPROVER_LENGTH = 100;\n  var ID_RE = /^\\d{1,18}$/;\n  var READING_CHECKS = /* @__PURE__ */ new Set([\"totals_mismatch\", \"line_items_mismatch\", \"line_items_incomplete\", \"low_confidence\"]);\n  var NO_ARITHMETIC = { totals_tolerance: Number.MAX_SAFE_INTEGER, min_confidence: 0 };\n  function run(input) {\n    const locale = input.team_locale ?? \"en\";\n    const t = APPROVAL_STRINGS[locale];\n    const { row } = input;\n    const emailId = sheetText(row.email_id) ?? \"\";\n    const id = sheetText(row.invoice_id);\n    if (id === null || !ID_RE.test(id)) return { ok: false, invoice_id: id ?? \"\", email_id: emailId, note: t.badId };\n    const approvedBy = sheetText(row.approved_by);\n    if (approvedBy === null || approvedBy.length > MAX_APPROVER_LENGTH) return { ok: false, invoice_id: id, email_id: emailId, note: t.badApprover };\n    const { invoice, reasons } = normalizeInvoice({\n      supplier: sheetText(row.supplier),\n      supplier_tax_id: sheetText(row.supplier_tax_id),\n      invoice_number: sheetText(row.invoice_number),\n      issue_date: sheetDate(row.issue_date),\n      due_date: sheetDate(row.due_date),\n      currency: sheetText(row.currency),\n      subtotal: row.subtotal,\n      tax: row.tax,\n      total: row.total,\n      line_items: []\n    });\n    const reported = new Set(reasons);\n    const found = validateInvoice(invoice, { ...NO_ARITHMETIC, buyer_tax_id: input.buyer_tax_id }, input.today).filter(\n      (reason) => !READING_CHECKS.has(reason) && !(reason === \"missing_issue_date\" && reported.has(\"invalid_issue_date\")) && !(reason === \"missing_currency\" && reported.has(\"invalid_currency\")) && !(reported.has(\"amount_out_of_range\") && [\"missing_subtotal\", \"missing_tax\", \"missing_total\"].includes(reason))\n    );\n    const problems = [...reasons, ...found];\n    if (problems.length > 0) {\n      const list = problems.map((reason) => reasonLabel(reason, locale)).join(\"; \");\n      return { ok: false, invoice_id: id, email_id: emailId, note: t.rejected.replace(\"{reasons}\", list) };\n    }\n    const header = {\n      supplier: invoice.supplier,\n      supplier_tax_id: invoice.supplier_tax_id,\n      invoice_number: invoice.invoice_number,\n      issue_date: invoice.issue_date,\n      due_date: invoice.due_date,\n      currency: invoice.currency,\n      subtotal: invoice.subtotal,\n      tax: invoice.tax,\n      total: invoice.total\n    };\n    return { ok: true, invoice_id: id, email_id: emailId, approved_by: approvedBy, invoice: header };\n  }\n  return __toCommonJS(check_approval_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000004",
+      "name": "Approval valid?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        80,
+        300
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "b0000000-0004-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $json.ok === true }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000005",
+      "name": "Save approval",
+      "type": "n8n-nodes-base.postgres",
+      "typeVersion": 2.8,
+      "position": [
+        340,
+        200
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "credentials": {
+        "postgres": {
+          "id": "mgpCredAppDb0001",
+          "name": "App DB"
+        }
+      },
+      "parameters": {
+        "resource": "database",
+        "operation": "executeQuery",
+        "query": "-- Approves a review invoice a reviewer corrected in the Invoices tab: saves the corrected header\n-- fields, marks the invoice ok with no review reasons, stamps who approved it and when, and marks\n-- its event ok. Always returns exactly one row: invoice_id, gmail_message_id (NULL when the invoice\n-- doesn't exist), result, review_left, and the header the database holds for the invoice.\n-- result is one of approved, already_approved, duplicate_key, not_in_review, not_found or\n-- row_mismatch (the row's email_id isn't the invoice's gmail_message_id, so its invoice_id was\n-- edited or pasted from another row). A replay changes nothing and reports already_approved; its\n-- header columns are the values saved by the first approval, not the replay's cells.\n-- review_left is true when another attachment of the same email still needs a person (its event\n-- is unfinished, in review or a duplicate), so the Review label must stay on the email.\n-- Dates are text and amounts are float8, so n8n's Postgres node returns plain values.\n-- Parameters, in order:\n-- first: invoice_id (a bigint as text)\n-- second: the approved fields (JSON text: supplier, supplier_tax_id, invoice_number, issue_date,\n--   due_date, currency, subtotal, tax, total)\n-- third: approved_by (text)\n-- fourth: email_id (text): the row's email_id, which must equal the invoice's gmail_message_id\n-- target locks the row: a call that raced an approval waits for it, then reads the approved row\n-- instead of its own earlier snapshot, so it answers already_approved, not not_in_review.\n-- NOTE: Postgres runs a data-modifying CTE whether or not the final SELECT reads it, so the\n-- outcome CTE below updates the event even though nothing selects from it.\nWITH f AS (\n  SELECT * FROM jsonb_to_record($2::jsonb) AS f(\n    supplier text, supplier_tax_id text, invoice_number text, issue_date date, due_date date,\n    currency text, subtotal numeric(18,2), tax numeric(18,2), total numeric(18,2))\n),\ntarget AS (\n  SELECT id, source_event_id, gmail_message_id, status, approved_at,\n    supplier, supplier_tax_id, invoice_number, issue_date, due_date, currency, subtotal, tax, total\n  FROM invoices WHERE id = $1::bigint FOR UPDATE\n),\nclash AS (\n  SELECT 1 FROM invoices i, f\n  WHERE i.supplier_tax_id = f.supplier_tax_id AND i.invoice_number = f.invoice_number AND i.id <> $1::bigint\n),\nupdated AS (\n  UPDATE invoices i SET\n    supplier = f.supplier, supplier_tax_id = f.supplier_tax_id, invoice_number = f.invoice_number,\n    issue_date = f.issue_date, due_date = f.due_date, currency = f.currency,\n    subtotal = f.subtotal, tax = f.tax, total = f.total,\n    status = 'ok', review_reasons = '{}', approved_by = $3, approved_at = now()\n  FROM f\n  WHERE i.id = $1::bigint AND i.gmail_message_id = $4::text AND i.status = 'review'\n    AND NOT EXISTS (SELECT 1 FROM clash)\n  RETURNING i.id, i.supplier, i.supplier_tax_id, i.invoice_number, i.issue_date, i.due_date,\n    i.currency, i.subtotal, i.tax, i.total\n),\noutcome AS (\n  UPDATE processed_events pe SET outcome = 'ok'\n  FROM updated WHERE pe.invoice_id = updated.id AND pe.outcome = 'review'\n  RETURNING pe.event_id\n)\nSELECT $1::text AS invoice_id, t.gmail_message_id,\n  CASE\n    WHEN t.id IS NULL THEN 'not_found'\n    WHEN t.gmail_message_id <> $4::text THEN 'row_mismatch'\n    WHEN u.id IS NOT NULL THEN 'approved'\n    WHEN t.status = 'ok' AND t.approved_at IS NOT NULL THEN 'already_approved'\n    WHEN EXISTS (SELECT 1 FROM clash) THEN 'duplicate_key'\n    ELSE 'not_in_review'\n  END AS result,\n  EXISTS (\n    SELECT 1 FROM processed_events pe\n    WHERE pe.source = 'gmail'\n      AND left(pe.event_id, length(t.gmail_message_id) + 1) = t.gmail_message_id || ':'\n      AND pe.event_id <> t.source_event_id\n      AND (pe.outcome IS NULL OR pe.outcome IN ('review', 'duplicate'))\n  ) AS review_left,\n  COALESCE(u.supplier, t.supplier) AS supplier,\n  COALESCE(u.supplier_tax_id, t.supplier_tax_id) AS supplier_tax_id,\n  COALESCE(u.invoice_number, t.invoice_number) AS invoice_number,\n  to_char(COALESCE(u.issue_date, t.issue_date), 'YYYY-MM-DD') AS issue_date,\n  to_char(COALESCE(u.due_date, t.due_date), 'YYYY-MM-DD') AS due_date,\n  COALESCE(u.currency, t.currency) AS currency,\n  COALESCE(u.subtotal, t.subtotal)::float8 AS subtotal,\n  COALESCE(u.tax, t.tax)::float8 AS tax,\n  COALESCE(u.total, t.total)::float8 AS total\nFROM (SELECT 1) one LEFT JOIN target t ON true LEFT JOIN updated u ON true;\n",
+        "options": {
+          "queryReplacement": "={{ $json.invoice_id }},{{ JSON.stringify($json.invoice) }},{{ $json.approved_by }},{{ $json.email_id }}",
+          "queryBatching": "independently"
+        }
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000006",
+      "name": "Approved?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        600,
+        200
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "b0000000-0006-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ ['approved', 'already_approved'].includes($json.result) }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000007",
+      "name": "Mark row approved",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        860,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mgpCredGSheets01",
+          "name": "Google Sheets"
+        }
+      },
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('When called').first().json.config.google.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('When called').first().json.config.google.invoices_tab }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_id": "={{ $('Check approval').first().json.invoice_id }}",
+            "email_id": "={{ $('Check approval').first().json.email_id }}",
+            "status": "ok",
+            "review_reasons": "",
+            "approval_note": "",
+            "supplier": "={{ $('Save approval').first().json.supplier }}",
+            "supplier_tax_id": "={{ $('Save approval').first().json.supplier_tax_id }}",
+            "invoice_number": "={{ $('Save approval').first().json.invoice_number }}",
+            "issue_date": "={{ $('Save approval').first().json.issue_date }}",
+            "due_date": "={{ $('Save approval').first().json.due_date }}",
+            "currency": "={{ $('Save approval').first().json.currency }}",
+            "subtotal": "={{ $('Save approval').first().json.subtotal }}",
+            "tax": "={{ $('Save approval').first().json.tax }}",
+            "total": "={{ $('Save approval').first().json.total }}"
+          },
+          "matchingColumns": [
+            "invoice_id",
+            "email_id"
+          ],
+          "schema": [
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email_id",
+              "displayName": "email_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "status",
+              "displayName": "status",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "review_reasons",
+              "displayName": "review_reasons",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval_note",
+              "displayName": "approval_note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier",
+              "displayName": "supplier",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "supplier_tax_id",
+              "displayName": "supplier_tax_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "invoice_number",
+              "displayName": "invoice_number",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "issue_date",
+              "displayName": "issue_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "due_date",
+              "displayName": "due_date",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "currency",
+              "displayName": "currency",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "subtotal",
+              "displayName": "subtotal",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "tax",
+              "displayName": "tax",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "total",
+              "displayName": "total",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000008",
+      "name": "Label as processed",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1120,
+        100
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mgpCredGmail0001",
+          "name": "Gmail"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "addLabels",
+        "messageId": "={{ $('Save approval').first().json.gmail_message_id }}",
+        "labelIds": "={{ [ $('When called').first().json.config.gmail.label_ids.processed ] }}"
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000016",
+      "name": "Review still needed?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2.4,
+      "position": [
+        1380,
+        100
+      ],
+      "parameters": {
+        "conditions": {
+          "options": {
+            "version": 2,
+            "leftValue": "",
+            "caseSensitive": true,
+            "typeValidation": "strict"
+          },
+          "combinator": "and",
+          "conditions": [
+            {
+              "id": "b0000000-0016-4000-8000-0000000a0001",
+              "operator": {
+                "type": "boolean",
+                "operation": "true",
+                "singleValue": true
+              },
+              "leftValue": "={{ $('Save approval').first().json.review_left !== false }}",
+              "rightValue": ""
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000009",
+      "name": "Remove review label",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 2.2,
+      "position": [
+        1640,
+        160
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "mgpCredGmail0001",
+          "name": "Gmail"
+        }
+      },
+      "parameters": {
+        "resource": "message",
+        "operation": "removeLabels",
+        "messageId": "={{ $('Save approval').first().json.gmail_message_id }}",
+        "labelIds": "={{ [ $('When called').first().json.config.gmail.label_ids.review ] }}"
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000010",
+      "name": "Shape note input",
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.5,
+      "position": [
+        860,
+        320
+      ],
+      "parameters": {
+        "mode": "manual",
+        "assignments": {
+          "assignments": [
+            {
+              "id": "b0000000-0010-4000-8000-0000000a0101",
+              "name": "team_locale",
+              "type": "string",
+              "value": "={{ $('When called').first().json.config.team_locale }}"
+            },
+            {
+              "id": "b0000000-0010-4000-8000-0000000a0102",
+              "name": "invoice_id",
+              "type": "string",
+              "value": "={{ $('Check approval').first().json.invoice_id }}"
+            },
+            {
+              "id": "b0000000-0010-4000-8000-0000000a0103",
+              "name": "email_id",
+              "type": "string",
+              "value": "={{ $('Check approval').first().json.email_id }}"
+            },
+            {
+              "id": "b0000000-0010-4000-8000-0000000a0104",
+              "name": "result",
+              "type": "string",
+              "value": "={{ $json.result }}"
+            }
+          ]
+        },
+        "options": {}
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000011",
+      "name": "Render approval note",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        1120,
+        320
+      ],
+      "notes": "Why Code: picks the team_locale message table for a refused approval",
+      "parameters": {
+        "mode": "runOnceForAllItems",
+        "language": "javaScript",
+        "jsCode": "// Why Code: picks the team_locale message table for a refused approval. Generated from src/nodes/approval-note.ts by pnpm run build:workflows; edit the source.\n\"use strict\";\nvar __node = (() => {\n  var __defProp = (obj, key, desc) => { obj[key] = desc && \"get\" in desc ? desc.get() : desc.value; return obj; };\n  var __getOwnPropDesc = Object.getOwnPropertyDescriptor;\n  var __getOwnPropNames = Object.getOwnPropertyNames;\n  var __hasOwnProp = Object.prototype.hasOwnProperty;\n  var __export = (target, all) => {\n    for (var name in all)\n      __defProp(target, name, { get: all[name], enumerable: true });\n  };\n  var __copyProps = (to, from, except, desc) => {\n    if (from && typeof from === \"object\" || typeof from === \"function\") {\n      for (let key of __getOwnPropNames(from))\n        if (!__hasOwnProp.call(to, key) && key !== except)\n          __defProp(to, key, { get: () => from[key], enumerable: !(desc = __getOwnPropDesc(from, key)) || desc.enumerable });\n    }\n    return to;\n  };\n  var __toCommonJS = (mod) => __copyProps(__defProp({}, \"__esModule\", { value: true }), mod);\n\n  // src/nodes/approval-note.ts\n  var approval_note_exports = {};\n  __export(approval_note_exports, {\n    run: () => run\n  });\n\n  // src/lib/strings.ts\n  var APPROVAL_STRINGS = {\n    en: {\n      rejected: \"Not approved: {reasons}. Fix the cells and keep your name in approved_by.\",\n      badId: \"Not approved: invoice_id must be the number this pipeline wrote.\",\n      badApprover: \"Not approved: write your name, up to 100 characters, in approved_by.\",\n      duplicate_key: \"Not approved: another invoice already has this supplier NIT and invoice number.\",\n      not_in_review: \"Not approved: this invoice is not in review.\",\n      not_found: \"Not approved: no saved invoice has this invoice_id.\",\n      row_mismatch: \"Not approved: invoice_id and email_id don't belong to the same invoice. Don't edit those two columns.\"\n    },\n    es: {\n      rejected: \"No se aprobó: {reasons}. Corrija las celdas y deje su nombre en approved_by.\",\n      badId: \"No se aprobó: invoice_id debe ser el número que escribió el sistema.\",\n      badApprover: \"No se aprobó: escriba su nombre, de hasta 100 caracteres, en approved_by.\",\n      duplicate_key: \"No se aprobó: otra factura ya tiene este NIT de proveedor y número de factura.\",\n      not_in_review: \"No se aprobó: esta factura no está en revisión.\",\n      not_found: \"No se aprobó: ninguna factura guardada tiene este invoice_id.\",\n      row_mismatch: \"No se aprobó: invoice_id y email_id no corresponden a la misma factura. No edite esas dos columnas.\"\n    }\n  };\n\n  // src/nodes/approval-note.ts\n  function run(input) {\n    const t = APPROVAL_STRINGS[input.team_locale ?? \"en\"];\n    return { invoice_id: input.invoice_id, email_id: input.email_id, note: t[input.result] };\n  }\n  return __toCommonJS(approval_note_exports);\n})();\nreturn [{ json: __node.run($input.first().json) }];\n"
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000012",
+      "name": "Write approval note",
+      "type": "n8n-nodes-base.googleSheets",
+      "typeVersion": 4.7,
+      "position": [
+        1380,
+        440
+      ],
+      "retryOnFail": true,
+      "maxTries": 3,
+      "waitBetweenTries": 1000,
+      "credentials": {
+        "googleSheetsOAuth2Api": {
+          "id": "mgpCredGSheets01",
+          "name": "Google Sheets"
+        }
+      },
+      "parameters": {
+        "resource": "sheet",
+        "operation": "update",
+        "documentId": {
+          "__rl": true,
+          "mode": "id",
+          "value": "={{ $('When called').first().json.config.google.spreadsheet_id }}"
+        },
+        "sheetName": {
+          "__rl": true,
+          "mode": "name",
+          "value": "={{ $('When called').first().json.config.google.invoices_tab }}"
+        },
+        "columns": {
+          "mappingMode": "defineBelow",
+          "value": {
+            "invoice_id": "={{ $json.invoice_id }}",
+            "email_id": "={{ $json.email_id }}",
+            "approval_note": "={{ $json.note }}"
+          },
+          "matchingColumns": [
+            "invoice_id",
+            "email_id"
+          ],
+          "schema": [
+            {
+              "id": "invoice_id",
+              "displayName": "invoice_id",
+              "required": false,
+              "defaultMatch": true,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "email_id",
+              "displayName": "email_id",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            },
+            {
+              "id": "approval_note",
+              "displayName": "approval_note",
+              "required": false,
+              "defaultMatch": false,
+              "display": true,
+              "type": "string",
+              "canBeUsedToMatch": true
+            }
+          ],
+          "attemptToConvertTypes": false,
+          "convertFieldsToString": false
+        },
+        "options": {
+          "cellFormat": "RAW"
+        }
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000013",
+      "name": "Sticky Note",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        -440,
+        100
+      ],
+      "parameters": {
+        "width": 760,
+        "height": 150,
+        "content": "## Check the row\nNormalizes the corrected cells like an extracted invoice and requires every header field. A refused row gets its reasons in `approval_note` and nothing else changes."
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000014",
+      "name": "Sticky Note1",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        340,
+        -60
+      ],
+      "parameters": {
+        "width": 1300,
+        "height": 120,
+        "content": "## Approve once\nSaves the corrected fields and marks the invoice ok in one statement. A replay or an overlapping poll reports already_approved and changes nothing in Postgres; the sheet row is then rewritten with the values Postgres holds, and the labels are set again. The Review label stays while another attachment of the email still needs a person."
+      }
+    },
+    {
+      "id": "b0000000-0000-4000-8000-000000000015",
+      "name": "Sticky Note2",
+      "type": "n8n-nodes-base.stickyNote",
+      "typeVersion": 1,
+      "position": [
+        860,
+        520
+      ],
+      "parameters": {
+        "width": 700,
+        "height": 120,
+        "content": "## Explain a refusal\nA duplicate key, an invoice no longer in review, or an unknown id is written to `approval_note`."
+      }
+    }
+  ],
+  "connections": {
+    "When called": {
+      "main": [
+        [
+          {
+            "node": "Shape approval input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape approval input": {
+      "main": [
+        [
+          {
+            "node": "Check approval",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Check approval": {
+      "main": [
+        [
+          {
+            "node": "Approval valid?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approval valid?": {
+      "main": [
+        [
+          {
+            "node": "Save approval",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Write approval note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Save approval": {
+      "main": [
+        [
+          {
+            "node": "Approved?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Approved?": {
+      "main": [
+        [
+          {
+            "node": "Mark row approved",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Shape note input",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Mark row approved": {
+      "main": [
+        [
+          {
+            "node": "Label as processed",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Label as processed": {
+      "main": [
+        [
+          {
+            "node": "Review still needed?",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Review still needed?": {
+      "main": [
+        [],
+        [
+          {
+            "node": "Remove review label",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Shape note input": {
+      "main": [
+        [
+          {
+            "node": "Render approval note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Render approval note": {
+      "main": [
+        [
+          {
+            "node": "Write approval note",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1",
+    "timezone": "America/Bogota",
+    "callerPolicy": "workflowsFromSameOwner",
+    "errorWorkflow": "mgpErrorHandler1",
+    "saveManualExecutions": false
+  },
+  "meta": null,
+  "nodeGroups": [],
+  "sourceWorkflowId": null,
+  "tags": [],
+  "versionMetadata": {
+    "name": null,
+    "description": null
+  }
+}
