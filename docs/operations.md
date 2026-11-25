@@ -55,6 +55,11 @@ A reviewer approves from the `Invoices` tab: fix the wrong cells, leave `invoice
 
 - `pnpm run scenarios -- --since <YYYY-MM-DDTHH:MM:SSZ>`: compares the six samples against `scripts/sql/scenario-report.sql`, run on stdin through `docker compose exec -T postgres psql -U <APP_DB_USER's value> -d app -At` (the value is passed as its own argument, never through a shell) with `since` bound by `\bind`. It rejects a malformed `--since` before building any psql input, prints `| file | result | details |`, exits 1 on any `FAIL`, and compares only a file's earliest row, reporting each extra row as its own `FAIL` (`<file>: N extra row`).
 - `pnpm run cost -- --since <ISO>`: pages through `extract-invoice`'s executions from the n8n public API (`GET /api/v1/executions`, header `X-N8N-API-KEY`) back to `--since`, and prints a Markdown table of invoice counts, retries, and average tokens and cost per extraction path, priced from `src/lib/pricing.ts`. Without `N8N_API_KEY`, it exits 1 with `N8N_API_KEY is not set (Settings → n8n API)`.
+- `pnpm run eval`: the scored evaluation set. It runs the twelve extractable samples (`samples/` without the duplicate copy, and the seven in `samples/eval/`) through the real `extract-invoice` over the dev harness, with the default model and effort and `validation` from `config/config.json`.
+  - **Needs:** the stack up, `config/config.json`, and `ANTHROPIC_API_KEY` in `.env`. It checks the last two before any call and names what is missing. It calls the model and spends real money, so CI and the gate never run it; its scoring is unit-tested against recorded values. It writes nothing to Postgres, Drive or Sheets and never prints a config value.
+  - **Output:** `| file | expected | got | reasons | fields right | lines |`, a `Field accuracy:` line per scored field, and `Run cost (estimated): USD x.xxxx`.
+  - **Exit code:** 1 when any sample's status differs from the expected one, when an expected review reason is missing (so a review for the wrong reason fails), or when a sample's call failed. A failed call is listed as `error` and the run continues, so the report still covers every call already paid for.
+  - **Before it:** regenerate the samples with today's date, as the README's row 32 says.
 
 ## Database commands
 
